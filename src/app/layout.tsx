@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google"; // Modern sans-serif typical of SaaS
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar"; // Adjusted to use relative/alias
+import ChatbotWidget from "@/components/ChatbotWidget";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,6 +35,7 @@ export default function RootLayout({
               </div>
             </main>
           </div>
+          <ChatbotWidget />
         </div>
       </body>
     </html>

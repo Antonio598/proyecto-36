@@ -128,7 +128,7 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-8 h-full pb-10">
       {/* Header Premium */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 py-10 px-8 text-white shadow-xl">
+      <div className="relative shrink-0 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 py-10 px-8 text-white shadow-xl">
         <div className="relative z-10 flex sm:items-center justify-between flex-col sm:flex-row gap-6">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white flex items-center gap-3 pb-2">
