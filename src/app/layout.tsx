@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google"; // Modern sans-serif typical of SaaS
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar"; // Adjusted to use relative/alias
+import { Sidebar } from "@/components/Sidebar";
 import ChatbotWidget from "@/components/ChatbotWidget";
+import AuthGuard from "@/components/AuthGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,23 +22,20 @@ export default function RootLayout({
       <body
         className={`${inter.className} h-full antialiased font-sans text-slate-800`}
       >
-        <div className="flex h-screen w-full bg-gray-50">
-          {/* Sidebar Area */}
-          <div className="hidden md:flex flex-col z-10 w-64 bg-white border-r border-gray-200">
-             <Sidebar />
-          </div>
-
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <main className="flex-1 overflow-y-auto w-full p-6 lg:p-10">
-              <div className="mx-auto max-w-7xl h-full">
-                {children}
-              </div>
-            </main>
-          </div>
-          <ChatbotWidget />
-        </div>
+        <AuthGuard>
+          <AppShell>{children}</AppShell>
+        </AuthGuard>
       </body>
     </html>
   );
 }
+
+/** Inner shell that shows sidebar + chatbot only on authenticated pages */
+function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <AppShellClient>{children}</AppShellClient>
+  );
+}
+
+// We need a client component to read pathname
+import AppShellClient from "@/components/AppShellClient";

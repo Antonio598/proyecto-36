@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { TextStreamChatTransport } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, User, ChevronDown, Stethoscope } from 'lucide-react';
 
@@ -11,7 +11,7 @@ export default function ChatbotWidget() {
   const [inputValue, setInputValue] = useState('');
 
   const { messages, sendMessage, status } = useChat({
-    transport: new TextStreamChatTransport({ api: '/api/chat' }),
+    transport: new DefaultChatTransport({ api: '/api/chat' }),
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
