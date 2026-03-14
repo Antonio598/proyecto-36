@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { usePathname, useRouter } from 'next/navigation';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -11,30 +10,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setAuthenticated(true);
-      } else if (pathname !== '/login') {
-        router.replace('/login');
-      }
-      setChecked(true);
-    });
+    // Check localStorage for session
+    const session = localStorage.getItem('med_session');
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setAuthenticated(true);
-      } else {
-        setAuthenticated(false);
-        if (pathname !== '/login') {
-          router.replace('/login');
-        }
-      }
-    });
+    if (session) {
+      setAuthenticated(true);
+    } else if (pathname !== '/login') {
+      router.replace('/login');
+    }
 
-    return () => { listener.subscription.unsubscribe(); };
+    setChecked(true);
   }, [pathname, router]);
 
-  // Still checking — show nothing
+  // Still checking
   if (!checked) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-gray-50">
@@ -43,12 +31,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // On login page, always render children (the login form)
+  // On login page, always render
   if (pathname === '/login') {
     return <>{children}</>;
   }
 
-  // Not authenticated and not on login page → will redirect (handled in useEffect)
+  // Not authenticated → redirect handled above
   if (!authenticated) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-gray-50">

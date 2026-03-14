@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Stethoscope, Mail, Lock, Eye, EyeOff, ArrowRight, UserPlus, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
@@ -14,50 +13,61 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setSuccess('');
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
-    }
-
-    window.location.href = '/';
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (password !== confirmPassword) {
+    if (isRegister && password !== confirmPassword) {
       setError('Las contraseñas no coinciden.');
       return;
     }
-    if (password.length < 6) {
+    if (isRegister && password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({ email, password });
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          action: isRegister ? 'register' : 'login',
+        }),
+      });
 
-    if (error) {
-      setError(error.message);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Error desconocido.');
+        setLoading(false);
+        return;
+      }
+
+      if (isRegister) {
+        setSuccess('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.');
+        setIsRegister(false);
+        setPassword('');
+        setConfirmPassword('');
+        setLoading(false);
+        return;
+      }
+
+      // Save session token for auth guard
+      if (data.session?.access_token) {
+        localStorage.setItem('med_session', JSON.stringify(data.session));
+        localStorage.setItem('med_user', JSON.stringify(data.user));
+      }
+
+      window.location.href = '/';
+    } catch {
+      setError('Error de conexión. Intenta de nuevo.');
       setLoading(false);
-      return;
     }
-
-    setSuccess('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.');
-    setIsRegister(false);
-    setPassword('');
-    setConfirmPassword('');
-    setLoading(false);
   };
 
   return (
@@ -92,7 +102,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={isRegister ? handleRegister : handleLogin} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">

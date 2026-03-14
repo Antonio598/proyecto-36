@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { User, Mail, Lock, Save, LogOut, ShieldCheck, Building2, Eye, EyeOff } from 'lucide-react';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   // Password change
@@ -21,10 +19,12 @@ export default function SettingsPage() {
   const [clinicName, setClinicName] = useState('Mi Clínica');
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setLoading(false);
-    });
+    // Read user from localStorage (saved during login)
+    const storedUser = localStorage.getItem('med_user');
+    if (storedUser) {
+      try { setUser(JSON.parse(storedUser)); } catch {}
+    }
+    setLoading(false);
   }, []);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -42,20 +42,35 @@ export default function SettingsPage() {
     }
 
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    setSaving(false);
-
-    if (error) {
-      setPasswordErr(error.message);
-    } else {
-      setPasswordMsg('¡Contraseña actualizada correctamente!');
-      setNewPassword('');
-      setConfirmPassword('');
+    try {
+      const session = JSON.parse(localStorage.getItem('med_session') || '{}');
+      const res = await fetch('/api/auth/password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken: session.access_token,
+          newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPasswordErr(data.error || 'Error al cambiar contraseña.');
+      } else {
+        setPasswordMsg('¡Contraseña actualizada correctamente!');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } catch {
+      setPasswordErr('Error de conexión.');
     }
+    setSaving(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    localStorage.removeItem('med_session');
+    localStorage.removeItem('med_user');
     window.location.href = '/login';
   };
 
