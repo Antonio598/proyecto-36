@@ -12,7 +12,7 @@ RUN npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder
-RUN apk add --no-cache openssl
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -32,7 +32,7 @@ ENV NODE_TLS_REJECT_UNAUTHORIZED=$NODE_TLS_REJECT_UNAUTHORIZED
 
 # Generate Prisma Client & Build Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npx prisma generate
+RUN ./node_modules/.bin/prisma generate --schema=./prisma/schema.prisma
 RUN npm run build
 
 # Production image, copy all the files and run next
