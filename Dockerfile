@@ -1,8 +1,7 @@
-FROM node:20-slim AS base
+FROM node:20 AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-# Debian needs build-essential or just openssl for Prisma
 RUN apt-get update && apt-get install -y openssl libssl-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
@@ -59,7 +58,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copiamos Prisma para que el cliente funcione en la imagen standalone
+# Prisma 7 necesita el config para funcionar en runtime también si se usa npx prisma commands
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
@@ -70,4 +71,5 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Run prisma db push at startup to sync schema, then start the app
+# En Prisma 7 npx prisma db push leerá la config de prisma.config.ts
 CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss 2>&1 || true && node server.js"]
