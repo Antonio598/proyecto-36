@@ -18,7 +18,7 @@ export default function ApiDocsPage() {
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
         <div className="prose prose-blue max-w-none">
           <p className="text-gray-600 mb-6">
-            Todos los recursos se listan bajo la ruta base de tu servidor (ej. <code>http://localhost:3000</code>).
+            Todos los recursos se listan bajo la ruta base de tu servidor: <code>https://my-funnel-proyecto-36.d3xtpr.easypanel.host</code>.
             <br />
             <strong>IMPORTANTE:</strong> Estas APIs utilizan el número de teléfono (<code>phone</code>) como identificador principal para facilitar flujos de mensajería externa sin requerir IDs de base de datos complejos.
           </p>
@@ -59,6 +59,22 @@ export default function ApiDocsPage() {
           </h3>
 
           <div className="space-y-6">
+            <div className="bg-blue-50/30 p-4 rounded-lg border border-blue-100">
+              <h4 className="font-medium text-purple-800 flex items-center gap-2 mb-2">
+                <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">POST</span>
+                /api/n8n/patients
+              </h4>
+              <p className="text-sm text-gray-600 mb-3">Crea un nuevo paciente de forma directa en el catálogo (ideal antes de agendar o tras enviar un formulario inicial).</p>
+              <pre className="bg-gray-900 text-gray-100 p-3 rounded-md text-sm overflow-x-auto">
+{`{
+  "fullName": "Maria Lopez",
+  "phone": "5559876543",
+  "email": "maria@ejemplo.com", // opcional
+  "notes": "Paciente referida" // opcional
+}`}
+              </pre>
+            </div>
+
             <div className="bg-blue-50/30 p-4 rounded-lg border border-blue-100">
               <h4 className="font-medium text-purple-800 flex items-center gap-2 mb-2">
                 <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">POST</span>
