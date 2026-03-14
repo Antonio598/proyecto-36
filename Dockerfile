@@ -31,8 +31,9 @@ ENV GOOGLE_GENERATIVE_AI_API_KEY=$GOOGLE_GENERATIVE_AI_API_KEY
 ENV NODE_TLS_REJECT_UNAUTHORIZED=$NODE_TLS_REJECT_UNAUTHORIZED
 
 # Generate Prisma Client & Build Next.js
+# We provide a dummy DATABASE_URL during generate to satisfy Prisma's validation if needed
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN ./node_modules/.bin/prisma generate --schema=./prisma/schema.prisma
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate --schema=./prisma/schema.prisma
 RUN npm run build
 
 # Production image, copy all the files and run next
