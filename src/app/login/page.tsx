@@ -43,7 +43,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Error desconocido.');
+        setError(data.detail ? `${data.error} — ${data.detail}` : data.error || 'Error desconocido.');
         setLoading(false);
         return;
       }

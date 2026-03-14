@@ -12,7 +12,17 @@ export async function POST(req: Request) {
 
     // ─── REGISTER ───
     if (action === 'register') {
-      const existing = await prisma.user.findUnique({ where: { email } });
+      // Check if user already exists
+      let existing;
+      try {
+        existing = await prisma.user.findUnique({ where: { email } });
+      } catch (dbErr: any) {
+        return NextResponse.json({
+          error: 'Error de base de datos al buscar usuario.',
+          detail: dbErr.message,
+        }, { status: 500 });
+      }
+
       if (existing) {
         return NextResponse.json({ error: 'Ya existe una cuenta con ese correo.' }, { status: 400 });
       }
@@ -22,14 +32,23 @@ export async function POST(req: Request) {
       }
 
       const passwordHash = await bcrypt.hash(password, 10);
-      const user = await prisma.user.create({
-        data: {
-          email,
-          name: name || email.split('@')[0],
-          passwordHash,
-        },
-        select: { id: true, email: true, name: true, role: true, createdAt: true },
-      });
+
+      let user;
+      try {
+        user = await prisma.user.create({
+          data: {
+            email,
+            name: name || email.split('@')[0],
+            passwordHash,
+          },
+          select: { id: true, email: true, name: true, role: true, createdAt: true },
+        });
+      } catch (createErr: any) {
+        return NextResponse.json({
+          error: 'Error de base de datos al crear usuario.',
+          detail: createErr.message,
+        }, { status: 500 });
+      }
 
       return NextResponse.json({
         success: true,
@@ -39,10 +58,18 @@ export async function POST(req: Request) {
     }
 
     // ─── LOGIN ───
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, email: true, name: true, role: true, passwordHash: true, createdAt: true },
-    });
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, email: true, name: true, role: true, passwordHash: true, createdAt: true },
+      });
+    } catch (dbErr: any) {
+      return NextResponse.json({
+        error: 'Error de base de datos al buscar usuario.',
+        detail: dbErr.message,
+      }, { status: 500 });
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Credenciales incorrectas.' }, { status: 401 });
@@ -61,6 +88,10 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error('Auth API error:', err);
-    return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
+    return NextResponse.json({
+      error: 'Error interno del servidor.',
+      detail: err.message,
+      stack: err.stack?.split('\n').slice(0, 3).join(' | '),
+    }, { status: 500 });
   }
 }
