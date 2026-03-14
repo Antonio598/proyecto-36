@@ -1,6 +1,16 @@
 import { PrismaClient } from '@prisma/client'
 
 const prismaClientSingleton = () => {
+  const url = process.env.DATABASE_URL;
+  
+  if (!url) {
+    console.error('❌ FATAL: DATABASE_URL is not defined in process.env');
+  } else {
+    // Log partial URL for debugging (safe, masks password)
+    const maskedUrl = url.replace(/:([^@]+)@/, ':****@');
+    console.log(`📡 Prisma initializing with URL: ${maskedUrl}`);
+  }
+
   return new PrismaClient();
 }
 
