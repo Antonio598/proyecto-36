@@ -40,6 +40,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# Allow self-signed SSL certs (needed for self-hosted Supabase)
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
