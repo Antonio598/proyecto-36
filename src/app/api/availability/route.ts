@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { parseISO, format, addMinutes, startOfDay, endOfDay, isBefore, isAfter, isEqual } from 'date-fns';
@@ -119,3 +120,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
