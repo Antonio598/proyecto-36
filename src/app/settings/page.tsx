@@ -43,14 +43,14 @@ export default function SettingsPage() {
 
     setSaving(true);
     try {
-      const session = JSON.parse(localStorage.getItem('med_session') || '{}');
+      const user = JSON.parse(localStorage.getItem('med_user') || '{}');
       const res = await fetch('/api/auth/password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          accessToken: session.access_token,
+          userId: user.id,
           newPassword,
         }),
       });
