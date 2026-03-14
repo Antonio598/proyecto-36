@@ -11,7 +11,15 @@ const prismaClientSingleton = () => {
     console.log(`📡 Prisma initializing with URL: ${maskedUrl}`);
   }
 
-  return new PrismaClient();
+  // @ts-ignore - Prisma 7 might have different type expectations for runtime URL injection
+  return new PrismaClient({
+    datasourceUrl: url,
+    datasources: {
+      db: {
+        url: url
+      }
+    }
+  });
 }
 
 declare const globalThis: {
