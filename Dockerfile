@@ -12,9 +12,21 @@ RUN npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder
+RUN apk add --no-cache openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Build-time args (NEXT_PUBLIC_* get inlined into the client bundle)
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG DATABASE_URL
+ARG GOOGLE_GENERATIVE_AI_API_KEY
+
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV DATABASE_URL=$DATABASE_URL
+ENV GOOGLE_GENERATIVE_AI_API_KEY=$GOOGLE_GENERATIVE_AI_API_KEY
 
 # Generate Prisma Client & Build Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
