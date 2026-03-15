@@ -322,23 +322,23 @@ export default function ServicesPage() {
               </div>}
               <div>
                 <label className="block text-sm font-bold text-black mb-1">Nombre del Servicio *</label>
-                <input type="text" required className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={serviceForm.name} onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })} />
+                <input type="text" required className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={serviceForm.name} onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-black mb-1">Duración (minutos) *</label>
-                  <input type="number" required min="5" step="5" className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={serviceForm.durationMinutes} onChange={(e) => setServiceForm({ ...serviceForm, durationMinutes: Number(e.target.value) })} />
+                  <input type="number" required min="5" step="5" className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={serviceForm.durationMinutes} onChange={(e) => setServiceForm({ ...serviceForm, durationMinutes: Number(e.target.value) })} />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-black mb-1">Precio Base *</label>
-                  <input type="number" required min="0" step="0.01" className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={serviceForm.price} onChange={(e) => setServiceForm({ ...serviceForm, price: Number(e.target.value) })} />
+                  <input type="number" required min="0" step="0.01" className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={serviceForm.price} onChange={(e) => setServiceForm({ ...serviceForm, price: Number(e.target.value) })} />
                 </div>
               </div>
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <label className="block text-sm font-bold text-black mb-1">Color Identificador</label>
                   <div className="flex items-center gap-3">
-                    <input type="color" className="block w-20 h-10 rounded-md border border-gray-300 shadow-sm cursor-pointer p-1" value={serviceForm.colorCode} onChange={(e) => setServiceForm({ ...serviceForm, colorCode: e.target.value })} />
+                    <input type="color" className="block w-20 h-10 rounded-md border border-gray-300 bg-white shadow-sm cursor-pointer p-1" value={serviceForm.colorCode} onChange={(e) => setServiceForm({ ...serviceForm, colorCode: e.target.value })} />
                     <span className="text-xs text-gray-500 font-mono">{serviceForm.colorCode}</span>
                   </div>
                 </div>
@@ -381,16 +381,16 @@ export default function ServicesPage() {
               </div>}
               <div>
                 <label className="block text-sm font-bold text-black mb-1">Nombre del Producto *</label>
-                <input type="text" required className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2.5 shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-black font-medium" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} />
+                <input type="text" required className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-black font-medium" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-black mb-1">Precio *</label>
-                  <input type="number" required min="0" step="0.01" className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2.5 shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-black font-medium" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })} />
+                  <input type="number" required min="0" step="0.01" className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-black font-medium" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })} />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-black mb-1">Stock Inicial *</label>
-                  <input type="number" required min="0" step="1" className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2.5 shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-black font-medium" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: Number(e.target.value) })} />
+                  <input type="number" required min="0" step="1" className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-black font-medium" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: Number(e.target.value) })} />
                 </div>
               </div>
               <div>

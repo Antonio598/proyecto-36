@@ -1,0 +1,98 @@
+﻿
+> temp-app@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+node.exe : 
+En C:\Program Files\nodejs\npm.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+> Build error occurred
+Error: Turbopack build failed with 2 errors:
+./src/app/services/page.tsx:1:20
+Ecmascript file had an error
+[0m[31m[1m>[22m[39m[90m 1 |[39m 
+[36mimport[39m { useState[33m,[39m 
+useEffect } [36mfrom[39m 
+[32m'react'[39m[33m;[39m
+ [90m   |[39m                    [31m[1m
+^[22m[39m[31m[1m^[22m[39m[31m[1m^[2
+2m[39m[31m[1m^[22m[39m[31m[1m^[22m[
+39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 2 |[39m [36mimport[39m { 
+[33mPlus[39m[33m,[39m 
+[33mPackage[39m[33m,[39m 
+[33mStethoscope[39m[33m,[39m 
+[33mTag[39m[33m,[39m 
+[33mX[39m[33m,[39m 
+[33mEdit2[39m[33m,[39m 
+[33mTrash2[39m[33m,[39m 
+[33mAlertCircle[39m } [36mfrom[39m 
+[32m'lucide-react'[39m[33m;[39m
+ [90m 3 |[39m
+ [90m 4 |[39m [36minterface[39m 
+[33mService[39m {[0m
+
+You're importing a component that needs 
+`useEffect`. This React Hook only works in 
+a Client Component. To fix, mark the file 
+(or its parent) with the `"use client"` 
+directive.
+
+ Learn more: https://nextjs.org/docs/app/api
+-reference/directives/use-client
+
+
+
+
+./src/app/services/page.tsx:1:10
+Ecmascript file had an error
+[0m[31m[1m>[22m[39m[90m 1 |[39m 
+[36mimport[39m { useState[33m,[39m 
+useEffect } [36mfrom[39m 
+[32m'react'[39m[33m;[39m
+ [90m   |[39m          [31m[1m^[22m[39
+m[31m[1m^[22m[39m[31m[1m^[22m[39m[3
+1m[1m^[22m[39m[31m[1m^[22m[39m[31m[
+1m^[22m[39m[31m[1m^[22m[39m[31m[1m^
+[22m[39m
+ [90m 2 |[39m [36mimport[39m { 
+[33mPlus[39m[33m,[39m 
+[33mPackage[39m[33m,[39m 
+[33mStethoscope[39m[33m,[39m 
+[33mTag[39m[33m,[39m 
+[33mX[39m[33m,[39m 
+[33mEdit2[39m[33m,[39m 
+[33mTrash2[39m[33m,[39m 
+[33mAlertCircle[39m } [36mfrom[39m 
+[32m'lucide-react'[39m[33m;[39m
+ [90m 3 |[39m
+ [90m 4 |[39m [36minterface[39m 
+[33mService[39m {[0m
+
+You're importing a component that needs 
+`useState`. This React Hook only works in a 
+Client Component. To fix, mark the file (or 
+its parent) with the `"use client"` 
+directive.
+
+ Learn more: https://nextjs.org/docs/app/api
+-reference/directives/use-client
+
+
+
+
+    at <unknown> 
+(./src/app/services/page.tsx:1:20)
+    at <unknown> 
+(./src/app/services/page.tsx:1:10)

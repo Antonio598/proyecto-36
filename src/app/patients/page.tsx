@@ -105,7 +105,7 @@ export default function PatientsPage() {
           type="text"
           name="search"
           id="search"
-          className="block w-full border-0 py-1.5 pl-3 pr-3 text-black font-bold placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+          className="block w-full border-0 py-1.5 pl-3 pr-3 text-black font-bold placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6 bg-white"
           placeholder="Buscar por nombre o número de teléfono..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -206,46 +206,46 @@ export default function PatientsPage() {
               )}
               
               <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Nombre Completo *</label>
+                <label htmlFor="fullName" className="block text-sm font-bold text-black mb-1">Nombre Completo *</label>
                 <input
                   type="text"
                   id="fullName"
                   required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-black font-medium sm:text-sm"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 />
               </div>
 
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Teléfono (WhatsApp) *</label>
+                <label htmlFor="phone" className="block text-sm font-bold text-black mb-1">Teléfono (WhatsApp) *</label>
                 <input
                   type="text"
                   id="phone"
                   required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-black font-medium sm:text-sm"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+                <label htmlFor="email" className="block text-sm font-bold text-black mb-1">Correo Electrónico</label>
                 <input
                   type="email"
                   id="email"
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-black font-medium sm:text-sm"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
 
               <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notas Adicionales</label>
+                <label htmlFor="notes" className="block text-sm font-bold text-black mb-1">Notas Adicionales</label>
                 <textarea
                   id="notes"
                   rows={3}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-black font-medium sm:text-sm"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 />
