@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Stethoscope, Mail, Lock, Eye, EyeOff, ArrowRight, UserPlus, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
@@ -12,6 +12,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [checked, setChecked] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const session = localStorage.getItem('med_session');
+    if (session) {
+      window.location.href = '/';
+    } else {
+      setChecked(true);
+    }
+  }, []);
+
+  if (!checked) return null; // Wait for session check before rendering login form
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,9 +70,9 @@ export default function LoginPage() {
         return;
       }
 
-      // Save session token for auth guard
-      if (data.session?.access_token) {
-        localStorage.setItem('med_session', JSON.stringify(data.session));
+      // Save session and user info for auth guard
+      if (data.success) {
+        localStorage.setItem('med_session', 'authenticated');
         localStorage.setItem('med_user', JSON.stringify(data.user));
       }
 
