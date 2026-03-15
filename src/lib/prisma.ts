@@ -13,11 +13,7 @@ const prismaClientSingleton = () => {
 
   return new PrismaClient({
     // @ts-ignore
-    datasources: {
-      db: {
-        url: url
-      }
-    }
+    datasourceUrl: url,
   });
 }
 
