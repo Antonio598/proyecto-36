@@ -9,32 +9,17 @@ export async function GET(
   try {
     const { patientId } = await params;
 
-    const history = await prisma.appointment.findMany({
+    const appointments = await prisma.appointment.findMany({
       where: { patientId },
       include: {
-        service: {
-          select: { name: true, price: true, colorCode: true }
-        },
-        professional: {
-          select: { name: true }
-        }
+        service: true,
       },
-      orderBy: { startTime: 'desc' },
+      orderBy: {
+        startTime: 'desc',
+      },
     });
 
-    // Calculate Lifetime Value
-    const totalSpent = history
-      .filter((appt: any) => appt.status === 'COMPLETED' || appt.status === 'CONFIRMED')
-      .reduce((sum: number, appt: any) => sum + (appt.totalPrice || 0), 0);
-
-    return NextResponse.json({
-      history,
-      summary: {
-        totalAppointments: history.length,
-        totalSpent
-      }
-    });
-
+    return NextResponse.json(appointments);
   } catch (error) {
     console.error('Error fetching patient history:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -82,8 +82,8 @@ export default function PatientsPage() {
     <div className="flex flex-col gap-8 h-full">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Directorio de Pacientes</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <h2 className="text-2xl font-black tracking-tight text-black">Directorio de Pacientes</h2>
+          <p className="mt-1 text-sm font-bold text-black">
             Gestiona los expedientes y contacta a tus pacientes. Búsqueda rápida por teléfono.
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function PatientsPage() {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 w-full sm:w-auto transition-colors"
+            className="flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-black text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 w-full sm:w-auto transition-colors cursor-pointer"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             Nuevo Paciente
@@ -100,12 +100,12 @@ export default function PatientsPage() {
       </div>
 
       <div className="flex items-center px-4 py-3 bg-white border border-gray-200 rounded-lg shadow-sm">
-        <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
+        <Search className="h-5 w-5 text-black" aria-hidden="true" />
         <input
           type="text"
           name="search"
           id="search"
-          className="block w-full border-0 py-1.5 pl-3 pr-3 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+          className="block w-full border-0 py-1.5 pl-3 pr-3 text-black font-bold placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
           placeholder="Buscar por nombre o número de teléfono..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -118,24 +118,24 @@ export default function PatientsPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-black text-black sm:pl-6">
                     Paciente
                   </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-black text-black">
                     Contacto
                   </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-black text-black">
                     Última Visita / Registro
                   </th>
-                  <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                    <span className="sr-only">Acciones</span>
+                  <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6 text-black font-black text-sm">
+                    Acciones
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-sm text-gray-500">
+                    <td colSpan={4} className="py-12 text-center text-sm text-black font-bold">
                       Cargando pacientes...
                     </td>
                   </tr>
@@ -150,30 +150,30 @@ export default function PatientsPage() {
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="font-medium text-gray-900">{patient.fullName}</div>
-                            <div className="text-gray-500">{patient.id.substring(0, 8)}</div>
+                            <div className="font-black text-black">{patient.fullName}</div>
+                            <div className="text-black font-medium opacity-60">{patient.id.substring(0, 8)}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <div className="text-gray-900 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-400"/> {patient.phone}</div>
-                        <div className="text-gray-500 mt-0.5">{patient.email || '-'}</div>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-black">
+                        <div className="text-black font-bold flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-blue-600"/> {patient.phone}</div>
+                        <div className="text-black font-medium mt-0.5 opacity-70">{patient.email || '-'}</div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                         <div className="flex items-center gap-1.5 text-gray-600">
-                            <Clock className="w-4 h-4 text-gray-400"/> {new Date(patient.createdAt).toLocaleDateString()}
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-black">
+                         <div className="flex items-center gap-1.5 text-black font-bold">
+                            <Clock className="w-4 h-4 text-blue-600"/> {new Date(patient.createdAt).toLocaleDateString()}
                          </div>
                       </td>
-                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <Link href={`/patients/${patient.id}`} className="text-blue-600 hover:text-blue-900 font-semibold">
-                          Ver Historial<span className="sr-only">, {patient.fullName}</span>
+                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-bold sm:pr-6">
+                        <Link href={`/patients/${patient.id}`} className="text-blue-700 hover:text-blue-900 font-black bg-blue-50 px-3 py-1.5 rounded-md transition-colors">
+                          Ver Historial
                         </Link>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-sm text-gray-500">
+                    <td colSpan={4} className="py-12 text-center text-sm text-black font-bold">
                       No se encontraron pacientes.
                     </td>
                   </tr>
