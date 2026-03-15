@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Plus, Package, Stethoscope, Tag, X, Edit2, Trash2, AlertCircle } from 'lucide-react';
 
