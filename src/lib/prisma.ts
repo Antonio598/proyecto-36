@@ -1,3 +1,5 @@
+import { Pool } from 'pg'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
 const prismaClientSingleton = () => {
@@ -5,13 +7,17 @@ const prismaClientSingleton = () => {
   
   if (!url) {
     console.error('❌ FATAL: DATABASE_URL is not defined in process.env');
-  } else {
-    // Log partial URL for debugging (safe, masks password)
-    const maskedUrl = url.replace(/:([^@]+)@/, ':****@');
-    console.log(`📡 Prisma initializing with URL: ${maskedUrl}`);
+    return new PrismaClient();
   }
 
-  return new PrismaClient();
+  // Log partial URL for debugging
+  const maskedUrl = url.replace(/:([^@]+)@/, ':****@');
+  console.log(`📡 Prisma 7 initializing with Driver Adapter (pg) and URL: ${maskedUrl}`);
+
+  const pool = new Pool({ connectionString: url });
+  const adapter = new PrismaPg(pool);
+  
+  return new PrismaClient({ adapter });
 }
 
 declare const globalThis: {
