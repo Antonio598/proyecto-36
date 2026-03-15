@@ -11,10 +11,7 @@ const prismaClientSingleton = () => {
     console.log(`📡 Prisma initializing with URL: ${maskedUrl}`);
   }
 
-  return new PrismaClient({
-    // @ts-ignore
-    datasourceUrl: url,
-  });
+  return new PrismaClient();
 }
 
 declare const globalThis: {
