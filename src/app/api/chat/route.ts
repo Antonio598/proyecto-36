@@ -121,5 +121,5 @@ export async function POST(req: Request) {
   });
 
   // @ts-ignore - TS complains about tool return types containing Date objects, but it serializes fine.
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
