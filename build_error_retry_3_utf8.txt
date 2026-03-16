@@ -1,0 +1,10 @@
+﻿
+> temp-app@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 12.1s
+  Running TypeScript ...

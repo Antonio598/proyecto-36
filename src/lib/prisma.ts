@@ -20,20 +20,12 @@ const prismaClientSingleton = () => {
   return new PrismaClient({ adapter });
 }
 
-declare const globalThis: {
-  prismaGlobal: ReturnType<typeof prismaClientSingleton>;
-} & typeof global;
+const globalForPrisma = globalThis as unknown as {
+  prisma: ReturnType<typeof prismaClientSingleton> | undefined;
+};
 
-const prisma = new Proxy({} as ReturnType<typeof prismaClientSingleton>, {
-  get(target, prop) {
-    if (!globalThis.prismaGlobal) {
-      globalThis.prismaGlobal = prismaClientSingleton();
-    }
-    // @ts-ignore
-    return globalThis.prismaGlobal[prop];
-  }
-});
+const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
 
-export default prisma
+export default prisma;
 
-if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

@@ -1,0 +1,46 @@
+﻿
+> temp-app@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 12.9s
+  Running TypeScript ...
+node.exe : Failed to compile.
+En C:\Program Files\nodejs\npm.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (Failed to compile.:String) [], Remote  
+  Exception
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+
+./src/app/api/chat/route.ts:123:17
+Type error: Property 'toDataStreamResponse' 
+does not exist on type 'StreamTextResult<{ 
+getServices: { description: string; 
+inputSchema: ZodObject<{}, $strip>; 
+execute: () => Promise<{ name: string; id: 
+string; durationMinutes: number; price: 
+number; }[]>; }; searchPatient: { ...; }; 
+checkAvailability: { ...; }; 
+bookAppointment: { ...; }; }, 
+Output<...>>'. Did you mean 
+'toTextStreamResponse'?
+
+[0m [90m 121 |[39m   })[33m;[39m
+ [90m 122 |[39m
+[31m[1m>[22m[39m[90m 123 |[39m   
+[36mreturn[39m result[33m.[39mtoDataStre
+amResponse()[33m;[39m
+ [90m     |[39m                 
+[31m[1m^[22m[39m
+ [90m 124 |[39m }
+ [90m 125 |[39m[0m
+Next.js build worker exited with code: 1 
+and signal: null

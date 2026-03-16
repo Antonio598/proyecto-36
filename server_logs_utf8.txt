@@ -1,0 +1,82 @@
+﻿
+> temp-app@0.1.0 dev
+> next dev
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.95:3000
+- Environments: .env
+
+Ô£ô Starting...
+Ô£ô Ready in 3.5s
+node.exe : Error creating patient: 
+RangeError: Maximum call stack size exceeded
+En C:\Program Files\nodejs\npm.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (Error creating ...k size exceeded:Str  
+  ing) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+    at Object.get (src\lib\prisma.ts:33:35)
+  31 |     }
+  32 |     // @ts-ignore
+> 33 |     return 
+globalThis.prismaGlobal[prop];
+     |                                   ^
+  34 |   }
+  35 | });
+  36 |
+ POST /api/patients 500 in 1491ms (compile: 1429ms, render: 62ms)

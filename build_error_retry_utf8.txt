@@ -1,0 +1,19 @@
+﻿
+> temp-app@0.1.0 build
+> next build
+
+node.exe : Ô¿» Unable to acquire lock at 
+C:\Users\israe\OneDrive\Desktop\Proyecto 
+31\.next\lock, is another instance of next 
+build running?
+En C:\Program Files\nodejs\npm.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (Ô¿» Unable to a... build running?:Str  
+  ing) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+  Suggestion: If you intended to restart next build, terminate the other process, and then try again.

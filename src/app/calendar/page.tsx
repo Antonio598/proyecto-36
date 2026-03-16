@@ -36,6 +36,11 @@ export default function CalendarPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Quick Create Patient State
+  const [isCreatingPatient, setIsCreatingPatient] = useState(false);
+  const [newPatientForm, setNewPatientForm] = useState({ fullName: '', phone: '' });
+  const [isCreatingPatientSubmitting, setIsCreatingPatientSubmitting] = useState(false);
+
   const fetchData = async () => {
     try {
       const [apptsRes, patientsRes, servicesRes] = await Promise.all([
@@ -75,6 +80,8 @@ export default function CalendarPage() {
     setSelectedSlot(slotInfo);
     setSelectedEvent(null);
     setForm({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
+    setIsCreatingPatient(false);
+    setNewPatientForm({ fullName: '', phone: '' });
     setIsModalOpen(true);
     setError('');
   };
@@ -127,12 +134,43 @@ export default function CalendarPage() {
       setIsModalOpen(false);
       setIsDetailModalOpen(false);
       setForm({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
+      setIsCreatingPatient(false);
       setSelectedSlot(null);
       setSelectedEvent(null);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCreatePatient = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!newPatientForm.fullName || !newPatientForm.phone) {
+      setError('El nombre y teléfono son obligatorios.');
+      return;
+    }
+    setIsCreatingPatientSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPatientForm)
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error al crear paciente');
+      }
+      const newPatient = await res.json();
+      setPatients(prev => [...prev, newPatient]);
+      setForm(prev => ({ ...prev, patientId: newPatient.id }));
+      setIsCreatingPatient(false);
+      setNewPatientForm({ fullName: '', phone: '' });
+    } catch(err: any) {
+      setError(err.message);
+    } finally {
+      setIsCreatingPatientSubmitting(false);
     }
   };
 
@@ -272,11 +310,50 @@ export default function CalendarPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-black mb-1">Paciente *</label>
-                <select required className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={form.patientId} onChange={(e) => setForm({ ...form, patientId: e.target.value })}>
-                  <option value="" disabled>Selecciona un paciente</option>
-                  {patients.map(p => <option key={p.id} value={p.id}>{p.fullName} ({p.phone})</option>)}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-bold text-black">Paciente *</label>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsCreatingPatient(!isCreatingPatient)} 
+                    className="text-xs text-blue-600 font-bold hover:text-blue-800 transition-colors"
+                  >
+                    {isCreatingPatient ? 'Usar Existente' : '+ Nuevo Paciente rápido'}
+                  </button>
+                </div>
+                
+                {isCreatingPatient ? (
+                  <div className="space-y-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                    <input 
+                      type="text" 
+                      placeholder="Nombre Completo" 
+                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-1 focus:ring-blue-500 focus:border-blue-500" 
+                      value={newPatientForm.fullName} 
+                      onChange={e => setNewPatientForm({...newPatientForm, fullName: e.target.value})} 
+                    />
+                    <div className="flex gap-2">
+                       <input 
+                         type="text" 
+                         placeholder="Teléfono (WhatsApp)" 
+                         className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-1 focus:ring-blue-500 focus:border-blue-500" 
+                         value={newPatientForm.phone} 
+                         onChange={e => setNewPatientForm({...newPatientForm, phone: e.target.value})} 
+                       />
+                       <button 
+                         type="button" 
+                         onClick={handleCreatePatient} 
+                         disabled={isCreatingPatientSubmitting}
+                         className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold disabled:opacity-50 hover:bg-blue-700 transition"
+                       >
+                         {isCreatingPatientSubmitting ? '...' : 'Crear'}
+                       </button>
+                    </div>
+                  </div>
+                ) : (
+                  <select required className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={form.patientId} onChange={(e) => setForm({ ...form, patientId: e.target.value })}>
+                    <option value="" disabled>Selecciona un paciente</option>
+                    {patients.map(p => <option key={p.id} value={p.id}>{p.fullName} ({p.phone})</option>)}
+                  </select>
+                )}
               </div>
 
               <div>
