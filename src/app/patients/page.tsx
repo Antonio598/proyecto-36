@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, UserCircle, Phone, Clock, X } from 'lucide-react';
+import { Search, Plus, UserCircle, Phone, Clock, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface Patient {
@@ -75,6 +75,23 @@ export default function PatientsPage() {
       setError(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeletePatient = async (id: string, name: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar a ${name}? Esta acción no se puede deshacer y borrará permanentemente su historial de citas.`)) return;
+    
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/patients/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Error al eliminar paciente');
+      await fetchPatients();
+    } catch (err: any) {
+      console.error(err);
+      alert('Hubo un problema al eliminar el paciente.');
+      setIsLoading(false);
     }
   };
 
@@ -164,10 +181,17 @@ export default function PatientsPage() {
                             <Clock className="w-4 h-4 text-blue-600"/> {new Date(patient.createdAt).toLocaleDateString()}
                          </div>
                       </td>
-                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-bold sm:pr-6">
+                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-bold sm:pr-6 flex items-center justify-end gap-3">
                         <Link href={`/patients/${patient.id}`} className="text-blue-700 hover:text-blue-900 font-black bg-blue-50 px-3 py-1.5 rounded-md transition-colors">
                           Ver Historial
                         </Link>
+                        <button 
+                          onClick={() => handleDeletePatient(patient.id, patient.fullName)}
+                          className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-md transition-colors"
+                          title="Eliminar paciente"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
                       </td>
                     </tr>
                   ))

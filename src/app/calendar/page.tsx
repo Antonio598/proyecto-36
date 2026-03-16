@@ -291,9 +291,15 @@ export default function CalendarPage() {
             <div className="bg-gray-50 px-6 py-5 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-black flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-blue-600" />
-                Agendar Nueva Cita
+                {selectedEvent ? 'Editar Cita' : 'Agendar Nueva Cita'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="rounded-full p-2 text-gray-400 hover:bg-gray-200 transition-colors">
+              <button 
+                onClick={() => {
+                  setIsModalOpen(false);
+                  if (selectedEvent) setIsDetailModalOpen(true); // Return to details if editing
+                }} 
+                className="rounded-full p-2 text-gray-400 hover:bg-gray-200 transition-colors"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -452,6 +458,19 @@ export default function CalendarPage() {
                   <Trash2 className="w-4 h-4" /> Cancelar Cita
                 </button>
                 <div className="flex gap-2">
+                  <button 
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      setIsModalOpen(true);
+                      // Form state is already populated by handleSelectEvent
+                      // Slot state should span the existing appointment time
+                      setSelectedSlot({ start: selectedEvent.start, end: selectedEvent.end });
+                    }} 
+                    disabled={selectedEvent.status === 'CANCELLED'}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4" /> Editar
+                  </button>
                   <button onClick={() => setIsDetailModalOpen(false)} className="px-4 py-2 text-sm font-bold text-black hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">Cerrar</button>
                 </div>
               </div>

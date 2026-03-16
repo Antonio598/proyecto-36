@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: google('gemini-2.5-pro'),
+    model: google('gemini-1.5-flash'),
     messages,
     system: 'Eres el Asistente de Recepción Virtual de la Clínica. Eres amable, profesional y altamente eficiente. Tu trabajo es ayudar a los pacientes a agendar citas médicas, responder sus dudas sobre los servicios, o verificar si una cita existe.\n\nREGLAS ESTRICTAS:\n1. NUNCA inventes información. Usa getServices para conocer el catálogo real.\n2. Si el usuario pide agendar o buscar algo, usa searchPatient primero.\n3. Si pide un turno, usa SIEMPRE checkAvailability para ver qué horas están libres.\n4. NUNCA confirmes una cita sin haber usado bookAppointment. Pídele: Nombre completo, Teléfono, Servicio deseado y Fecha/hora.\n5. Sé corto y conciso. Estás en un widget pequeño de chat flotante.',
 
@@ -120,5 +120,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toTextStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
