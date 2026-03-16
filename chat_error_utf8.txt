@@ -1,0 +1,39 @@
+﻿
+> temp-app@0.1.0 dev
+> next dev
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.95:3000
+- Environments: .env
+
+Ô£ô Starting...
+Ô£ô Ready in 2.5s
+­ƒôí Prisma 7 initializing with Driver Adapter (pg) and URL: postgresql:****@supabase.masterhavenshop.com.mx:5432/postgres?sslmode=disable
+ GET /api/services 200 in 4.1s (compile: 463ms, render: 3.6s)
+ POST /api/patients 201 in 1764ms (compile: 555ms, render: 1209ms)
+node.exe : Ô¿» TypeError: 
+result.toDataStreamResponse is not a 
+function
+En C:\Program Files\nodejs\npm.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+(Ô¿    » TypeError: ... not a 
+function:String) [],     RemoteException
+    + FullyQualifiedErrorId : 
+NativeCommandErro    r
+ 
+    at POST 
+(src\app\api\chat\route.ts:124:17)
+  122 |
+  123 |   // @ts-ignore - TS complains 
+about tool return types containing Date 
+objects, but it serializes fine.
+> 124 |   return 
+result.toDataStreamResponse();
+      |                 ^
+  125 | }
+  126 |
+ POST /api/chat 500 in 2.4s (compile: 1945ms, render: 424ms)

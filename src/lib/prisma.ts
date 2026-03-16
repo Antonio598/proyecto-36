@@ -14,7 +14,11 @@ const prismaClientSingleton = () => {
   const maskedUrl = url.replace(/:([^@]+)@/, ':****@');
   console.log(`📡 Prisma 7 initializing with Driver Adapter (pg) and URL: ${maskedUrl}`);
 
-  const pool = new Pool({ connectionString: url });
+  const pool = new Pool({ 
+    connectionString: url,
+    max: 10, // Optimize for serverless/container environments like Easypanel
+    idleTimeoutMillis: 30000 
+  });
   const adapter = new PrismaPg(pool);
   
   return new PrismaClient({ adapter });

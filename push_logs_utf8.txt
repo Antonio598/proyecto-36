@@ -1,0 +1,11 @@
+﻿git : To 
+https://github.com/Antonio598/proyecto-36.git
+En línea: 1 Carácter: 13
++ git status; git push > push_logs.txt 2>&1
++             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (To ht 
+   tps://gith...proyecto-36.git:String) [], Remot  
+  eException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   11ec790..438978c  main -> main

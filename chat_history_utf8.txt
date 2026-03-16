@@ -1,0 +1,481 @@
+﻿commit 15abb18eb65cbfb280757dc22f1a96cb8b46fa35
+Author: Antonio <israelmayalara@gmail.com>
+Date:   Sun Mar 15 18:27:16 2026 -0600
+
+    fix: revert chatbot stream method to toUIMessageStreamResponse
+
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+index c52df3f..8cfddd5 100644
+--- a/src/app/api/chat/route.ts
++++ b/src/app/api/chat/route.ts
+@@ -121,5 +121,5 @@ export async function POST(req: Request) {
+   });
+ 
+   // @ts-ignore - TS complains about tool return types containing Date objects, but it serializes fine.
+-  return result.toDataStreamResponse();
++  return result.toUIMessageStreamResponse();
+ }
+
+commit 438978c61041ef43fde1e76cf59240b88a3be63a
+Author: Antonio <israelmayalara@gmail.com>
+Date:   Sun Mar 15 18:15:28 2026 -0600
+
+    fix: resolve 500 errors, fix chatbot and add calendar quick patient creation
+
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+index 7fcec3e..c52df3f 100644
+--- a/src/app/api/chat/route.ts
++++ b/src/app/api/chat/route.ts
+@@ -120,5 +120,6 @@ export async function POST(req: Request) {
+     },
+   });
+ 
+-  return result.toTextStreamResponse();
++  // @ts-ignore - TS complains about tool return types containing Date objects, but it serializes fine.
++  return result.toDataStreamResponse();
+ }
+
+commit 11ec790204d9ee45e20f094eca9ee0971202af39
+Author: Antonio <israelmayalara@gmail.com>
+Date:   Sun Mar 15 12:28:37 2026 -0600
+
+    fix: use correct chatbot response method to fix build
+
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+index 5ba1c5e..7fcec3e 100644
+--- a/src/app/api/chat/route.ts
++++ b/src/app/api/chat/route.ts
+@@ -120,5 +120,5 @@ export async function POST(req: Request) {
+     },
+   });
+ 
+-  return result.toDataStreamResponse();
++  return result.toTextStreamResponse();
+ }
+
+commit 0ba29e14b87f26808bf5a7fb1278c682be5f785a
+Author: Antonio <israelmayalara@gmail.com>
+Date:   Sun Mar 15 12:16:27 2026 -0600
+
+    fix: chatbot connectivity, transparent inputs, and ensure data persistence
+
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+index 51f0d47..5ba1c5e 100644
+--- a/src/app/api/chat/route.ts
++++ b/src/app/api/chat/route.ts
+@@ -120,5 +120,5 @@ export async function POST(req: Request) {
+     },
+   });
+ 
+-  return result.toUIMessageStreamResponse();
++  return result.toDataStreamResponse();
+ }
+
+commit 07ff9059500e5e2823eaf8b3da0b823092b31e38
+Author: Antonio <israelmayalara@gmail.com>
+Date:   Sun Mar 15 12:02:55 2026 -0600
+
+    feat: enhance services, calendar, patient history and UI contrast
+
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+index d885a52..51f0d47 100644
+--- a/src/app/api/chat/route.ts
++++ b/src/app/api/chat/route.ts
+@@ -10,7 +10,7 @@ export async function POST(req: Request) {
+   const { messages } = await req.json();
+ 
+   const result = streamText({
+-    model: google('gemini-2.5-pro'),
++    model: google('gemini-2.0-flash'),
+     messages,
+     system: 'Eres el Asistente de Recepci├│n Virtual de la Cl├¡nica. Eres amable, profesional y altamente eficiente. Tu trabajo es ayudar a los pacientes a agendar citas m├®dicas, responder sus dudas sobre los servicios, o verificar si una cita existe.\n\nREGLAS ESTRICTAS:\n1. NUNCA inventes informaci├│n. Usa getServices para conocer el cat├ílogo real.\n2. Si el usuario pide agendar o buscar algo, usa searchPatient primero.\n3. Si pide un turno, usa SIEMPRE checkAvailability para ver qu├® horas est├ín libres.\n4. NUNCA confirmes una cita sin haber usado bookAppointment. P├¡dele: Nombre completo, Tel├®fono, Servicio deseado y Fecha/hora.\n5. S├® corto y conciso. Est├ís en un widget peque├▒o de chat flotante.',
+ 
+
+commit f4d5216706657043433a283b27af250adcb2e179
+Author: Antonio <israelmayalara@gmail.com>
+Date:   Sat Mar 14 14:15:23 2026 -0600
+
+    fix: chatbot streaming protocol + add login and settings pages
+
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+index cb113d6..d885a52 100644
+--- a/src/app/api/chat/route.ts
++++ b/src/app/api/chat/route.ts
+@@ -120,5 +120,5 @@ export async function POST(req: Request) {
+     },
+   });
+ 
+-  return result.toTextStreamResponse();
++  return result.toUIMessageStreamResponse();
+ }
+
+commit ab33b90ef7b1423d29e4e25b97c9aa412aca2a1b
+Author: Antonio <israelmayalara@gmail.com>
+Date:   Sat Mar 14 00:59:53 2026 -0600
+
+    fix: adapt chatbot to AI SDK v6
+
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+index 53a632c..cb113d6 100644
+--- a/src/app/api/chat/route.ts
++++ b/src/app/api/chat/route.ts
+@@ -1,8 +1,9 @@
+ import { google } from '@ai-sdk/google';
+-import { streamText, tool } from 'ai';
++import { streamText } from 'ai';
+ import { z } from 'zod';
+ import prisma from '@/lib/prisma';
+ 
++export const dynamic = 'force-dynamic';
+ export const maxDuration = 30;
+ 
+ export async function POST(req: Request) {
+@@ -11,42 +12,34 @@ export async function POST(req: Request) {
+   const result = streamText({
+     model: google('gemini-2.5-pro'),
+     messages,
+-    system: `Eres el Asistente de Recepci├│n Virtual de la Cl├¡nica. Eres amable, profesional y altamente eficiente. 
+-Tu trabajo es ayudar a los pacientes a agendar citas m├®dicas, responder sus dudas sobre los servicios, o verificar si una cita existe.
++    system: 'Eres el Asistente de Recepci├│n Virtual de la Cl├¡nica. Eres amable, profesional y altamente eficiente. Tu trabajo es ayudar a los pacientes a agendar citas m├®dicas, responder sus dudas sobre los servicios, o verificar si una cita existe.\n\nREGLAS ESTRICTAS:\n1. NUNCA inventes informaci├│n. Usa getServices para conocer el cat├ílogo real.\n2. Si el usuario pide agendar o buscar algo, usa searchPatient primero.\n3. Si pide un turno, usa SIEMPRE checkAvailability para ver qu├® horas est├ín libres.\n4. NUNCA confirmes una cita sin haber usado bookAppointment. P├¡dele: Nombre completo, Tel├®fono, Servicio deseado y Fecha/hora.\n5. S├® corto y conciso. Est├ís en un widget peque├▒o de chat flotante.',
+ 
+-REGLAS ESTRICTAS QUE DEBES OBEDECER:
+-1. NUNCA inventes informaci├│n (no alucines precios, doctores ni servicios). Usa \`getServices\` para conocer el cat├ílogo real de la cl├¡nica antes de ofrecer servicios.
+-2. Si el usuario pide agendar o buscar algo, \`searchPatient\` primero para encontrarlo por nombre o tel├®fono si te lo dan.
+-3. Si el paciente pide un turno, usa SIEMPRE \`checkAvailability\` para ver qu├® horas est├ín libres ESE d├¡a, o preg├║ntale qu├® fecha busca.
+-4. NUNCA confirmes una cita sin haber usado la herramienta \`bookAppointment\`. Debes pedirle al usuario su: Nombre completo, Tel├®fono, Servicio deseado y Fecha/hora antes de llamar la funci├│n.
+-5. S├® corto y conciso en tus respuestas. Est├ís en un widget peque├▒o de chat flotante.`,
+-    
+     tools: {
+-      getServices: tool({
+-        description: 'Obtiene la lista completa de servicios activos en la cl├¡nica, incluyendo su ID, nombre, descripci├│n, duraci├│n y precio.',
+-        parameters: z.object({}),
++      getServices: {
++        description: 'Obtiene la lista completa de servicios activos en la cl├¡nica.',
++        inputSchema: z.object({}),
+         execute: async () => {
+           const services = await prisma.service.findMany({
+             where: { isActive: true },
+             select: { id: true, name: true, durationMinutes: true, price: true }
+           });
+-          return services as any;
++          return services;
+         },
+-      }),
++      },
+ 
+-      searchPatient: tool({
+-        description: 'Busca a un paciente en la base de datos por su n├║mero de tel├®fono o nombre. ├Ütil para verificar si ya est├í registrado o sus citas pendientes.',
+-        parameters: z.object({
+-          phone: z.string().optional().describe('El n├║mero de tel├®fono del paciente (10 d├¡gitos).'),
+-          name: z.string().optional().describe('El nombre completo o parcial del paciente.'),
++      searchPatient: {
++        description: 'Busca a un paciente por tel├®fono o nombre.',
++        inputSchema: z.object({
++          phone: z.string().optional().describe('Tel├®fono del paciente.'),
++          name: z.string().optional().describe('Nombre completo o parcial del paciente.'),
+         }),
+         execute: async ({ phone, name }: { phone?: string; name?: string }) => {
+           if (!phone && !name) return { error: 'Debes proveer al menos tel├®fono o nombre.' };
+-          
++
+           const patient = await prisma.patient.findFirst({
+             where: {
+               ...(phone ? { phone } : {}),
+-              ...(name ? { fullName: { contains: name, mode: 'insensitive' } } : {})
++              ...(name ? { fullName: { contains: name, mode: 'insensitive' as const } } : {})
+             },
+             include: {
+               appointments: {
+@@ -55,83 +48,77 @@ REGLAS ESTRICTAS QUE DEBES OBEDECER:
+               }
+             }
+           });
+-          
+-          return (patient ? patient : { message: 'Paciente no encontrado, deber├ís crearlo (no te preocupes, bookAppointment lo crea autom├íticamente si no existe).' }) as any;
++
++          return patient || { message: 'Paciente no encontrado. bookAppointment lo crea autom├íticamente.' };
+         },
+-      }),
++      },
+ 
+-      checkAvailability: tool({
+-        description: 'Obtiene las horas de turno (citas) que est├ín disponibles en un d├¡a espec├¡fico para que se lo ofrezcas al usuario.',
+-        parameters: z.object({
+-          date: z.string().describe('Fecha a consultar en formato YYYY-MM-DD. Ej: "2024-11-20"'),
+-          serviceId: z.string().describe('El ID del servicio escogido por el paciente.'),
++      checkAvailability: {
++        description: 'Consulta horarios disponibles para un d├¡a espec├¡fico.',
++        inputSchema: z.object({
++          date: z.string().describe('Fecha en formato YYYY-MM-DD'),
++          serviceId: z.string().describe('ID del servicio escogido'),
+         }),
+         execute: async ({ date, serviceId }: { date: string; serviceId: string }) => {
+-          // LLamamos a la l├│gica nativa del endpoint interno pero de lado del servidor para reusabilidad exacta.
+-          // Como los headers y Request son abstractos, simularemos un URL fetch interno r├ípido.
+-          const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? \`https://\${process.env.NEXT_PUBLIC_VERCEL_URL}\` : 'http://localhost:3000';
++          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+           try {
+-             const res = await fetch(\`\${baseUrl}/api/availability?date=\${date}&service_id=\${serviceId}\`);
+-             if (!res.ok) return { error: 'No se pudo obtener disponibilidad' };
+-             const data = await res.json();
+-             return { date, availableSlots: data.availableSlots } as any;
+-          } catch(e) {
+-             console.log(e)
+-             return { error: 'Error del servidor al buscar turnos.' } as any;
++            const url = baseUrl + '/api/availability?date=' + date + '&service_id=' + serviceId;
++            const res = await fetch(url);
++            if (!res.ok) return { error: 'No se pudo obtener disponibilidad' };
++            const data = await res.json();
++            return { date, availableSlots: data.availableSlots };
++          } catch (e) {
++            console.log(e);
++            return { error: 'Error del servidor al buscar turnos.' };
+           }
+         },
+-      }),
++      },
++
++      bookAppointment: {
++        description: 'Programa y guarda la cita en la base de datos.',
++        inputSchema: z.object({
++          fullName: z.string().describe('Nombre completo del paciente.'),
++          phone: z.string().describe('Tel├®fono del paciente.'),
++          serviceId: z.string().describe('ID del servicio escogido.'),
++          startTime: z.string().describe('Inicio de la cita en ISO8601 (ej. 2024-11-20T10:00:00.000Z).'),
++          notes: z.string().optional().describe('Notas adicionales.'),
++        }),
++        execute: async ({ fullName, phone, serviceId, startTime, notes }: { fullName: string; phone: string; serviceId: string; startTime: string; notes?: string }) => {
++          try {
++            const start = new Date(startTime);
+ 
+-      bookAppointment: tool({
+-         description: 'Programa y guarda la cita finalmente en la base de datos. Requiere toda la informaci├│n del paciente y la cita.',
+-         parameters: z.object({
+-           fullName: z.string().describe('Nombre completo del paciente.'),
+-           phone: z.string().describe('N├║mero de tel├®fono del paciente (obligatorio).'),
+-           serviceId: z.string().describe('El ID de base de datos del servicio escogido.'),
+-           startTime: z.string().describe('Fecha y hora exactas de inicio de la cita en formato ISO8601 (ej. "2024-11-20T10:00:00.000Z"). Debe estar ya calculada base 0 UTC.'),
+-           notes: z.string().optional().describe('Cualquier nota adicional que el paciente te haya mencionado.'),
+-         }),
+-         execute: async ({ fullName, phone, serviceId, startTime, notes }: { fullName: string; phone: string; serviceId: string; startTime: string; notes?: string }) => {
+-           // Usamos la logica transaccional nativa
+-           try {
+-             const start = new Date(startTime);
+-             
+-             // 1. Validar y Crear Paciente
+-             let patient = await prisma.patient.findUnique({ where: { phone } });
+-             if (!patient) {
+-               patient = await prisma.patient.create({
+-                 data: { fullName, phone, notes: 'Creado v├¡a IA Chatbot' }
+-               });
+-             }
++            let patient = await prisma.patient.findUnique({ where: { phone } });
++            if (!patient) {
++              patient = await prisma.patient.create({
++                data: { fullName, phone, notes: 'Creado v├¡a IA Chatbot' }
++              });
++            }
+ 
+-             // 2. Obtener Duraci├│n
+-             const service = await prisma.service.findUnique({ where: { id: serviceId }});
+-             if (!service) return { error: 'Servicio no encontrado' };
++            const service = await prisma.service.findUnique({ where: { id: serviceId } });
++            if (!service) return { error: 'Servicio no encontrado' };
+ 
+-             // 3. Crear cita
+-             const end = new Date(start.getTime() + service.durationMinutes * 60000);
+-             const appointment = await prisma.appointment.create({
+-               data: {
+-                 patientId: patient.id,
+-                 serviceId: service.id,
+-                 startTime: start,
+-                 endTime: end,
+-                 totalPrice: service.price,
+-                 status: 'CONFIRMED', // Las del chatbot son autom├íticas
+-                 notes: notes || 'Agendado por IA'
+-               }
+-             });
++            const end = new Date(start.getTime() + service.durationMinutes * 60000);
++            const appointment = await prisma.appointment.create({
++              data: {
++                patientId: patient.id,
++                serviceId: service.id,
++                startTime: start,
++                endTime: end,
++                totalPrice: service.price,
++                status: 'CONFIRMED',
++                notes: notes || 'Agendado por IA'
++              }
++            });
+ 
+-             return { success: true, message: '┬íCita confirmada en la base de datos!', appointment } as any;
+-           } catch (error: any) {
+-             console.error('Bot booking error:', error);
+-             return { error: 'La cita fue rechazada por la base de datos.', details: error.message } as any;
+-           }
+-         }
+-      })
++            return { success: true, message: 'Cita confirmada!', appointment };
++          } catch (error: any) {
++            console.error('Bot booking error:', error);
++            return { error: 'La cita fue rechazada.', details: error.message };
++          }
++        }
++      }
+     },
+-    maxSteps: 5, // Permitir├í a la IA hacer chain of thought con m├║ltiples herramientas antes de responder
+   });
+ 
+-  return result.toDataStreamResponse();
++  return result.toTextStreamResponse();
+ }
+
+commit 66f9b0515bc4d4a4ff93b20f8f5884302208aefd
+Author: Antonio <israelmayalara@gmail.com>
+Date:   Sat Mar 14 00:39:10 2026 -0600
+
+    feat: add AI chatbot widget powered by Gemini with tool calling (book appointments, search patients, check availability)
+
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+new file mode 100644
+index 0000000..53a632c
+--- /dev/null
++++ b/src/app/api/chat/route.ts
+@@ -0,0 +1,137 @@
++import { google } from '@ai-sdk/google';
++import { streamText, tool } from 'ai';
++import { z } from 'zod';
++import prisma from '@/lib/prisma';
++
++export const maxDuration = 30;
++
++export async function POST(req: Request) {
++  const { messages } = await req.json();
++
++  const result = streamText({
++    model: google('gemini-2.5-pro'),
++    messages,
++    system: `Eres el Asistente de Recepci├│n Virtual de la Cl├¡nica. Eres amable, profesional y altamente eficiente. 
++Tu trabajo es ayudar a los pacientes a agendar citas m├®dicas, responder sus dudas sobre los servicios, o verificar si una cita existe.
++
++REGLAS ESTRICTAS QUE DEBES OBEDECER:
++1. NUNCA inventes informaci├│n (no alucines precios, doctores ni servicios). Usa \`getServices\` para conocer el cat├ílogo real de la cl├¡nica antes de ofrecer servicios.
++2. Si el usuario pide agendar o buscar algo, \`searchPatient\` primero para encontrarlo por nombre o tel├®fono si te lo dan.
++3. Si el paciente pide un turno, usa SIEMPRE \`checkAvailability\` para ver qu├® horas est├ín libres ESE d├¡a, o preg├║ntale qu├® fecha busca.
++4. NUNCA confirmes una cita sin haber usado la herramienta \`bookAppointment\`. Debes pedirle al usuario su: Nombre completo, Tel├®fono, Servicio deseado y Fecha/hora antes de llamar la funci├│n.
++5. S├® corto y conciso en tus respuestas. Est├ís en un widget peque├▒o de chat flotante.`,
++    
++    tools: {
++      getServices: tool({
++        description: 'Obtiene la lista completa de servicios activos en la cl├¡nica, incluyendo su ID, nombre, descripci├│n, duraci├│n y precio.',
++        parameters: z.object({}),
++        execute: async () => {
++          const services = await prisma.service.findMany({
++            where: { isActive: true },
++            select: { id: true, name: true, durationMinutes: true, price: true }
++          });
++          return services as any;
++        },
++      }),
++
++      searchPatient: tool({
++        description: 'Busca a un paciente en la base de datos por su n├║mero de tel├®fono o nombre. ├Ütil para verificar si ya est├í registrado o sus citas pendientes.',
++        parameters: z.object({
++          phone: z.string().optional().describe('El n├║mero de tel├®fono del paciente (10 d├¡gitos).'),
++          name: z.string().optional().describe('El nombre completo o parcial del paciente.'),
++        }),
++        execute: async ({ phone, name }: { phone?: string; name?: string }) => {
++          if (!phone && !name) return { error: 'Debes proveer al menos tel├®fono o nombre.' };
++          
++          const patient = await prisma.patient.findFirst({
++            where: {
++              ...(phone ? { phone } : {}),
++              ...(name ? { fullName: { contains: name, mode: 'insensitive' } } : {})
++            },
++            include: {
++              appointments: {
++                where: { status: { in: ['PENDING', 'CONFIRMED'] } },
++                include: { service: true }
++              }
++            }
++          });
++          
++          return (patient ? patient : { message: 'Paciente no encontrado, deber├ís crearlo (no te preocupes, bookAppointment lo crea autom├íticamente si no existe).' }) as any;
++        },
++      }),
++
++      checkAvailability: tool({
++        description: 'Obtiene las horas de turno (citas) que est├ín disponibles en un d├¡a espec├¡fico para que se lo ofrezcas al usuario.',
++        parameters: z.object({
++          date: z.string().describe('Fecha a consultar en formato YYYY-MM-DD. Ej: "2024-11-20"'),
++          serviceId: z.string().describe('El ID del servicio escogido por el paciente.'),
++        }),
++        execute: async ({ date, serviceId }: { date: string; serviceId: string }) => {
++          // LLamamos a la l├│gica nativa del endpoint interno pero de lado del servidor para reusabilidad exacta.
++          // Como los headers y Request son abstractos, simularemos un URL fetch interno r├ípido.
++          const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? \`https://\${process.env.NEXT_PUBLIC_VERCEL_URL}\` : 'http://localhost:3000';
++          try {
++             const res = await fetch(\`\${baseUrl}/api/availability?date=\${date}&service_id=\${serviceId}\`);
++             if (!res.ok) return { error: 'No se pudo obtener disponibilidad' };
++             const data = await res.json();
++             return { date, availableSlots: data.availableSlots } as any;
++          } catch(e) {
++             console.log(e)
++             return { error: 'Error del servidor al buscar turnos.' } as any;
++          }
++        },
++      }),
++
++      bookAppointment: tool({
++         description: 'Programa y guarda la cita finalmente en la base de datos. Requiere toda la informaci├│n del paciente y la cita.',
++         parameters: z.object({
++           fullName: z.string().describe('Nombre completo del paciente.'),
++           phone: z.string().describe('N├║mero de tel├®fono del paciente (obligatorio).'),
++           serviceId: z.string().describe('El ID de base de datos del servicio escogido.'),
++           startTime: z.string().describe('Fecha y hora exactas de inicio de la cita en formato ISO8601 (ej. "2024-11-20T10:00:00.000Z"). Debe estar ya calculada base 0 UTC.'),
++           notes: z.string().optional().describe('Cualquier nota adicional que el paciente te haya mencionado.'),
++         }),
++         execute: async ({ fullName, phone, serviceId, startTime, notes }: { fullName: string; phone: string; serviceId: string; startTime: string; notes?: string }) => {
++           // Usamos la logica transaccional nativa
++           try {
++             const start = new Date(startTime);
++             
++             // 1. Validar y Crear Paciente
++             let patient = await prisma.patient.findUnique({ where: { phone } });
++             if (!patient) {
++               patient = await prisma.patient.create({
++                 data: { fullName, phone, notes: 'Creado v├¡a IA Chatbot' }
++               });
++             }
++
++             // 2. Obtener Duraci├│n
++             const service = await prisma.service.findUnique({ where: { id: serviceId }});
++             if (!service) return { error: 'Servicio no encontrado' };
++
++             // 3. Crear cita
++             const end = new Date(start.getTime() + service.durationMinutes * 60000);
++             const appointment = await prisma.appointment.create({
++               data: {
++                 patientId: patient.id,
++                 serviceId: service.id,
++                 startTime: start,
++                 endTime: end,
++                 totalPrice: service.price,
++                 status: 'CONFIRMED', // Las del chatbot son autom├íticas
++                 notes: notes || 'Agendado por IA'
++               }
++             });
++
++             return { success: true, message: '┬íCita confirmada en la base de datos!', appointment } as any;
++           } catch (error: any) {
++             console.error('Bot booking error:', error);
++             return { error: 'La cita fue rechazada por la base de datos.', details: error.message } as any;
++           }
++         }
++      })
++    },
++    maxSteps: 5, // Permitir├í a la IA hacer chain of thought con m├║ltiples herramientas antes de responder
++  });
++
++  return result.toDataStreamResponse();
++}
