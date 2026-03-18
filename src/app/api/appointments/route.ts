@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     let phone = searchParams.get('phone');
     const id = searchParams.get('id');
-    phone = phone || id;
+    phone = (phone || id)?.toString() || null;
 
     let whereClause = {};
 

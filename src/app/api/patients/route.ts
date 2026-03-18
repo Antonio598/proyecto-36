@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     let phone = searchParams.get('phone');
     const id = searchParams.get('id');
-    phone = phone || id;
+    phone = (phone || id)?.toString() || null;
 
     if (phone) {
       const patient = await prisma.patient.findUnique({
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     let { fullName, phone, email, notes, id } = body;
-    phone = phone || id;
+    phone = (phone || id)?.toString();
 
     // Validation
     if (!fullName || !phone) {

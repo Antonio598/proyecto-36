@@ -6,7 +6,7 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json();
     let { phone, oldStartTime, newStartTime, id } = body;
-    phone = phone || id;
+    phone = (phone || id)?.toString();
 
     if (!phone || !oldStartTime || !newStartTime) {
       return NextResponse.json({ success: false, error: 'phone, oldStartTime, and newStartTime are required' }, { status: 400 });

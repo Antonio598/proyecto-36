@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
           const patient = await prisma.patient.findFirst({
             where: {
-              ...(phone ? { phone } : {}),
+              ...(phone ? { phone: phone.toString() } : {}),
               ...(name ? { fullName: { contains: name, mode: 'insensitive' as const } } : {})
             },
             include: {
@@ -90,10 +90,10 @@ export async function POST(req: Request) {
             const { fromZonedTime } = require('date-fns-tz');
             const start = fromZonedTime(naiveLocalTime, 'America/Panama');
 
-            let patient = await prisma.patient.findUnique({ where: { phone } });
+            let patient = await prisma.patient.findUnique({ where: { phone: phone.toString() } });
             if (!patient) {
               patient = await prisma.patient.create({
-                data: { fullName, phone, notes: 'Creado vía IA Chatbot' }
+                data: { fullName, phone: phone.toString(), notes: 'Creado vía IA Chatbot' }
               });
             }
 

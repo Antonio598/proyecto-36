@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     let { phone, startTime, id } = body;
-    phone = phone || id;
+    phone = (phone || id)?.toString();
 
     if (!phone || !startTime) {
       return NextResponse.json({ success: false, error: 'phone and startTime are required' }, { status: 400 });
