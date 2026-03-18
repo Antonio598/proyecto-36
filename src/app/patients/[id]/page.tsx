@@ -62,7 +62,22 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ id: s
         if (!patientRes.ok) throw new Error('No se pudo encontrar al paciente');
         
         setPatient(await patientRes.json());
-        setAppointments(await historyRes.json());
+
+        const historyData = await historyRes.json();
+        const { formatInTimeZone } = require('date-fns-tz');
+        const PANAMA_TZ = 'America/Panama';
+
+        const formattedHistory = historyData.map((appt: any) => {
+          const naiveStartStr = formatInTimeZone(new Date(appt.startTime), PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
+          const naiveEndStr = formatInTimeZone(new Date(appt.endTime), PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
+          return {
+             ...appt,
+             startTime: naiveStartStr,
+             endTime: naiveEndStr
+          };
+        });
+        
+        setAppointments(formattedHistory);
       } catch (err: any) {
         setError(err.message);
       } finally {

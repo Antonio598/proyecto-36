@@ -54,17 +54,27 @@ export default function CalendarPage() {
       
       if (apptsRes.ok) {
         const data = await apptsRes.json();
-        const formattedEvents = data.map((appt: any) => ({
-          id: appt.id,
-          title: `${appt.service?.name} - ${appt.patient?.fullName}`,
-          start: new Date(appt.startTime),
-          end: new Date(appt.endTime),
-          color: appt.service?.colorCode || '#3b82f6',
-          patient: appt.patient,
-          service: appt.service,
-          notes: appt.notes,
-          status: appt.status
-        }));
+        const { formatInTimeZone } = require('date-fns-tz');
+        const PANAMA_TZ = 'America/Panama';
+
+        const formattedEvents = data.map((appt: any) => {
+          // Force the UTC date to render exactly as its Panama local time counterpart
+          // by creating a naive string and parsing it in the browser's local timezone.
+          const naiveStartStr = formatInTimeZone(new Date(appt.startTime), PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
+          const naiveEndStr = formatInTimeZone(new Date(appt.endTime), PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
+
+          return {
+            id: appt.id,
+            title: `${appt.service?.name} - ${appt.patient?.fullName}`,
+            start: new Date(naiveStartStr),
+            end: new Date(naiveEndStr),
+            color: appt.service?.colorCode || '#3b82f6',
+            patient: appt.patient,
+            service: appt.service,
+            notes: appt.notes,
+            status: appt.status
+          };
+        });
         setEvents(formattedEvents);
       }
     } catch (err) {
