@@ -64,6 +64,7 @@ export async function POST(request: Request) {
         endTime: end,
         notes: notes || null,
         totalPrice: service.price,
+        status: 'CONFIRMED',
       },
       include: {
         patient: { select: { fullName: true, phone: true }},

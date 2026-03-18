@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { patientId, serviceId, professionalId, startTime, notes } = body;
+    const { patientId, serviceId, professionalId, startTime, notes, status } = body;
 
     // Basic Validation
     if (!patientId || !serviceId || !startTime) {
@@ -94,6 +94,7 @@ export async function POST(request: Request) {
         endTime: end,
         notes,
         totalPrice: service.price,
+        status: status || 'CONFIRMED',
       },
       include: {
         patient: true,
