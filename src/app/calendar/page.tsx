@@ -116,7 +116,7 @@ export default function CalendarPage() {
       };
 
       if (!isEditing && selectedSlot) {
-        payload.startTime = selectedSlot.start.toISOString();
+        payload.startTime = format(selectedSlot.start, "yyyy-MM-dd'T'HH:mm:ss");
       }
 
       const res = await fetch(url, {

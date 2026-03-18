@@ -80,12 +80,15 @@ export async function POST(req: Request) {
           fullName: z.string().describe('Nombre completo del paciente.'),
           phone: z.string().describe('Teléfono del paciente.'),
           serviceId: z.string().describe('ID del servicio escogido.'),
-          startTime: z.string().describe('Inicio de la cita en ISO8601 (ej. 2024-11-20T10:00:00.000Z).'),
+          startTime: z.string().describe('Inicio de la cita en ISO8601 local (ej. 2024-11-20T10:00:00). NO INCLUIR LA Z AL FINAL.'),
           notes: z.string().optional().describe('Notas adicionales.'),
         }),
         execute: async ({ fullName, phone, serviceId, startTime, notes }: { fullName: string; phone: string; serviceId: string; startTime: string; notes?: string }) => {
           try {
-            const start = new Date(startTime);
+            // Remove any trailing Z or offset just in case AI adds it, so we treat it as naive local time
+            const naiveLocalTime = startTime.substring(0, 19); 
+            const { fromZonedTime } = require('date-fns-tz');
+            const start = fromZonedTime(naiveLocalTime, 'America/Panama');
 
             let patient = await prisma.patient.findUnique({ where: { phone } });
             if (!patient) {

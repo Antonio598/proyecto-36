@@ -58,7 +58,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
     }
 
-    const start = new Date(startTime);
+    const naiveLocalTime = startTime.substring(0, 19);
+    const { fromZonedTime } = require('date-fns-tz');
+    const start = fromZonedTime(naiveLocalTime, 'America/Panama');
     const end = new Date(start.getTime() + service.durationMinutes * 60000);
 
     // Basic Overlap validation check

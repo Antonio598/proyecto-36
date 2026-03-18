@@ -48,8 +48,13 @@ export async function GET(request: Request) {
     const rule = rules[0]; 
 
     // 3. Get existing appointments for that day
-    const startOfRequestedDay = startOfDay(requestedDate);
-    const endOfRequestedDay = endOfDay(requestedDate);
+    const { fromZonedTime, toZonedTime } = require('date-fns-tz');
+    const PANAMA_TZ = 'America/Panama';
+
+    // dateParam is like "2024-11-20"
+    // Get the start and end of that day in Panama Time, converted to UTC Dates
+    const startOfRequestedDay = fromZonedTime(`${dateParam}T00:00:00`, PANAMA_TZ);
+    const endOfRequestedDay = fromZonedTime(`${dateParam}T23:59:59`, PANAMA_TZ);
 
     const existingAppointments = await prisma.appointment.findMany({
       where: {
@@ -62,30 +67,26 @@ export async function GET(request: Request) {
     });
 
     // 4. Generate possible slots
-    // rule.startTime format: "09:00"
-    const [startHour, startMinute] = rule.startTime.split(':').map(Number);
-    const [endHour, endMinute] = rule.endTime.split(':').map(Number);
-    
-    let currentSlot = new Date(requestedDate);
-    currentSlot.setHours(startHour, startMinute, 0, 0);
-
-    const workEndTime = new Date(requestedDate);
-    workEndTime.setHours(endHour, endMinute, 0, 0);
+    let currentSlot = fromZonedTime(`${dateParam}T${rule.startTime}:00`, PANAMA_TZ);
+    const workEndTime = fromZonedTime(`${dateParam}T${rule.endTime}:00`, PANAMA_TZ);
 
     const availableSlots: string[] = [];
     const intervalMinutes = 30; // Generating slots every 30 mins
 
-    const now = new Date();
+    // Get current time in Panama timezone, to avoid showing past slots today
+    const nowUTC = new Date();
+    const nowPanama = toZonedTime(nowUTC, PANAMA_TZ);
+    const isToday = format(nowPanama, 'yyyy-MM-dd') === dateParam;
 
     while (isBefore(currentSlot, workEndTime) || isEqual(currentSlot, workEndTime)) {
       const slotEndTime = addMinutes(currentSlot, service.durationMinutes);
 
       if (isAfter(slotEndTime, workEndTime)) {
-        break; // Doesn't fit in working hours
+        break; 
       }
 
       // Check if slot is in the past
-      if (isBefore(currentSlot, now) && format(requestedDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd')) {
+      if (isToday && isBefore(currentSlot, nowUTC)) {
          currentSlot = addMinutes(currentSlot, intervalMinutes);
          continue;
       }
@@ -102,7 +103,9 @@ export async function GET(request: Request) {
       });
 
       if (!isOverlapping) {
-        availableSlots.push(format(currentSlot, 'HH:mm'));
+        // Output format requires local time, we convert UTC slot back to Panama time string
+        const slotInPanama = toZonedTime(currentSlot, PANAMA_TZ);
+        availableSlots.push(format(slotInPanama, 'HH:mm'));
       }
 
       // Increment by interval
