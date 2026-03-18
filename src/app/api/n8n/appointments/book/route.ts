@@ -5,7 +5,8 @@ import prisma from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { phone, fullName, serviceId, startTime, notes } = body;
+    let { phone, fullName, serviceId, startTime, notes, id } = body;
+    phone = phone || id;
 
     if (!phone || !fullName || !serviceId || !startTime) {
       return NextResponse.json({ success: false, error: 'phone, fullName, serviceId, and startTime are required' }, { status: 400 });

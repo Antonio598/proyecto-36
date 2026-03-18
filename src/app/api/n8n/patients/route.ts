@@ -5,7 +5,9 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const phone = searchParams.get('phone');
+    let phone = searchParams.get('phone');
+    const id = searchParams.get('id');
+    phone = phone || id;
 
     if (phone) {
       const patient = await prisma.patient.findUnique({
@@ -27,7 +29,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { fullName, phone, email, notes } = body;
+    let { fullName, phone, email, notes, id } = body;
+    phone = phone || id;
 
     if (!fullName || !phone) {
       return NextResponse.json({ success: false, error: 'fullName and phone are required' }, { status: 400 });

@@ -5,7 +5,9 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const phone = searchParams.get('phone');
+    let phone = searchParams.get('phone');
+    const id = searchParams.get('id');
+    phone = phone || id;
 
     let whereClause = {};
 
