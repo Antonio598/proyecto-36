@@ -23,6 +23,11 @@ export async function GET(request: Request) {
 
     const services = await prisma.service.findMany({
       where: whereClause,
+      include: {
+        configurations: {
+          include: { doctor: { select: { name: true } } }
+        }
+      },
       orderBy: { name: 'asc' },
     });
     return NextResponse.json({ success: true, data: services });

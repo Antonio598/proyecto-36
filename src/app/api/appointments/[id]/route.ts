@@ -74,13 +74,31 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    // We typically soft-delete or change status to CANCELLED instead of hard delete
-    const appointment = await prisma.appointment.update({
-      where: { id },
-      data: { status: 'CANCELLED' }
-    });
     
-    return NextResponse.json({ message: 'Appointment cancelled successfully', appointment });
+    // Check if it's a blocker or a regular appointment
+    const currentAppointment = await prisma.appointment.findUnique({
+      where: { id },
+      select: { isBlocker: true }
+    });
+
+    if (!currentAppointment) {
+      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
+    }
+
+    if (currentAppointment.isBlocker) {
+      // Hard delete for blockers
+      const appointment = await prisma.appointment.delete({
+        where: { id }
+      });
+      return NextResponse.json({ message: 'Blocker deleted successfully', appointment });
+    } else {
+      // Soft-delete/CANCELLED for regular appointments
+      const appointment = await prisma.appointment.update({
+        where: { id },
+        data: { status: 'CANCELLED' }
+      });
+      return NextResponse.json({ message: 'Appointment cancelled successfully', appointment });
+    }
   } catch (error) {
     console.error('Error deleting/cancelling appointment:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

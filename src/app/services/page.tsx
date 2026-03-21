@@ -49,12 +49,12 @@ export default function ServicesPage() {
     setIsLoading(true);
     try {
       const [servicesRes, productsRes, docsRes] = await Promise.all([
-        fetch('/api/services'),
+        selectedSede ? fetch(`/api/services?subaccountId=${selectedSede}`) : Promise.resolve(null),
         fetch('/api/products'),
         selectedSede ? fetch(`/api/doctors?subaccountId=${selectedSede}`) : Promise.resolve(null)
       ]);
       
-      if (servicesRes.ok) setServices(await servicesRes.json());
+      if (servicesRes?.ok) setServices(await servicesRes.json());
       if (productsRes.ok) setProducts(await productsRes.json());
       if (docsRes?.ok) setDoctors(await docsRes.json());
     } catch (error) {
@@ -101,10 +101,12 @@ export default function ServicesPage() {
     const method = editingService ? 'PUT' : 'POST';
 
     try {
+      const payload = { ...serviceForm, subaccountId: selectedSede };
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(serviceForm),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar servicio');
@@ -209,7 +211,14 @@ export default function ServicesPage() {
                           {service.isActive ? 'Activo' : 'Inactivo'}
                        </span>
                     </div>
-                    <div className="mt-4 flex items-center justify-between text-sm text-black font-medium">
+                    {(service as any).configurations?.length > 0 ? (
+                       <p className="text-xs font-bold text-blue-600 mt-1 mb-2">
+                          Doctores: {(service as any).configurations.map((c: any) => c.doctor?.name).join(', ')}
+                       </p>
+                    ) : (
+                       <p className="text-xs font-medium text-gray-400 mt-1 mb-2">Servicio General (Sin médico)</p>
+                    )}
+                    <div className="mt-2 flex items-center justify-between text-sm text-black font-medium">
                       <div className="flex items-center gap-4">
                          <span className="font-bold text-blue-700 text-lg">${service.price.toFixed(2)}</span>
                          <span>{service.durationMinutes} mins</span>

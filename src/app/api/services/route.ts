@@ -2,9 +2,18 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const subaccountId = searchParams.get('subaccountId');
+
+    let whereClause: any = {};
+    if (subaccountId) {
+      whereClause.subaccountId = subaccountId;
+    }
+
     const services = await prisma.service.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         configurations: {
@@ -22,7 +31,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, durationMinutes, price, colorCode, isActive, doctorId } = body;
+    const { name, durationMinutes, price, colorCode, isActive, doctorId, subaccountId } = body;
 
     // Validation
     if (!name || durationMinutes === undefined || price === undefined) {
@@ -39,10 +48,11 @@ export async function POST(request: Request) {
         price: parseFloat(price as string),
         colorCode: colorCode || '#3b82f6',
         isActive: isActive !== undefined ? isActive : true,
+        subaccountId: subaccountId || null,
       },
     });
 
-    if (doctorId) {
+    if (doctorId && subaccountId) {
       // Find doctor's subaccount and calendar. Create a calendar if they don't have one to link the config.
       const doctor = await prisma.doctor.findUnique({
         where: { id: doctorId },

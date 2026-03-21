@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale/es';
-import { X, Calendar as CalendarIcon, Clock, User, Stethoscope, Edit2, Trash2, Info, Ban, ShieldAlert } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, User, Stethoscope, Edit2, Trash2, Info, Ban, ChevronDown, Check } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSede } from '@/context/SedeContext';
 
@@ -25,6 +25,20 @@ export default function CalendarPage() {
   const [calendars, setCalendars] = useState<any[]>([]);
   
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('');
+  
+  // Custom Dropdown State
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setIsCalendarOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -36,20 +50,20 @@ export default function CalendarPage() {
   const [error, setError] = useState('');
 
   const [isBlockMode, setIsBlockMode] = useState(false);
+  const [repeatCount, setRepeatCount] = useState(1);
 
   // Quick Create Patient State
   const [isCreatingPatient, setIsCreatingPatient] = useState(false);
   const [newPatientForm, setNewPatientForm] = useState({ fullName: '', phone: '' });
   const [isCreatingPatientSubmitting, setIsCreatingPatientSubmitting] = useState(false);
 
-  // 1. Fetch auxiliary data and calendars when Sede changes
   useEffect(() => {
     if (!selectedSede) return;
     const fetchConfigs = async () => {
       try {
         const [patientsRes, servicesRes, calendarsRes] = await Promise.all([
           fetch('/api/patients'),
-          fetch('/api/services'),
+          fetch(`/api/services?subaccountId=${selectedSede}`),
           fetch(`/api/calendars?subaccountId=${selectedSede}`)
         ]);
         if (patientsRes.ok) setPatients(await patientsRes.json());
@@ -71,7 +85,6 @@ export default function CalendarPage() {
     fetchConfigs();
   }, [selectedSede]);
 
-  // 2. Fetch appointments when selectCalendarId or Sede changes
   const fetchAppointments = async () => {
     if (!selectedSede) return;
     try {
@@ -85,7 +98,9 @@ export default function CalendarPage() {
         const { formatInTimeZone } = require('date-fns-tz');
         const PANAMA_TZ = 'America/Panama';
 
-        const formattedEvents = data.map((appt: any) => {
+        const formattedEvents = data
+          .filter((appt: any) => !(appt.isBlocker && appt.status === 'CANCELLED')) // Filter soft-deleted blockers
+          .map((appt: any) => {
           const naiveStartStr = formatInTimeZone(new Date(appt.startTime), PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
           const naiveEndStr = formatInTimeZone(new Date(appt.endTime), PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
 
@@ -118,6 +133,7 @@ export default function CalendarPage() {
     setSelectedEvent(null);
     setForm({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
     setIsBlockMode(false);
+    setRepeatCount(1);
     setIsCreatingPatient(false);
     setNewPatientForm({ fullName: '', phone: '' });
     setIsModalOpen(true);
@@ -127,6 +143,7 @@ export default function CalendarPage() {
   const handleSelectEvent = (event: any) => {
     setSelectedEvent(event);
     setIsBlockMode(event.isBlocker || false);
+    setRepeatCount(1);
     setForm({
       patientId: event.patient?.id || '',
       serviceId: event.service?.id || '',
@@ -152,7 +169,8 @@ export default function CalendarPage() {
         serviceId: isBlockMode ? undefined : form.serviceId,
         notes: form.notes,
         status: form.status,
-        isBlocker: isBlockMode
+        isBlocker: isBlockMode,
+        repeatCount: isBlockMode ? repeatCount : 1
       };
 
       if (!isEditing) {
@@ -188,6 +206,7 @@ export default function CalendarPage() {
       setForm({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
       setIsCreatingPatient(false);
       setIsBlockMode(false);
+      setRepeatCount(1);
       setSelectedSlot(null);
       setSelectedEvent(null);
     } catch (err: any) {
@@ -313,19 +332,50 @@ export default function CalendarPage() {
               Gestiona el tiempo de tus doctores. Selecciona qué calendario y doctor deseas inspeccionar hoy.
             </p>
           </div>
-          <div className="flex flex-col gap-2 min-w-[250px]">
-            <label className="text-xs font-bold uppercase tracking-wider text-blue-100">Mostrando Calendario de:</label>
-            <select 
-              value={selectedCalendarId}
-              onChange={(e) => setSelectedCalendarId(e.target.value)}
-              className="w-full bg-white/10 backdrop-blur-md border border-white/30 text-white font-bold rounded-xl px-4 py-3 focus:ring-2 focus:ring-white/50 focus:outline-none placeholder-white appearance-none cursor-pointer hover:bg-white/20 transition-all"
-            >
-              {calendars.length === 0 && <option value="" className="text-black">No hay calendarios</option>}
-              {calendars.length > 0 && <option value="" className="text-black">Todos (Global Sede)</option>}
-              {calendars.map(cal => (
-                <option key={cal.id} value={cal.id} className="text-black">{cal.doctor?.name ? `${cal.name} - ${cal.doctor.name}` : cal.name}</option>
-              ))}
-            </select>
+          
+          <div className="flex flex-col gap-2 min-w-[300px]" ref={calendarRef}>
+            <label className="text-xs font-bold uppercase tracking-wider text-blue-100 pl-1">Seleccionar Calendario:</label>
+            <div className="relative">
+              <button
+                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                className={`w-full flex items-center justify-between bg-white text-gray-900 border ${isCalendarOpen ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-200'} text-sm font-bold rounded-xl p-3.5 shadow-md transition-all duration-200`}
+              >
+                <span className="truncate">
+                  {calendars.length === 0 ? 'Sin calendarios creados' : 
+                   selectedCalendarId === '' ? 'Todos (Vista Global)' : 
+                   (calendars.find(c => c.id === selectedCalendarId)?.name + (calendars.find(c => c.id === selectedCalendarId)?.doctor?.name ? ` - ${calendars.find(c => c.id === selectedCalendarId)?.doctor?.name}` : ''))}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isCalendarOpen ? '-rotate-180 text-blue-500' : ''}`} />
+              </button>
+
+              {isCalendarOpen && (
+                <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl overflow-hidden py-1">
+                  {calendars.length > 0 && (
+                    <button
+                      onClick={() => { setSelectedCalendarId(''); setIsCalendarOpen(false); }}
+                      className={`w-full text-left flex items-center justify-between px-4 py-3 text-sm transition-colors ${selectedCalendarId === '' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 font-medium hover:bg-gray-50'}`}
+                    >
+                      Todos (Vista Global)
+                      {selectedCalendarId === '' && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
+                    </button>
+                  )}
+                  {calendars.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-gray-500 font-medium text-center">No hay calendarios</div>
+                  ) : (
+                    calendars.map(cal => (
+                      <button
+                        key={cal.id}
+                        onClick={() => { setSelectedCalendarId(cal.id); setIsCalendarOpen(false); }}
+                        className={`w-full text-left flex items-center justify-between px-4 py-3 text-sm transition-colors ${selectedCalendarId === cal.id ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 font-medium hover:bg-gray-50'}`}
+                      >
+                        <span className="truncate">{cal.doctor?.name ? `${cal.name} - ${cal.doctor.name}` : cal.name}</span>
+                        {selectedCalendarId === cal.id && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -389,7 +439,7 @@ export default function CalendarPage() {
               <div className="flex bg-gray-50 border-b border-gray-100">
                 <button 
                   type="button"
-                  onClick={() => setIsBlockMode(false)}
+                  onClick={() => { setIsBlockMode(false); setRepeatCount(1); }}
                   className={`flex-1 py-4 text-sm font-bold transition-colors ${!isBlockMode ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   Agendar Cita
@@ -418,9 +468,25 @@ export default function CalendarPage() {
             <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
               {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 font-bold border border-red-200">{error}</div>}
               
-              <div className={`${isBlockMode ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-blue-50 border-blue-100 text-blue-900'} p-3 rounded-lg border flex items-center gap-3 text-sm`}>
-                 <Clock className={`w-5 h-5 ${isBlockMode ? 'text-slate-500' : 'text-blue-600'}`} />
-                 <div><p className="font-bold">{format(selectedSlot.start, "EEEE d 'de' MMMM", { locale: es })}</p><p className="font-medium">{format(selectedSlot.start, "HH:mm")} - {format(selectedSlot.end, "HH:mm")} hrs</p></div>
+              <div className={`${isBlockMode ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-blue-50 border-blue-100 text-blue-900'} p-3 rounded-lg border flex items-center justify-between text-sm`}>
+                 <div className="flex items-center gap-3">
+                   <Clock className={`w-5 h-5 ${isBlockMode ? 'text-slate-500' : 'text-blue-600'}`} />
+                   <div><p className="font-bold">{format(selectedSlot.start, "EEEE d 'de' MMMM", { locale: es })}</p><p className="font-medium">{format(selectedSlot.start, "HH:mm")} - {format(selectedSlot.end, "HH:mm")} hrs</p></div>
+                 </div>
+                 {isBlockMode && !selectedEvent && (
+                    <div className="text-right">
+                       <label className="text-xs font-bold text-slate-500 block">Repetir (Días)</label>
+                       <select value={repeatCount} onChange={e => setRepeatCount(Number(e.target.value))} className="mt-1 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded p-1 outline-none">
+                          <option value={1}>Solo hoy</option>
+                          <option value={2}>2 días</option>
+                          <option value={3}>3 días</option>
+                          <option value={4}>4 días</option>
+                          <option value={5}>5 días</option>
+                          <option value={6}>6 días</option>
+                          <option value={7}>1 semana</option>
+                       </select>
+                    </div>
+                 )}
               </div>
 
               {!isBlockMode && (
@@ -468,7 +534,7 @@ export default function CalendarPage() {
               <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-black hover:bg-gray-50">Cancelar</button>
                 <button type="submit" disabled={isSubmitting} className={`rounded-md px-6 py-2 text-sm font-bold text-white transition-all disabled:opacity-50 ${isBlockMode ? 'bg-slate-700 hover:bg-slate-800' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                  {isSubmitting ? 'Guardando...' : (isBlockMode ? 'Bloquear Horario' : 'Confirmar Cita')}
+                  {isSubmitting ? 'Guardando...' : (isBlockMode ? (repeatCount > 1 ? `Bloquear ${repeatCount} Días` : 'Bloquear Horario') : 'Confirmar Cita')}
                 </button>
               </div>
             </form>
@@ -529,12 +595,12 @@ export default function CalendarPage() {
               )}
 
               <div className="mt-8 flex justify-between gap-3 pt-6 border-t border-gray-100">
-                <button onClick={cancelAppointment} disabled={isSubmitting || selectedEvent.status === 'CANCELLED'} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50">
+                <button onClick={cancelAppointment} disabled={isSubmitting || selectedEvent.status === 'CANCELLED'} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50 transition-colors">
                   <Trash2 className="w-4 h-4" /> {isBlockMode ? 'Eliminar Bloqueo' : 'Cancelar Cita'}
                 </button>
                 <div className="flex gap-2">
-                  <button onClick={() => { setIsDetailModalOpen(false); setIsModalOpen(true); setSelectedSlot({ start: selectedEvent.start, end: selectedEvent.end }); }} disabled={selectedEvent.status === 'CANCELLED'} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50"><Edit2 className="w-4 h-4" /> Editar</button>
-                  <button onClick={() => setIsDetailModalOpen(false)} className="px-4 py-2 text-sm font-bold text-black hover:bg-gray-100 rounded-lg">Cerrar</button>
+                  <button onClick={() => { setIsDetailModalOpen(false); setIsModalOpen(true); setSelectedSlot({ start: selectedEvent.start, end: selectedEvent.end }); }} disabled={selectedEvent.status === 'CANCELLED'} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50 transition-colors"><Edit2 className="w-4 h-4" /> Editar</button>
+                  <button onClick={() => setIsDetailModalOpen(false)} className="px-4 py-2 text-sm font-bold text-black hover:bg-gray-100 rounded-lg transition-colors">Cerrar</button>
                 </div>
               </div>
             </div>

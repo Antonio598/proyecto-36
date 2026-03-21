@@ -1,0 +1,1 @@
+﻿src/app/api/n8n/services/route.ts(28,54): error TS2353: Object literal may only specify known properties, and 'phone' does not exist in type 'DoctorSelect<DefaultArgs>'.
