@@ -86,10 +86,10 @@ model AvailabilityRule {
 
 model Appointment {
   id             String            @id @default(uuid())
-  patientId      String
-  patient        Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  serviceId      String
-  service        Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  patientId      String?
+  patient        Patient?          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  serviceId      String?
+  service        Service?          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   professionalId String?
   professional   User?             @relation("ProfessionalAppointments", fields: [professionalId], references: [id], onDelete: SetNull)
   subaccountId   String?
@@ -101,6 +101,7 @@ model Appointment {
   status         AppointmentStatus @default(PENDING)
   startTime      DateTime
   endTime        DateTime
+  isBlocker      Boolean           @default(false)
   notes          String?
   totalPrice     Float?
   createdAt      DateTime          @default(now())

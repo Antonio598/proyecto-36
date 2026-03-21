@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale/es';
-import { X, Calendar as CalendarIcon, Clock, User, Stethoscope, Edit2, Trash2, Info, AlertCircle } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, User, Stethoscope, Edit2, Trash2, Info, Ban, ShieldAlert } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSede } from '@/context/SedeContext';
 
@@ -34,6 +34,8 @@ export default function CalendarPage() {
   const [form, setForm] = useState({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const [isBlockMode, setIsBlockMode] = useState(false);
 
   // Quick Create Patient State
   const [isCreatingPatient, setIsCreatingPatient] = useState(false);
@@ -89,14 +91,15 @@ export default function CalendarPage() {
 
           return {
             id: appt.id,
-            title: `${appt.service?.name} - ${appt.patient?.fullName}`,
+            title: appt.isBlocker ? (appt.notes || 'Tiempo Bloqueado') : `${appt.service?.name} - ${appt.patient?.fullName}`,
             start: new Date(naiveStartStr),
             end: new Date(naiveEndStr),
-            color: appt.service?.colorCode || '#3b82f6',
+            color: appt.isBlocker ? '#64748b' : (appt.service?.colorCode || '#3b82f6'),
             patient: appt.patient,
             service: appt.service,
             notes: appt.notes,
-            status: appt.status
+            status: appt.status,
+            isBlocker: appt.isBlocker
           };
         });
         setEvents(formattedEvents);
@@ -114,6 +117,7 @@ export default function CalendarPage() {
     setSelectedSlot(slotInfo);
     setSelectedEvent(null);
     setForm({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
+    setIsBlockMode(false);
     setIsCreatingPatient(false);
     setNewPatientForm({ fullName: '', phone: '' });
     setIsModalOpen(true);
@@ -122,6 +126,7 @@ export default function CalendarPage() {
 
   const handleSelectEvent = (event: any) => {
     setSelectedEvent(event);
+    setIsBlockMode(event.isBlocker || false);
     setForm({
       patientId: event.patient?.id || '',
       serviceId: event.service?.id || '',
@@ -143,10 +148,11 @@ export default function CalendarPage() {
 
     try {
       const payload: any = {
-        patientId: form.patientId,
-        serviceId: form.serviceId,
+        patientId: isBlockMode ? undefined : form.patientId,
+        serviceId: isBlockMode ? undefined : form.serviceId,
         notes: form.notes,
         status: form.status,
+        isBlocker: isBlockMode
       };
 
       if (!isEditing) {
@@ -160,6 +166,9 @@ export default function CalendarPage() {
 
       if (!isEditing && selectedSlot) {
         payload.startTime = format(selectedSlot.start, "yyyy-MM-dd'T'HH:mm:ss");
+        if (isBlockMode) {
+          payload.endTime = format(selectedSlot.end, "yyyy-MM-dd'T'HH:mm:ss");
+        }
       }
 
       const res = await fetch(url, {
@@ -178,6 +187,7 @@ export default function CalendarPage() {
       setIsDetailModalOpen(false);
       setForm({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
       setIsCreatingPatient(false);
+      setIsBlockMode(false);
       setSelectedSlot(null);
       setSelectedEvent(null);
     } catch (err: any) {
@@ -219,7 +229,7 @@ export default function CalendarPage() {
 
   const cancelAppointment = async () => {
     if (!selectedEvent) return;
-    if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return;
+    if (!confirm(isBlockMode ? '¿Deseas eliminar este bloqueo de horario?' : '¿Estás seguro de que deseas cancelar esta cita?')) return;
 
     setIsSubmitting(true);
     try {
@@ -227,7 +237,7 @@ export default function CalendarPage() {
         method: 'DELETE'
       });
 
-      if (!res.ok) throw new Error('Error al cancelar cita');
+      if (!res.ok) throw new Error('Error al cancelar');
 
       await fetchAppointments();
       setIsDetailModalOpen(false);
@@ -243,6 +253,27 @@ export default function CalendarPage() {
     const baseColor = event.color || '#3b82f6';
     const isCancelled = event.status === 'CANCELLED';
     
+    if (event.isBlocker) {
+      return {
+        style: {
+          background: 'repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 10px, #e2e8f0 10px, #e2e8f0 20px)',
+          borderRadius: '8px',
+          color: '#334155',
+          border: '1px solid #94a3b8',
+          display: 'block',
+          padding: '6px 8px',
+          fontWeight: '800',
+          fontSize: '0.75rem',
+          boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+          opacity: 0.95,
+          cursor: 'pointer'
+        }
+      };
+    }
+
     return {
       style: {
         background: isCancelled ? '#94a3b8' : `linear-gradient(135deg, ${baseColor}, ${baseColor}dd)`,
@@ -320,10 +351,10 @@ export default function CalendarPage() {
               onNavigate={(newDate) => setDate(newDate)}
               onView={(newView) => setView(newView as any)}
               eventPropGetter={eventStyleGetter}
-              selectable={selectedCalendarId !== ''} // Solo dejar agendar directamente si hay UNO elegido
+              selectable={selectedCalendarId !== ''} 
               onSelectSlot={(slot) => {
                  if(selectedCalendarId === '') {
-                    alert('Debes seleccionar un Calendario específico en la parte superior (' + (calendars[0]?.name || '') + ') para poder agendar una nueva cita.');
+                    alert('Debes seleccionar un Calendario específico en la parte superior (' + (calendars[0]?.name || '') + ') para poder agendar o bloquear un espacio.');
                     return;
                  }
                  handleSelectSlot(slot);
@@ -349,68 +380,95 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Modal Nueva Cita */}
+      {/* Modal Nueva Cita o Bloqueo */}
       {isModalOpen && selectedSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-md transform rounded-3xl bg-white text-left align-middle shadow-2xl transition-all border border-gray-100 overflow-hidden">
-            <div className="bg-gray-50 px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-black flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5 text-blue-600" />
-                {selectedEvent ? 'Editar Cita' : 'Agendar Nueva Cita'}
-              </h3>
-              <button onClick={() => { setIsModalOpen(false); if(selectedEvent) setIsDetailModalOpen(true); }} className="rounded-full p-2 text-gray-400 hover:bg-gray-200 transition-colors"><X className="h-5 w-5" /></button>
-            </div>
+            
+            {!selectedEvent && (
+              <div className="flex bg-gray-50 border-b border-gray-100">
+                <button 
+                  type="button"
+                  onClick={() => setIsBlockMode(false)}
+                  className={`flex-1 py-4 text-sm font-bold transition-colors ${!isBlockMode ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Agendar Cita
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setIsBlockMode(true)}
+                  className={`flex-1 py-4 text-sm font-bold transition-colors ${isBlockMode ? 'text-slate-700 border-b-2 border-slate-700 bg-white' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Bloquear Horario
+                </button>
+                <button onClick={() => { setIsModalOpen(false); }} className="absolute top-4 right-4 rounded-full p-2 text-gray-400 hover:bg-gray-200 transition-colors"><X className="h-5 w-5" /></button>
+              </div>
+            )}
+            
+            {selectedEvent && (
+               <div className="bg-gray-50 px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                 <h3 className="text-lg font-bold text-black flex items-center gap-2">
+                   {isBlockMode ? <Ban className="w-5 h-5 text-slate-600" /> : <CalendarIcon className="w-5 h-5 text-blue-600" />}
+                   {isBlockMode ? 'Editar Bloqueo' : 'Editar Cita'}
+                 </h3>
+                 <button onClick={() => { setIsModalOpen(false); setIsDetailModalOpen(true); }} className="rounded-full p-2 text-gray-400 hover:bg-gray-200 transition-colors"><X className="h-5 w-5" /></button>
+               </div>
+            )}
             
             <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
               {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 font-bold border border-red-200">{error}</div>}
               
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center gap-3 text-sm text-blue-900">
-                 <Clock className="w-5 h-5 text-blue-600" />
-                 <div><p className="font-bold">{format(selectedSlot.start, "EEEE d 'de' MMMM", { locale: es })}</p><p className="font-medium">{format(selectedSlot.start, "HH:mm")} hrs</p></div>
+              <div className={`${isBlockMode ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-blue-50 border-blue-100 text-blue-900'} p-3 rounded-lg border flex items-center gap-3 text-sm`}>
+                 <Clock className={`w-5 h-5 ${isBlockMode ? 'text-slate-500' : 'text-blue-600'}`} />
+                 <div><p className="font-bold">{format(selectedSlot.start, "EEEE d 'de' MMMM", { locale: es })}</p><p className="font-medium">{format(selectedSlot.start, "HH:mm")} - {format(selectedSlot.end, "HH:mm")} hrs</p></div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-bold text-black">Paciente *</label>
-                  <button type="button" onClick={() => setIsCreatingPatient(!isCreatingPatient)} className="text-xs text-blue-600 font-bold hover:text-blue-800 transition-colors">
-                    {isCreatingPatient ? 'Usar Existente' : '+ Nuevo Paciente rápido'}
-                  </button>
-                </div>
-                {isCreatingPatient ? (
-                  <div className="space-y-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
-                    <input type="text" placeholder="Nombre Completo" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500" value={newPatientForm.fullName} onChange={e => setNewPatientForm({...newPatientForm, fullName: e.target.value})} />
-                    <div className="flex gap-2">
-                       <input type="text" placeholder="Teléfono" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500" value={newPatientForm.phone} onChange={e => setNewPatientForm({...newPatientForm, phone: e.target.value})} />
-                       <button type="button" onClick={handleCreatePatient} disabled={isCreatingPatientSubmitting} className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold disabled:opacity-50">
-                         {isCreatingPatientSubmitting ? '...' : 'Crear'}
-                       </button>
+              {!isBlockMode && (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-bold text-black">Paciente *</label>
+                      <button type="button" onClick={() => setIsCreatingPatient(!isCreatingPatient)} className="text-xs text-blue-600 font-bold hover:text-blue-800 transition-colors">
+                        {isCreatingPatient ? 'Usar Existente' : '+ Nuevo Paciente rápido'}
+                      </button>
                     </div>
+                    {isCreatingPatient ? (
+                      <div className="space-y-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                        <input type="text" placeholder="Nombre Completo" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500" value={newPatientForm.fullName} onChange={e => setNewPatientForm({...newPatientForm, fullName: e.target.value})} />
+                        <div className="flex gap-2">
+                          <input type="text" placeholder="Teléfono" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500" value={newPatientForm.phone} onChange={e => setNewPatientForm({...newPatientForm, phone: e.target.value})} />
+                          <button type="button" onClick={handleCreatePatient} disabled={isCreatingPatientSubmitting} className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold disabled:opacity-50">
+                            {isCreatingPatientSubmitting ? '...' : 'Crear'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <select required className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-black font-medium" value={form.patientId} onChange={(e) => setForm({ ...form, patientId: e.target.value })}>
+                        <option value="" disabled>Selecciona un paciente</option>
+                        {patients.map(p => <option key={p.id} value={p.id}>{p.fullName} ({p.phone})</option>)}
+                      </select>
+                    )}
                   </div>
-                ) : (
-                  <select required className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-black font-medium" value={form.patientId} onChange={(e) => setForm({ ...form, patientId: e.target.value })}>
-                    <option value="" disabled>Selecciona un paciente</option>
-                    {patients.map(p => <option key={p.id} value={p.id}>{p.fullName} ({p.phone})</option>)}
-                  </select>
-                )}
-              </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-black mb-1">Servicio *</label>
+                    <select required className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-black font-medium" value={form.serviceId} onChange={(e) => setForm({ ...form, serviceId: e.target.value })}>
+                      <option value="" disabled>Selecciona un servicio</option>
+                      {services.filter(s => s.isActive).map(s => <option key={s.id} value={s.id}>{s.name} ({s.durationMinutes} min)</option>)}
+                    </select>
+                  </div>
+                </>
+              )}
 
               <div>
-                <label className="block text-sm font-bold text-black mb-1">Servicio *</label>
-                <select required className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-black font-medium" value={form.serviceId} onChange={(e) => setForm({ ...form, serviceId: e.target.value })}>
-                  <option value="" disabled>Selecciona un servicio</option>
-                  {services.filter(s => s.isActive).map(s => <option key={s.id} value={s.id}>{s.name} ({s.durationMinutes} min)</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-black mb-1">Notas</label>
-                <textarea rows={2} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2.5 text-black font-medium" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                <label className="block text-sm font-bold text-black mb-1">{isBlockMode ? 'Motivo del bloqueo (Opcional)' : 'Notas Adicionales'}</label>
+                <textarea rows={isBlockMode ? 3 : 2} placeholder={isBlockMode ? 'Ej. Hora de Comida, Salida Temprano...' : ''} className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2.5 text-black font-medium" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
 
               <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-black hover:bg-gray-50">Cancelar</button>
-                <button type="submit" disabled={isSubmitting} className="rounded-md bg-blue-600 px-6 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">
-                  {isSubmitting ? 'Guardando...' : 'Confirmar Cita'}
+                <button type="submit" disabled={isSubmitting} className={`rounded-md px-6 py-2 text-sm font-bold text-white transition-all disabled:opacity-50 ${isBlockMode ? 'bg-slate-700 hover:bg-slate-800' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                  {isSubmitting ? 'Guardando...' : (isBlockMode ? 'Bloquear Horario' : 'Confirmar Cita')}
                 </button>
               </div>
             </form>
@@ -418,39 +476,61 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Modal Detalles Cita */}
+      {/* Modal Detalles */}
       {isDetailModalOpen && selectedEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-md transform rounded-3xl bg-white text-left shadow-2xl overflow-hidden">
-            <div className="bg-gray-50 px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-black flex items-center gap-2"><Info className="w-5 h-5 text-blue-600" /> Detalles de Cita</h3>
+            <div className={`${isBlockMode ? 'bg-slate-100 border-slate-200' : 'bg-gray-50 border-gray-100'} px-6 py-5 border-b flex items-center justify-between`}>
+              <h3 className="text-lg font-bold text-black flex items-center gap-2">
+                 {isBlockMode ? <Ban className="w-5 h-5 text-slate-600" /> : <Info className="w-5 h-5 text-blue-600" />} 
+                 {isBlockMode ? 'Espacio Bloqueado' : 'Detalles de Cita'}
+              </h3>
               <button onClick={() => setIsDetailModalOpen(false)} className="rounded-full p-2 text-gray-400 hover:bg-gray-200"><X className="h-5 w-5" /></button>
             </div>
             <div className="px-6 py-6 space-y-6">
               {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 font-bold border border-red-200">{error}</div>}
               
-              <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <div className="bg-white p-2.5 rounded-lg shadow-sm"><User className="w-6 h-6 text-indigo-600" /></div>
-                <div><p className="text-xs font-black text-indigo-600 uppercase">Paciente</p><p className="text-lg font-bold text-black">{selectedEvent.patient?.fullName}</p><p className="text-sm font-medium text-black/70">{selectedEvent.patient?.phone}</p></div>
-              </div>
+              {!isBlockMode && (
+                <>
+                  <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="bg-white p-2.5 rounded-lg shadow-sm"><User className="w-6 h-6 text-indigo-600" /></div>
+                    <div><p className="text-xs font-black text-indigo-600 uppercase">Paciente</p><p className="text-lg font-bold text-black">{selectedEvent.patient?.fullName}</p><p className="text-sm font-medium text-black/70">{selectedEvent.patient?.phone}</p></div>
+                  </div>
 
-              <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <div className="bg-white p-2.5 rounded-lg shadow-sm"><Stethoscope className="w-6 h-6 text-blue-600" /></div>
-                <div><p className="text-xs font-black text-blue-600 uppercase">Servicio</p><p className="text-lg font-bold text-black">{selectedEvent.service?.name}</p><p className="text-sm font-medium text-black/70">{selectedEvent.service?.durationMinutes} min</p></div>
-              </div>
+                  <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="bg-white p-2.5 rounded-lg shadow-sm"><Stethoscope className="w-6 h-6 text-blue-600" /></div>
+                    <div><p className="text-xs font-black text-blue-600 uppercase">Servicio</p><p className="text-lg font-bold text-black">{selectedEvent.service?.name}</p><p className="text-sm font-medium text-black/70">{selectedEvent.service?.durationMinutes} min</p></div>
+                  </div>
+                </>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100"><p className="text-xs font-black text-gray-400 uppercase">Fecha</p><p className="text-sm font-bold text-black">{format(selectedEvent.start, "d 'de' MMM", { locale: es })}</p></div>
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100"><p className="text-xs font-black text-gray-400 uppercase">Horario</p><p className="text-sm font-bold text-black">{format(selectedEvent.start, "HH:mm")} - {format(selectedEvent.end, "HH:mm")}</p></div>
+                <div className={`p-4 rounded-xl border ${isBlockMode ? 'bg-slate-50 border-slate-100' : 'bg-gray-50 border-gray-100'}`}>
+                   <p className="text-xs font-black text-gray-400 uppercase">Fecha</p>
+                   <p className="text-sm font-bold text-black">{format(selectedEvent.start, "d 'de' MMM", { locale: es })}</p>
+                </div>
+                <div className={`p-4 rounded-xl border ${isBlockMode ? 'bg-slate-50 border-slate-100' : 'bg-gray-50 border-gray-100'}`}>
+                   <p className="text-xs font-black text-gray-400 uppercase">Horario</p>
+                   <p className="text-sm font-bold text-black">{format(selectedEvent.start, "HH:mm")} - {format(selectedEvent.end, "HH:mm")}</p>
+                </div>
               </div>
 
-              {selectedEvent.notes && <div className="p-4 bg-amber-50 rounded-xl border border-amber-100"><p className="text-xs font-black text-amber-600 uppercase">Notas</p><p className="text-sm font-medium text-black">{selectedEvent.notes}</p></div>}
+              {selectedEvent.notes && (
+                <div className={`p-4 rounded-xl border ${isBlockMode ? 'bg-slate-100 border-slate-200' : 'bg-amber-50 border-amber-100'}`}>
+                   <p className={`text-xs font-black uppercase mb-1 ${isBlockMode ? 'text-slate-600' : 'text-amber-600'}`}>
+                      {isBlockMode ? 'Motivo del Bloqueo' : 'Notas'}
+                   </p>
+                   <p className="text-sm font-medium text-black">{selectedEvent.notes}</p>
+                </div>
+              )}
 
-              <div><span className={`px-3 py-1 rounded-full text-xs font-bold ${selectedEvent.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{selectedEvent.status === 'CONFIRMED' ? 'Cita Confirmada' : 'Cita Cancelada'}</span></div>
+              {!isBlockMode && (
+                <div><span className={`px-3 py-1 rounded-full text-xs font-bold ${selectedEvent.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{selectedEvent.status === 'CONFIRMED' ? 'Cita Confirmada' : 'Cita Cancelada'}</span></div>
+              )}
 
               <div className="mt-8 flex justify-between gap-3 pt-6 border-t border-gray-100">
                 <button onClick={cancelAppointment} disabled={isSubmitting || selectedEvent.status === 'CANCELLED'} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50">
-                  <Trash2 className="w-4 h-4" /> Cancelar Cita
+                  <Trash2 className="w-4 h-4" /> {isBlockMode ? 'Eliminar Bloqueo' : 'Cancelar Cita'}
                 </button>
                 <div className="flex gap-2">
                   <button onClick={() => { setIsDetailModalOpen(false); setIsModalOpen(true); setSelectedSlot({ start: selectedEvent.start, end: selectedEvent.end }); }} disabled={selectedEvent.status === 'CANCELLED'} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50"><Edit2 className="w-4 h-4" /> Editar</button>

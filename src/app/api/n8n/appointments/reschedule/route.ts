@@ -38,10 +38,10 @@ export async function PUT(request: Request) {
 
     // 3. Overlap Check for new time (using dynamic duration based on calendar)
     const newStart = new Date(newStartTime);
-    let duration = appointment.service.durationMinutes;
+    let duration = appointment.service?.durationMinutes || 30;
     let targetCalendarId = newCalendarId || appointment.calendarId;
 
-    if (targetCalendarId) {
+    if (targetCalendarId && appointment.serviceId) {
       const config = await prisma.serviceConfiguration.findUnique({
          where: { serviceId_calendarId: { serviceId: appointment.serviceId, calendarId: targetCalendarId } }
       });

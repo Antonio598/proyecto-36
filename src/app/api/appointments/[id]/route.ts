@@ -28,7 +28,8 @@ export async function PUT(
 
     if (startTime) {
       const start = new Date(startTime);
-      const end = new Date(start.getTime() + currentAppt.service.durationMinutes * 60000);
+      const durationMs = currentAppt.endTime.getTime() - currentAppt.startTime.getTime();
+      const end = new Date(start.getTime() + durationMs);
       
       // Basic Overlap validation check (excluding current appointment)
       const overlappingAppt = await prisma.appointment.findFirst({

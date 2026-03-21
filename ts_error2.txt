@@ -1,0 +1,4 @@
+﻿src/app/api/appointments/[id]/route.ts(31,46): error TS18047: 'currentAppt.service' is possibly 'null'.
+src/app/api/n8n/appointments/reschedule/route.ts(41,20): error TS18047: 'appointment.service' is possibly 'null'.
+src/app/api/n8n/appointments/reschedule/route.ts(46,43): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.

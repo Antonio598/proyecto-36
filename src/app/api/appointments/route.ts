@@ -46,48 +46,60 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { patientId, serviceId, professionalId, startTime, notes, status, subaccountId, calendarId, doctorId } = body;
+    const { patientId, serviceId, professionalId, startTime, endTime, notes, status, subaccountId, calendarId, doctorId, isBlocker } = body;
 
-    // Basic Validation
-    if (!patientId || !serviceId || !startTime) {
-      return NextResponse.json(
-        { error: 'patientId, serviceId, and startTime are required' },
-        { status: 400 }
-      );
+    if (!startTime) {
+      return NextResponse.json({ error: 'startTime is required' }, { status: 400 });
     }
 
-    // Lookup service config if applicable or fallback to generic service
     let price = 0;
-    let durationMinutes = 30;
+    let finalDurationMinutes = 30;
 
-    const defaultConfig = await prisma.serviceConfiguration.findFirst({
-      where: {
-        serviceId,
-        ...(calendarId ? { calendarId } : {}),
-        ...(subaccountId ? { subaccountId } : {})
+    if (!isBlocker) {
+      if (!patientId || !serviceId) {
+        return NextResponse.json(
+          { error: 'patientId and serviceId are required for regular appointments' },
+          { status: 400 }
+        );
       }
-    });
 
-    if (defaultConfig) {
-      price = defaultConfig.price;
-      durationMinutes = defaultConfig.durationMinutes;
-    } else {
-      const genericService = await prisma.service.findUnique({
-        where: { id: serviceId },
+      const defaultConfig = await prisma.serviceConfiguration.findFirst({
+        where: {
+          serviceId,
+          ...(calendarId ? { calendarId } : {}),
+          ...(subaccountId ? { subaccountId } : {})
+        }
       });
-      if (!genericService) {
-        return NextResponse.json({ error: 'Service not found' }, { status: 404 });
+
+      if (defaultConfig) {
+        price = defaultConfig.price;
+        finalDurationMinutes = defaultConfig.durationMinutes;
+      } else {
+        const genericService = await prisma.service.findUnique({
+          where: { id: serviceId },
+        });
+        if (!genericService) {
+          return NextResponse.json({ error: 'Service not found' }, { status: 404 });
+        }
+        price = genericService.price;
+        finalDurationMinutes = genericService.durationMinutes;
       }
-      price = genericService.price;
-      durationMinutes = genericService.durationMinutes;
     }
 
     const naiveLocalTime = startTime.substring(0, 19);
     const { fromZonedTime } = require('date-fns-tz');
     const start = fromZonedTime(naiveLocalTime, 'America/Panama');
-    const end = new Date(start.getTime() + durationMinutes * 60000);
+    
+    let end: Date;
+    if (isBlocker) {
+      if (!endTime) {
+        return NextResponse.json({ error: 'endTime is required for blockers' }, { status: 400 });
+      }
+      end = fromZonedTime(endTime.substring(0, 19), 'America/Panama');
+    } else {
+      end = new Date(start.getTime() + finalDurationMinutes * 60000);
+    }
 
-    // Dynamic conflict overlap check (restrict to same calendar if specified)
     const overlappingWhere: any = {
        status: { notIn: ['CANCELLED'] },
        OR: [
@@ -112,12 +124,13 @@ export async function POST(request: Request) {
 
     const appointment = await prisma.appointment.create({
       data: {
-        patientId,
-        serviceId,
+        patientId: isBlocker ? undefined : patientId,
+        serviceId: isBlocker ? undefined : serviceId,
         professionalId: professionalId || null,
         subaccountId: subaccountId || null,
         calendarId: calendarId || null,
         doctorId: doctorId || null,
+        isBlocker: isBlocker || false,
         startTime: start,
         endTime: end,
         notes,

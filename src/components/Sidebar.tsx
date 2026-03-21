@@ -1,5 +1,4 @@
-'use client';
-
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSede } from '@/context/SedeContext';
@@ -12,7 +11,9 @@ import {
   BookOpen,
   Building,
   Stethoscope,
-  Clock
+  Clock,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 
 const navigation = [
@@ -29,30 +30,74 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const { sedes, selectedSede, setSelectedSede, isLoading } = useSede();
+  
+  const [isSedeOpen, setIsSedeOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsSedeOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
-      <div className="flex h-16 items-center px-6 border-b border-gray-100">
-        <h1 className="text-xl font-bold tracking-tight text-gray-900">
+    <div className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white shadow-sm z-30 relative">
+      <div className="flex h-16 items-center px-6 border-b border-gray-100 bg-white">
+        <h1 className="text-xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black">M</div>
           Med<span className="text-blue-600">SaaS</span>
         </h1>
       </div>
 
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-        <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Sede Activa</label>
+      <div className="px-4 py-5 border-b border-gray-100 bg-gray-50/50" ref={dropdownRef}>
+        <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest pl-1">Sede UniversaL</label>
         {isLoading ? (
-          <div className="h-9 bg-gray-200 animate-pulse rounded-md w-full"></div>
+           <div className="h-11 bg-gray-200 animate-pulse rounded-xl w-full"></div>
         ) : (
-          <select 
-            value={selectedSede} 
-            onChange={(e) => setSelectedSede(e.target.value)}
-            className="w-full bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2"
-          >
-            {sedes.length === 0 && <option value="">Sin sedes</option>}
-            {sedes.map(sede => (
-              <option key={sede.id} value={sede.id}>{sede.name}</option>
-            ))}
-          </select>
+           <div className="relative">
+             <button
+               onClick={() => setIsSedeOpen(!isSedeOpen)}
+               className={`w-full flex items-center justify-between bg-white border ${isSedeOpen ? 'border-blue-400 ring-2 ring-blue-50' : 'border-gray-200 hover:border-gray-300'} text-gray-900 text-sm font-bold rounded-xl p-3 shadow-sm transition-all duration-200`}
+             >
+               <div className="flex items-center gap-2.5 truncate">
+                  <div className={`p-1.5 rounded-md ${isSedeOpen ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                    <Building className="w-4 h-4" />
+                  </div>
+                  <span className="truncate">
+                    {sedes.length === 0 ? 'Sin Sedes' : sedes.find(s => s.id === selectedSede)?.name || 'Selecciona una...'}
+                  </span>
+               </div>
+               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isSedeOpen ? '-rotate-180 text-blue-500' : ''}`} />
+             </button>
+
+             {isSedeOpen && (
+                <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden transform opacity-100 scale-100 transition-all">
+                  {sedes.length === 0 ? (
+                    <div className="px-4 py-4 text-center text-sm text-gray-500 font-medium">Aún no hay sedes creadas</div>
+                  ) : (
+                    <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5">
+                      {sedes.map(sede => {
+                        const isSelected = selectedSede === sede.id;
+                        return (
+                          <button
+                            key={sede.id}
+                            onClick={() => { setSelectedSede(sede.id); setIsSedeOpen(false); }}
+                            className={`w-full text-left flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${isSelected ? 'bg-blue-50 text-blue-700 font-black' : 'text-gray-700 font-medium hover:bg-gray-50'}`}
+                          >
+                            <span className="truncate">{sede.name}</span>
+                            {isSelected && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+             )}
+           </div>
         )}
       </div>
       
