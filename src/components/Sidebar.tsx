@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSede } from '@/context/SedeContext';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -27,6 +28,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { sedes, selectedSede, setSelectedSede, isLoading } = useSede();
 
   return (
     <div className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
@@ -34,6 +36,24 @@ export function Sidebar() {
         <h1 className="text-xl font-bold tracking-tight text-gray-900">
           Med<span className="text-blue-600">SaaS</span>
         </h1>
+      </div>
+
+      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+        <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Sede Activa</label>
+        {isLoading ? (
+          <div className="h-9 bg-gray-200 animate-pulse rounded-md w-full"></div>
+        ) : (
+          <select 
+            value={selectedSede} 
+            onChange={(e) => setSelectedSede(e.target.value)}
+            className="w-full bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2"
+          >
+            {sedes.length === 0 && <option value="">Sin sedes</option>}
+            {sedes.map(sede => (
+              <option key={sede.id} value={sede.id}>{sede.name}</option>
+            ))}
+          </select>
+        )}
       </div>
       
       <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6">

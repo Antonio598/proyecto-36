@@ -3,9 +3,14 @@ import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const subaccountId = searchParams.get('subaccountId');
+    const where = subaccountId ? { subaccountId } : {};
+
     const calendars = await prisma.calendar.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         subaccount: true,

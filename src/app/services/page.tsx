@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Package, Stethoscope, Tag, X, Edit2, Trash2, AlertCircle } from 'lucide-react';
+import { useSede } from '@/context/SedeContext';
 
 interface Service {
   id: string;
@@ -26,6 +27,7 @@ interface Doctor {
 }
 
 export default function ServicesPage() {
+  const { selectedSede } = useSede();
   const [services, setServices] = useState<Service[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -49,12 +51,12 @@ export default function ServicesPage() {
       const [servicesRes, productsRes, docsRes] = await Promise.all([
         fetch('/api/services'),
         fetch('/api/products'),
-        fetch('/api/doctors')
+        selectedSede ? fetch(`/api/doctors?subaccountId=${selectedSede}`) : Promise.resolve(null)
       ]);
       
       if (servicesRes.ok) setServices(await servicesRes.json());
       if (productsRes.ok) setProducts(await productsRes.json());
-      if (docsRes.ok) setDoctors(await docsRes.json());
+      if (docsRes?.ok) setDoctors(await docsRes.json());
     } catch (error) {
       console.error('Error fetching catalog data:', error);
     } finally {
@@ -64,7 +66,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedSede]);
 
   const openEditService = (service: Service) => {
     setEditingService(service);
