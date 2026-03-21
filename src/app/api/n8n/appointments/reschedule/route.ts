@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    let { phone, oldStartTime, newStartTime, id } = body;
+    let { phone, oldStartTime, newStartTime, id, newCalendarId } = body;
     phone = (phone || id)?.toString();
 
     if (!phone || !oldStartTime || !newStartTime) {
@@ -36,18 +36,35 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: 'Active appointment not found for this patient at the old start time' }, { status: 404 });
     }
 
-    // 3. Overlap Check for new time
+    // 3. Overlap Check for new time (using dynamic duration based on calendar)
     const newStart = new Date(newStartTime);
-    const newEnd = new Date(newStart.getTime() + appointment.service.durationMinutes * 60000);
+    let duration = appointment.service.durationMinutes;
+    let targetCalendarId = newCalendarId || appointment.calendarId;
+
+    if (targetCalendarId) {
+      const config = await prisma.serviceConfiguration.findUnique({
+         where: { serviceId_calendarId: { serviceId: appointment.serviceId, calendarId: targetCalendarId } }
+      });
+      if (config) {
+         duration = config.durationMinutes;
+      }
+    }
+
+    const newEnd = new Date(newStart.getTime() + duration * 60000);
+
+    let overlapWhere: any = {
+      id: { not: appointment.id }, // Ignore self
+      status: { notIn: ['CANCELLED'] },
+      OR: [
+        { startTime: { lt: newEnd }, endTime: { gt: newStart } }
+      ]
+    };
+    if (targetCalendarId) {
+      overlapWhere.calendarId = targetCalendarId;
+    }
 
     const overlappingAppt = await prisma.appointment.findFirst({
-      where: {
-        id: { not: appointment.id }, // Ignore self
-        status: { notIn: ['CANCELLED'] },
-        OR: [
-          { startTime: { lt: newEnd }, endTime: { gt: newStart } }
-        ]
-      }
+      where: overlapWhere
     });
 
     if (overlappingAppt) {
@@ -60,6 +77,7 @@ export async function PUT(request: Request) {
       data: {
         startTime: newStart,
         endTime: newEnd,
+        calendarId: targetCalendarId !== undefined ? targetCalendarId : undefined
       },
       include: {
         patient: { select: { fullName: true, phone: true }},
@@ -73,4 +91,3 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
-

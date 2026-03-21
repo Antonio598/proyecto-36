@@ -35,27 +35,32 @@ model User {
 }
 
 model Patient {
-  id           String        @id @default(uuid())
-  fullName     String
-  phone        String        @unique // PRIMARY KEY LÓGICO
-  email        String?
-  notes        String?
-  appointments Appointment[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id               String        @id @default(uuid())
+  fullName         String
+  phone            String        @unique // PRIMARY KEY LÓGICO
+  cedula_pasaporte String?
+  edad             Int?
+  email            String?
+  notes            String?
+  appointments     Appointment[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 model Service {
-  id                String             @id @default(uuid())
+  id                String                 @id @default(uuid())
   name              String
   durationMinutes   Int
   price             Float
-  colorCode         String             @default("#3b82f6") // Blue by default
-  isActive          Boolean            @default(true)
+  colorCode         String                 @default("#3b82f6") // Blue by default
+  isActive          Boolean                @default(true)
+  subaccountId      String?
+  subaccount        Subaccount?            @relation(fields: [subaccountId], references: [id], onDelete: SetNull)
   availabilityRules AvailabilityRule[]
   appointments      Appointment[]
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  configurations    ServiceConfiguration[]
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 }
 
 model Product {
@@ -70,11 +75,11 @@ model Product {
 
 model AvailabilityRule {
   id        String   @id @default(uuid())
-  serviceId String?  // Si es null, aplica globalmente
+  serviceId String? // Si es null, aplica globalmente
   service   Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  dayOfWeek Int      // 0 = Domingo, 1 = Lunes, etc.
-  startTime String   // Formato "HH:mm" ej. "09:00"
-  endTime   String   // Formato "HH:mm" ej. "18:00"
+  dayOfWeek Int // 0 = Domingo, 1 = Lunes, etc.
+  startTime String // Formato "HH:mm" ej. "09:00"
+  endTime   String // Formato "HH:mm" ej. "18:00"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -87,6 +92,12 @@ model Appointment {
   service        Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   professionalId String?
   professional   User?             @relation("ProfessionalAppointments", fields: [professionalId], references: [id], onDelete: SetNull)
+  subaccountId   String?
+  subaccount     Subaccount?       @relation(fields: [subaccountId], references: [id], onDelete: Cascade)
+  doctorId       String?
+  doctor         Doctor?           @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  calendarId     String?
+  calendar       Calendar?         @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   status         AppointmentStatus @default(PENDING)
   startTime      DateTime
   endTime        DateTime
@@ -94,4 +105,59 @@ model Appointment {
   totalPrice     Float?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+}
+
+model Subaccount {
+  id             String                 @id @default(uuid())
+  name           String
+  doctors        Doctor[]
+  services       Service[]
+  calendars      Calendar[]
+  appointments   Appointment[]
+  configurations ServiceConfiguration[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+}
+
+model Doctor {
+  id           String                 @id @default(uuid())
+  name         String
+  subaccountId String
+  subaccount   Subaccount             @relation(fields: [subaccountId], references: [id], onDelete: Cascade)
+  calendars    Calendar[]
+  services     ServiceConfiguration[]
+  appointments Appointment[]
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+}
+
+model Calendar {
+  id             String                 @id @default(uuid())
+  name           String
+  subaccountId   String
+  subaccount     Subaccount             @relation(fields: [subaccountId], references: [id], onDelete: Cascade)
+  doctorId       String
+  doctor         Doctor                 @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  configurations ServiceConfiguration[]
+  appointments   Appointment[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+}
+
+model ServiceConfiguration {
+  id              String     @id @default(uuid())
+  serviceId       String
+  service         Service    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  calendarId      String
+  calendar        Calendar   @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  doctorId        String
+  doctor          Doctor     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  subaccountId    String
+  subaccount      Subaccount @relation(fields: [subaccountId], references: [id], onDelete: Cascade)
+  price           Float
+  durationMinutes Int
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([serviceId, calendarId])
 }

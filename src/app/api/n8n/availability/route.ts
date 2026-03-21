@@ -7,6 +7,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get('date');
+    const subaccountId = searchParams.get('subaccountId');
+    const doctorId = searchParams.get('doctorId');
+    const calendarId = searchParams.get('calendarId');
 
     let startDate, endDate;
 
@@ -23,12 +26,21 @@ export async function GET(request: Request) {
       endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); 
     }
 
+    let whereClause: any = {
+      status: { notIn: ['CANCELLED'] },
+      startTime: { gte: startDate },
+      endTime: { lte: endDate },
+    };
+
+    if (calendarId) {
+       whereClause.calendarId = calendarId;
+    } else {
+       if (subaccountId) whereClause.subaccountId = subaccountId;
+       if (doctorId) whereClause.doctorId = doctorId;
+    }
+
     const appointments = await prisma.appointment.findMany({
-      where: {
-        status: { notIn: ['CANCELLED'] },
-        startTime: { gte: startDate },
-        endTime: { lte: endDate },
-      },
+      where: whereClause,
       select: {
         id: true,
         startTime: true,
@@ -43,4 +55,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
-

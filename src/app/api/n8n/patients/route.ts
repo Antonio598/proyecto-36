@@ -29,35 +29,45 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    let { fullName, phone, email, notes, id } = body;
+    let { fullName, phone, email, notes, id, cedula_pasaporte, edad } = body;
     phone = (phone || id)?.toString();
 
     if (!fullName || !phone) {
       return NextResponse.json({ success: false, error: 'fullName and phone are required' }, { status: 400 });
     }
 
-    // Identificar si existe el paciente primero para evitar duplicados
-    const existingPatient = await prisma.patient.findUnique({
-      where: { phone },
-    });
-
-    if (existingPatient) {
-      return NextResponse.json({ success: false, error: 'Patient with this phone already exists', data: existingPatient }, { status: 409 });
+    // Validar que phone es numérico
+    if (!/^[0-9]+$/.test(phone)) {
+       return NextResponse.json({ success: false, error: 'phone must be numeric' }, { status: 400 });
     }
 
-    const newPatient = await prisma.patient.create({
-      data: {
-        fullName,
-        phone,
-        email,
-        notes,
+    const patientData = {
+      fullName,
+      phone,
+      email: email || null,
+      notes: notes || null,
+      cedula_pasaporte: cedula_pasaporte || null,
+      edad: edad ? parseInt(edad, 10) : null,
+    };
+
+    // Upsert para crear o actualizar basándose en el num. de teléfono
+    const patient = await prisma.patient.upsert({
+      where: { phone },
+      update: {
+         ...patientData,
+         // Prevenir sobrescribir con null si no lo enviaron y ya existe:
+         fullName: patientData.fullName,
+         email: patientData.email !== null ? patientData.email : undefined,
+         notes: patientData.notes !== null ? patientData.notes : undefined,
+         cedula_pasaporte: patientData.cedula_pasaporte !== null ? patientData.cedula_pasaporte : undefined,
+         edad: patientData.edad !== null ? patientData.edad : undefined,
       },
+      create: patientData,
     });
 
-    return NextResponse.json({ success: true, data: newPatient }, { status: 201 });
+    return NextResponse.json({ success: true, data: patient }, { status: 201 });
   } catch (error) {
     console.error('Error in n8n/patients POST:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
-

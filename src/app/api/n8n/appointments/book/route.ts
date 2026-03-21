@@ -1,15 +1,20 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { fromZonedTime } from 'date-fns-tz';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    let { phone, fullName, serviceId, startTime, notes, id } = body;
+    let { phone, fullName, serviceId, startTime, notes, id, subaccountId, doctorId, calendarId } = body;
     phone = (phone || id)?.toString();
 
     if (!phone || !fullName || !serviceId || !startTime) {
       return NextResponse.json({ success: false, error: 'phone, fullName, serviceId, and startTime are required' }, { status: 400 });
+    }
+
+    if (!/^[0-9]+$/.test(phone)) {
+       return NextResponse.json({ success: false, error: 'phone must be numeric' }, { status: 400 });
     }
 
     // 1. Verify Service exists
@@ -21,34 +26,63 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Service invalid or inactive' }, { status: 400 });
     }
 
-    // 2. Resolve Patient (Find or Create by Phone)
-    let patient = await prisma.patient.findUnique({
+    // 2. Resolve Patient (Upsert by Phone)
+    const patientData = {
+      phone,
+      fullName,
+      notes: notes || 'Auto-created via n8n integration',
+    };
+    
+    const patient = await prisma.patient.upsert({
       where: { phone },
+      update: { fullName },
+      create: patientData,
     });
 
-    if (!patient) {
-      patient = await prisma.patient.create({
-        data: {
-          phone,
-          fullName,
-          notes: 'Auto-created via n8n integration',
-        }
+    const naiveLocalTime = startTime.substring(0, 19);
+    const start = fromZonedTime(naiveLocalTime, 'America/Panama');
+
+    // Resolve Duration and Price dynamically if calendarId is provided
+    let duration = service.durationMinutes;
+    let price = service.price;
+    let finalSubaccountId = subaccountId || service.subaccountId;
+    let finalDoctorId = doctorId || undefined;
+
+    if (calendarId) {
+      const config = await prisma.serviceConfiguration.findUnique({
+         where: {
+            serviceId_calendarId: {
+               serviceId,
+               calendarId
+            }
+         }
       });
+      if (!config) {
+         return NextResponse.json({ success: false, error: 'Service configuration not found for the specified calendar' }, { status: 404 });
+      }
+      duration = config.durationMinutes;
+      price = config.price;
+      // Inherit context from config if not provided explicitly
+      finalSubaccountId = finalSubaccountId || config.subaccountId;
+      finalDoctorId = finalDoctorId || config.doctorId;
     }
 
-    const naiveLocalTime = startTime.substring(0, 19);
-    const { fromZonedTime } = require('date-fns-tz');
-    const start = fromZonedTime(naiveLocalTime, 'America/Panama');
-    const end = new Date(start.getTime() + service.durationMinutes * 60000);
+    const end = new Date(start.getTime() + duration * 60000);
 
     // 3. Overlap Check
-    const overlappingAppt = await prisma.appointment.findFirst({
-      where: {
-        status: { notIn: ['CANCELLED'] },
-        OR: [
+    let overlapWhere: any = {
+       status: { notIn: ['CANCELLED'] },
+       OR: [
           { startTime: { lt: end }, endTime: { gt: start } }
-        ]
-      }
+       ]
+    };
+    
+    if (calendarId) {
+       overlapWhere.calendarId = calendarId;
+    }
+
+    const overlappingAppt = await prisma.appointment.findFirst({
+      where: overlapWhere
     });
 
     if (overlappingAppt) {
@@ -60,10 +94,13 @@ export async function POST(request: Request) {
       data: {
         patientId: patient.id,
         serviceId: service.id,
+        subaccountId: finalSubaccountId,
+        doctorId: finalDoctorId,
+        calendarId: calendarId,
         startTime: start,
         endTime: end,
         notes: notes || null,
-        totalPrice: service.price,
+        totalPrice: price,
         status: 'CONFIRMED',
       },
       include: {
@@ -78,4 +115,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
-
