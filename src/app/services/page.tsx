@@ -20,9 +20,15 @@ interface Product {
   isActive: boolean;
 }
 
+interface Doctor {
+  id: string;
+  name: string;
+}
+
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modals state
@@ -34,19 +40,21 @@ export default function ServicesPage() {
   const [error, setError] = useState('');
 
   // Forms state
-  const [serviceForm, setServiceForm] = useState({ name: '', durationMinutes: 30, price: 0, colorCode: '#3b82f6', isActive: true });
+  const [serviceForm, setServiceForm] = useState({ name: '', durationMinutes: 30, price: 0, colorCode: '#3b82f6', isActive: true, doctorId: '' });
   const [productForm, setProductForm] = useState({ name: '', price: 0, stock: 0, isActive: true });
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [servicesRes, productsRes] = await Promise.all([
+      const [servicesRes, productsRes, docsRes] = await Promise.all([
         fetch('/api/services'),
-        fetch('/api/products')
+        fetch('/api/products'),
+        fetch('/api/doctors')
       ]);
       
       if (servicesRes.ok) setServices(await servicesRes.json());
       if (productsRes.ok) setProducts(await productsRes.json());
+      if (docsRes.ok) setDoctors(await docsRes.json());
     } catch (error) {
       console.error('Error fetching catalog data:', error);
     } finally {
@@ -65,7 +73,8 @@ export default function ServicesPage() {
       durationMinutes: service.durationMinutes,
       price: service.price,
       colorCode: service.colorCode,
-      isActive: service.isActive
+      isActive: service.isActive,
+      doctorId: ''
     });
     setIsServiceModalOpen(true);
   };
@@ -101,7 +110,7 @@ export default function ServicesPage() {
       await fetchData();
       setIsServiceModalOpen(false);
       setEditingService(null);
-      setServiceForm({ name: '', durationMinutes: 30, price: 0, colorCode: '#3b82f6', isActive: true });
+      setServiceForm({ name: '', durationMinutes: 30, price: 0, colorCode: '#3b82f6', isActive: true, doctorId: '' });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -178,7 +187,7 @@ export default function ServicesPage() {
               Servicios Médicos
             </h3>
             <button 
-              onClick={() => { setEditingService(null); setServiceForm({ name: '', durationMinutes: 30, price: 0, colorCode: '#3b82f6', isActive: true }); setIsServiceModalOpen(true); }}
+              onClick={() => { setEditingService(null); setServiceForm({ name: '', durationMinutes: 30, price: 0, colorCode: '#3b82f6', isActive: true, doctorId: '' }); setIsServiceModalOpen(true); }}
               className="flex items-center gap-1.5 text-sm font-bold text-blue-700 hover:text-blue-800 transition-colors bg-blue-50 px-3 py-1.5 rounded-md cursor-pointer"
             >
                <Plus className="w-4 h-4" /> Nuevo Servicio
@@ -334,6 +343,16 @@ export default function ServicesPage() {
                   <input type="number" required min="0" step="0.01" className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={serviceForm.price} onChange={(e) => setServiceForm({ ...serviceForm, price: Number(e.target.value) })} />
                 </div>
               </div>
+              {!editingService && (
+                <div>
+                  <label className="block text-sm font-bold text-black mb-1">Médico Responsable (Opcional)</label>
+                  <select className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black font-medium" value={serviceForm.doctorId} onChange={(e) => setServiceForm({...serviceForm, doctorId: e.target.value})}>
+                    <option value="">Asignar a Médico Específico (Ninguno)</option>
+                    {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Al especificar un médico en la creación del servicio, se asume precio/duración a su calendario principal.</p>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <label className="block text-sm font-bold text-black mb-1">Color Identificador</label>

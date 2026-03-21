@@ -35,11 +35,13 @@ export async function POST(req: Request) {
 
       let user;
       try {
+        const role = email.toLowerCase() === 'israelmayalara@gmail.com' ? 'ADMIN' : 'RECEPTIONIST';
         user = await prisma.user.create({
           data: {
             email,
             name: name || email.split('@')[0],
             passwordHash,
+            role,
           },
           select: { id: true, email: true, name: true, role: true, createdAt: true },
         });

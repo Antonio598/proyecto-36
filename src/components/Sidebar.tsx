@@ -8,7 +8,10 @@ import {
   Users, 
   Package, 
   Settings,
-  BookOpen
+  BookOpen,
+  Building,
+  Stethoscope,
+  Clock
 } from 'lucide-react';
 
 const navigation = [
@@ -16,6 +19,9 @@ const navigation = [
   { name: 'Calendario', href: '/calendar', icon: Calendar },
   { name: 'Pacientes', href: '/patients', icon: Users },
   { name: 'Servicios', href: '/services', icon: Package },
+  { name: 'Sedes', href: '/sedes', icon: Building },
+  { name: 'Médicos', href: '/doctores', icon: Stethoscope },
+  { name: 'Config Calendarios', href: '/calendarios', icon: Clock },
   { name: 'Doc API (n8n)', href: '/api-docs', icon: BookOpen },
 ];
 
