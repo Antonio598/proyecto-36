@@ -31,6 +31,14 @@ export default function ApiDocsPage() {
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
               <h4 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
                 <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">GET</span>
+                /api/n8n/subaccounts
+              </h4>
+              <p className="text-sm text-gray-600">Retorna la lista de todas las Sedes (Clínicas) activas y sus IDs correspondientes. Requerido para agendar citas correctamente.</p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <h4 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
+                <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">GET</span>
                 /api/n8n/patients
               </h4>
               <p className="text-sm text-gray-600">Retorna la lista de pacientes. Puedes filtrar usando <code>?phone=1234567890</code> para buscar un paciente específico.</p>
@@ -95,6 +103,7 @@ export default function ApiDocsPage() {
   "phone": "5551234567",         
   "fullName": "Juan Perez",    
   "serviceId": "ID_DEL_SERVICIO",  
+  "subaccountId": "ID_DE_LA_SEDE",
   "startTime": "2024-05-15T10:00:00.000Z",
   "calendarId": "OPCIONAL_CALENDARIO_ID"
 }`}
@@ -110,6 +119,7 @@ export default function ApiDocsPage() {
               <pre className="bg-gray-900 text-gray-100 p-3 rounded-md text-sm overflow-x-auto">
 {`{
   "phone": "5551234567",
+  "subaccountId": "ID_DE_LA_SEDE",
   "oldStartTime": "2024-05-15T10:00:00.000Z",
   "newStartTime": "2024-05-16T15:30:00.000Z",
   "newCalendarId": "OPCIONAL_NUEVO_CALENDARIO_ID"
@@ -126,6 +136,7 @@ export default function ApiDocsPage() {
               <pre className="bg-gray-900 text-gray-100 p-3 rounded-md text-sm overflow-x-auto">
 {`{
   "phone": "5551234567",
+  "subaccountId": "ID_DE_LA_SEDE",
   "startTime": "2024-05-16T15:30:00.000Z"
 }`}
               </pre>

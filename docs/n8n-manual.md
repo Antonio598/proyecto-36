@@ -10,7 +10,12 @@ Esta API fue diseñada específicamente para ser conectada mediante **n8n**, Mak
 
 En n8n usa el nodo **HTTP Request** con método `GET`.
 
-### 1.1 Obtener Pacientes
+### 1.1 Obtener Sedes (Subaccounts)
+`GET /api/n8n/subaccounts`
+- Retornará la lista completa de Sedes activas (Clínicas) y sus IDs. 
+- **El `subaccountId` es requerido** para agendar, cancelar y reagendar citas y mantener el orden por sucursal.
+
+### 1.2 Obtener Pacientes
 `GET /api/n8n/patients`
 - Retornará la lista completa de pacientes.
 - **Búsqueda específica:** `GET /api/n8n/patients?phone=1234567890`
@@ -59,10 +64,10 @@ En n8n usa el nodo **HTTP Request** (método POST o PUT según indique). Formato
 {
   "phone": "5551234567",         
   "fullName": "Juan Perez",    
-  "serviceId": "ID_DEL_SERVICIO",  
+  "serviceId": "ID_DEL_SERVICIO",
+  "subaccountId": "ID_DE_LA_SEDE",  
   "startTime": "2024-05-15T10:00:00.000Z",
   "calendarId": "OPCIONAL_ID",
-  "subaccountId": "OPCIONAL_ID",
   "doctorId": "OPCIONAL_ID",
   "notes": "Agendado vía WhatsApp Bot"
 }
@@ -76,6 +81,7 @@ En n8n usa el nodo **HTTP Request** (método POST o PUT según indique). Formato
 ```json
 {
   "phone": "5551234567",
+  "subaccountId": "ID_DE_LA_SEDE",
   "oldStartTime": "2024-05-15T10:00:00.000Z",
   "newStartTime": "2024-05-16T15:30:00.000Z",
   "newCalendarId": "OPCIONAL_ID"
@@ -89,6 +95,7 @@ En n8n usa el nodo **HTTP Request** (método POST o PUT según indique). Formato
 ```json
 {
   "phone": "5551234567",
+  "subaccountId": "ID_DE_LA_SEDE",
   "startTime": "2024-05-16T15:30:00.000Z"
 }
 ```
