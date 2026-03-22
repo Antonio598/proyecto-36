@@ -9,9 +9,7 @@ export async function GET(request: Request) {
       select: {
         id: true,
         name: true,
-        phone: true,
-        businessName: true,
-        address: true,
+        isActive: true,
       },
       orderBy: { name: 'asc' },
     });
