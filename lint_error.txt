@@ -1,0 +1,239 @@
+﻿
+> temp-app@0.1.0 lint
+> eslint
+
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api-docs\page.tsx
+  3:20  warning  'Code' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\appointments\[id]\route.ts
+  24:9   error  'updatedData' is never reassigned. Use 'const' instead  prefer-const
+  24:22  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\appointments\route.ts
+   12:9   error  'whereClause' is never reassigned. Use 'const' instead  prefer-const
+   12:22  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   93:31  error  A `require()` style import is forbidden                 @typescript-eslint/no-require-imports
+  115:33  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\auth\password\route.ts
+  25:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\auth\route.ts
+  19:23  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:27  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  69:21  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  86:27  warning  '_' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  91:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\availability\route.ts
+   4:40  warning  'startOfDay' is defined but never used    @typescript-eslint/no-unused-vars
+   4:52  warning  'endOfDay' is defined but never used      @typescript-eslint/no-unused-vars
+  51:44  error    A `require()` style import is forbidden   @typescript-eslint/no-require-imports
+  95:62  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\calendars\[id]\route.ts
+  15:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\chat\route.ts
+   90:39  error  A `require()` style import is forbidden   @typescript-eslint/no-require-imports
+  117:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\doctors\[id]\route.ts
+  15:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\health\route.ts
+  18:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\n8n\appointments\book\route.ts
+   9:18  error  'fullName' is never reassigned. Use 'const' instead      prefer-const
+   9:28  error  'serviceId' is never reassigned. Use 'const' instead     prefer-const
+   9:39  error  'startTime' is never reassigned. Use 'const' instead     prefer-const
+   9:50  error  'notes' is never reassigned. Use 'const' instead         prefer-const
+   9:57  error  'id' is never reassigned. Use 'const' instead            prefer-const
+   9:61  error  'subaccountId' is never reassigned. Use 'const' instead  prefer-const
+   9:75  error  'doctorId' is never reassigned. Use 'const' instead      prefer-const
+   9:85  error  'calendarId' is never reassigned. Use 'const' instead    prefer-const
+  73:9   error  'overlapWhere' is never reassigned. Use 'const' instead  prefer-const
+  73:23  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\n8n\appointments\cancel\route.ts
+  8:18  error  'startTime' is never reassigned. Use 'const' instead  prefer-const
+  8:29  error  'id' is never reassigned. Use 'const' instead         prefer-const
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\n8n\appointments\reschedule\route.ts
+   8:18  error  'oldStartTime' is never reassigned. Use 'const' instead      prefer-const
+   8:32  error  'newStartTime' is never reassigned. Use 'const' instead      prefer-const
+   8:46  error  'id' is never reassigned. Use 'const' instead                prefer-const
+   8:50  error  'newCalendarId' is never reassigned. Use 'const' instead     prefer-const
+  42:9   error  'targetCalendarId' is never reassigned. Use 'const' instead  prefer-const
+  55:9   error  'overlapWhere' is never reassigned. Use 'const' instead      prefer-const
+  55:23  error  Unexpected any. Specify a different type                     @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\n8n\availability\route.ts
+  29:9   error  'whereClause' is never reassigned. Use 'const' instead  prefer-const
+  29:22  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\n8n\calendars\route.ts
+  16:9   error  'whereClause' is never reassigned. Use 'const' instead  prefer-const
+  16:22  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\n8n\patients\route.ts
+  32:11  error  'fullName' is never reassigned. Use 'const' instead          prefer-const
+  32:28  error  'email' is never reassigned. Use 'const' instead             prefer-const
+  32:35  error  'notes' is never reassigned. Use 'const' instead             prefer-const
+  32:42  error  'id' is never reassigned. Use 'const' instead                prefer-const
+  32:46  error  'cedula_pasaporte' is never reassigned. Use 'const' instead  prefer-const
+  32:64  error  'edad' is never reassigned. Use 'const' instead              prefer-const
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\n8n\services\route.ts
+  11:9   error  'whereClause' is never reassigned. Use 'const' instead  prefer-const
+  11:22  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\n8n\subaccounts\route.ts
+  5:27  warning  'request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\patients\route.ts
+  32:11  error  'fullName' is never reassigned. Use 'const' instead  prefer-const
+  32:28  error  'email' is never reassigned. Use 'const' instead     prefer-const
+  32:35  error  'notes' is never reassigned. Use 'const' instead     prefer-const
+  32:42  error  'id' is never reassigned. Use 'const' instead        prefer-const
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\api\services\route.ts
+  10:9   error  'whereClause' is never reassigned. Use 'const' instead  prefer-const
+  10:22  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\calendar\page.tsx
+   22:40  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   23:44  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   24:44  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   25:46  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   46:54  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   74:50  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   86:6   warning  React Hook useEffect has a missing dependency: 'selectedCalendarId'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   98:38  error    A `require()` style import is forbidden                                                                                @typescript-eslint/no-require-imports
+  102:26  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  103:23  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  129:6   warning  React Hook useEffect has a missing dependency: 'fetchAppointments'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+  143:37  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  167:22  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  212:19  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  242:18  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  264:19  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  271:36  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  387:58  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                        react/no-unescaped-entities
+  387:77  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                        react/no-unescaped-entities
+  402:55  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\calendarios\page.tsx
+   4:23  warning  'Edit2' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+   4:30  warning  'Trash2' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+  43:37  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\doctores\page.tsx
+   4:29  warning  'Edit2' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+   4:36  warning  'Trash2' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+  37:37  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\layout.tsx
+  4:10  warning  'Sidebar' is defined but never used        @typescript-eslint/no-unused-vars
+  5:8   warning  'ChatbotWidget' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\login\page.tsx
+  23:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\login\page.tsx:23:7
+  21 |       window.location.href = '/';
+  22 |     } else {
+> 23 |       setChecked(true);
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  24 |     }
+  25 |   }, []);
+  26 |  react-hooks/set-state-in-effect
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\page.tsx
+  20:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\patients\[id]\page.tsx
+   67:38   error  A `require()` style import is forbidden                          @typescript-eslint/no-require-imports
+   70:57   error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   81:21   error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  227:115  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  227:128  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\patients\page.tsx
+  74:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\sedes\page.tsx
+   4:26  warning  'Edit2' is defined but never used         @typescript-eslint/no-unused-vars
+   4:33  warning  'Trash2' is defined but never used        @typescript-eslint/no-unused-vars
+   4:44  warning  'AlertCircle' is defined but never used   @typescript-eslint/no-unused-vars
+  59:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\services\page.tsx
+   69:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  118:19  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  146:19  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  159:19  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  170:19  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  214:34  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  216:50  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  216:78  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\settings\page.tsx
+   7:36  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  25:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\app\settings\page.tsx:25:13
+  23 |     const storedUser = localStorage.getItem('med_user');
+  24 |     if (storedUser) {
+> 25 |       try { setUser(JSON.parse(storedUser)); } catch {}
+     |             ^^^^^^^ Avoid calling setState() directly within an effect
+  26 |     }
+  27 |     setLoading(false);
+  28 |   }, []);  react-hooks/set-state-in-effect
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\components\AuthGuard.tsx
+  17:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\components\AuthGuard.tsx:17:7
+  15 |
+  16 |     if (session) {
+> 17 |       setAuthenticated(true);
+     |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  18 |     } else if (pathname !== '/login') {
+  19 |       router.replace('/login');
+  20 |     }  react-hooks/set-state-in-effect
+
+C:\Users\israe\OneDrive\Desktop\Proyecto 31\src\components\ChatbotWidget.tsx
+  33:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  43:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 120 problems (101 errors, 19 warnings)
+  9 errors and 0 warnings potentially fixable with the `--fix` option.
+
