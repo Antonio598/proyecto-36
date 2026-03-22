@@ -9,7 +9,6 @@ export async function GET(request: Request) {
       select: {
         id: true,
         name: true,
-        isActive: true,
       },
       orderBy: { name: 'asc' },
     });
