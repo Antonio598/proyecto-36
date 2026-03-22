@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    let { phone, startTime, id } = body;
+    let { phone, startTime, id, subaccountId } = body;
     phone = (phone || id)?.toString();
 
     if (!phone || !startTime) {
@@ -23,12 +23,17 @@ export async function POST(request: Request) {
 
     // 2. Find specific active appointment
     const targetStart = new Date(startTime);
+    let whereClause: any = {
+      patientId: patient.id,
+      startTime: targetStart,
+      status: { notIn: ['CANCELLED'] }
+    };
+    if (subaccountId) {
+      whereClause.subaccountId = subaccountId;
+    }
+
     const appointment = await prisma.appointment.findFirst({
-      where: {
-        patientId: patient.id,
-        startTime: targetStart,
-        status: { notIn: ['CANCELLED'] }
-      }
+      where: whereClause
     });
 
     if (!appointment) {

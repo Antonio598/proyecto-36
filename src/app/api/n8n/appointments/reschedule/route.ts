@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    let { phone, oldStartTime, newStartTime, id, newCalendarId } = body;
+    let { phone, oldStartTime, newStartTime, id, newCalendarId, subaccountId } = body;
     phone = (phone || id)?.toString();
 
     if (!phone || !oldStartTime || !newStartTime) {
@@ -23,12 +23,18 @@ export async function PUT(request: Request) {
 
     // 2. Find specific active appointment
     const oldStart = new Date(oldStartTime);
+    
+    let whereClause: any = {
+      patientId: patient.id,
+      startTime: oldStart,
+      status: { notIn: ['CANCELLED'] } // Only reschedule active ones
+    };
+    if (subaccountId) {
+      whereClause.subaccountId = subaccountId;
+    }
+
     const appointment = await prisma.appointment.findFirst({
-      where: {
-        patientId: patient.id,
-        startTime: oldStart,
-        status: { notIn: ['CANCELLED'] } // Only reschedule active ones
-      },
+      where: whereClause,
       include: { service: true }
     });
 

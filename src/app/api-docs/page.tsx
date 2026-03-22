@@ -34,6 +34,19 @@ export default function ApiDocsPage() {
                 /api/n8n/subaccounts
               </h4>
               <p className="text-sm text-gray-600">Retorna la lista de todas las Sedes (Clínicas) activas y sus IDs correspondientes. Requerido para agendar citas correctamente.</p>
+              <pre className="bg-gray-900 text-gray-100 p-3 mt-3 rounded-md text-sm overflow-x-auto">
+{`// Respuesta de Ejemplo:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "e4b6b5...",
+      "name": "Clínica Sede Central",
+      "isActive": true
+    }
+  ]
+}`}
+              </pre>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
