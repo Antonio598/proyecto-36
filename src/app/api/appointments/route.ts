@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+import { parseISO, format } from 'date-fns';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -101,6 +102,30 @@ export async function POST(request: Request) {
       end = fromZonedTime(endTime.substring(0, 19), 'America/Panama');
     } else {
       end = new Date(start.getTime() + finalDurationMinutes * 60000);
+    }
+
+    // 1. Fetch AvailabilityRules to enforce the Sede's schedule
+    const requestedDayOfWeek = start.getDay();
+    const rules = await prisma.availabilityRule.findMany({
+       where: {
+          subaccountId: subaccountId || null,
+          dayOfWeek: requestedDayOfWeek
+       }
+    });
+
+    if (rules.length === 0 && !isBlocker) { // If it's a blocker, maybe we let them block an already closed day just in case? Or block it anyway. Let's strictly block if no rules.
+       return NextResponse.json({ error: 'La clínica está cerrada en este día, no hay horarios disponibles.' }, { status: 400 });
+    }
+
+    if (rules.length > 0 && !isBlocker) {
+       const rule = rules[0];
+       const workStart = fromZonedTime(`${format(start, 'yyyy-MM-dd')}T${rule.startTime}:00`, 'America/Panama');
+       const workEnd = fromZonedTime(`${format(start, 'yyyy-MM-dd')}T${rule.endTime}:00`, 'America/Panama');
+
+       // Both start and end must be within workStart and workEnd
+       if (start < workStart || end > workEnd) {
+          return NextResponse.json({ error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
+       }
     }
 
     // Determine how many times to repeat

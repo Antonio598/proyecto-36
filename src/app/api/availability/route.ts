@@ -28,19 +28,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
     }
 
-    // 2. Get Availability Rules for that day
+    // 2. Get Availability Rules for that day from the Subaccount
     const rules = await prisma.availabilityRule.findMany({
       where: {
         dayOfWeek,
-        OR: [
-          { serviceId: service.id },
-          { serviceId: null } // Global rules
-        ]
+        subaccountId: service.subaccountId
       }
     });
 
     if (rules.length === 0) {
-       // If no rules are set, return empty slots
+       // If no rules are set, return empty slots (everything is blocked)
       return NextResponse.json({ date: dateParam, availableSlots: [] });
     }
     

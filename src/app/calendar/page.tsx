@@ -23,6 +23,7 @@ export default function CalendarPage() {
   const [patients, setPatients] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [calendars, setCalendars] = useState<any[]>([]);
+  const [availabilityRules, setAvailabilityRules] = useState<any[]>([]);
   
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('');
   
@@ -61,18 +62,21 @@ export default function CalendarPage() {
     if (!selectedSede) return;
     const fetchConfigs = async () => {
       try {
-        const [patientsRes, servicesRes, calendarsRes] = await Promise.all([
+        const [patientsRes, servicesRes, calendarsRes, rulesRes] = await Promise.all([
           fetch('/api/patients'),
           fetch(`/api/services?subaccountId=${selectedSede}`),
-          fetch(`/api/calendars?subaccountId=${selectedSede}`)
+          fetch(`/api/calendars?subaccountId=${selectedSede}`),
+          fetch(`/api/availability-rules?subaccountId=${selectedSede}`)
         ]);
         if (patientsRes.ok) setPatients(await patientsRes.json());
         if (servicesRes.ok) setServices(await servicesRes.json());
+        if (rulesRes.ok) setAvailabilityRules(await rulesRes.json());
         if (calendarsRes.ok) {
            const data = await calendarsRes.json();
            setCalendars(data);
            if (data.length > 0 && !data.find((c: any) => c.id === selectedCalendarId)) {
              setSelectedCalendarId(data[0].id);
+             // Clear events until next fetch
            } else if (data.length === 0) {
              setSelectedCalendarId('');
              setEvents([]);
@@ -129,6 +133,27 @@ export default function CalendarPage() {
   }, [selectedSede, selectedCalendarId]);
 
   const handleSelectSlot = (slotInfo: { start: Date, end: Date }) => {
+    // Validate rules
+    const dayOfWeek = slotInfo.start.getDay();
+    const rule = availabilityRules.find(r => r.dayOfWeek === dayOfWeek);
+    
+    if (!rule) {
+      alert('La sede está cerrada este día. Revisa Configurar Horarios Semanales en Calendarios.');
+      return;
+    }
+    
+    const [startH, startM] = rule.startTime.split(':').map(Number);
+    const [endH, endM] = rule.endTime.split(':').map(Number);
+    const ruleStart = new Date(slotInfo.start);
+    ruleStart.setHours(startH, startM, 0, 0);
+    const ruleEnd = new Date(slotInfo.start);
+    ruleEnd.setHours(endH, endM, 0, 0);
+    
+    if (slotInfo.start < ruleStart || slotInfo.end > ruleEnd) {
+      alert(`Horario fuera de rango. El horario de atención hoy es de ${rule.startTime} a ${rule.endTime}.`);
+      return;
+    }
+
     setSelectedSlot(slotInfo);
     setSelectedEvent(null);
     setForm({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
