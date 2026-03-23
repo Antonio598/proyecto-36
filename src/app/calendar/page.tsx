@@ -24,6 +24,7 @@ export default function CalendarPage() {
   const [services, setServices] = useState<any[]>([]);
   const [calendars, setCalendars] = useState<any[]>([]);
   const [availabilityRules, setAvailabilityRules] = useState<any[]>([]);
+  const [backgroundBlocks, setBackgroundBlocks] = useState<any[]>([]);
   
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('');
   
@@ -131,6 +132,66 @@ export default function CalendarPage() {
   useEffect(() => {
     fetchAppointments();
   }, [selectedSede, selectedCalendarId]);
+
+  useEffect(() => {
+    if (availabilityRules.length === 0) {
+       setBackgroundBlocks([]);
+       return;
+    }
+    
+    // Generate grey blocks for +/- 30 days around the current view date
+    const { addDays, startOfDay, endOfDay } = require('date-fns');
+    const blocks: any[] = [];
+    const generateStart = addDays(date, -30);
+    const generateEnd = addDays(date, 30);
+    
+    for (let d = generateStart; d <= generateEnd; d = addDays(d, 1)) {
+       const dayOfWeek = d.getDay();
+       const rule = availabilityRules.find(r => r.dayOfWeek === dayOfWeek);
+       
+       if (!rule) {
+           blocks.push({
+               id: `bg-full-${d.getTime()}`,
+               title: 'Cerrado',
+               start: startOfDay(d),
+               end: endOfDay(d),
+               isBackgroundBlock: true,
+               isBlocker: true,
+           });
+       } else {
+           const [startH, startM] = rule.startTime.split(':').map(Number);
+           const [endH, endM] = rule.endTime.split(':').map(Number);
+           
+           const ruleStart = new Date(d);
+           ruleStart.setHours(startH, startM, 0, 0);
+           
+           const ruleEnd = new Date(d);
+           ruleEnd.setHours(endH, endM, 0, 0);
+           
+           if (ruleStart > startOfDay(d)) {
+               blocks.push({
+                   id: `bg-start-${d.getTime()}`,
+                   title: 'Cerrado',
+                   start: startOfDay(d),
+                   end: ruleStart,
+                   isBackgroundBlock: true,
+                   isBlocker: true,
+               });
+           }
+           if (ruleEnd < endOfDay(d)) {
+               blocks.push({
+                   id: `bg-end-${d.getTime()}`,
+                   title: 'Cerrado',
+                   start: ruleEnd,
+                   end: endOfDay(d),
+                   isBackgroundBlock: true,
+                   isBlocker: true,
+               });
+           }
+       }
+    }
+    setBackgroundBlocks(blocks);
+  }, [date, availabilityRules]);
 
   const handleSelectSlot = (slotInfo: { start: Date, end: Date }) => {
     // Validate rules
@@ -297,6 +358,26 @@ export default function CalendarPage() {
     const baseColor = event.color || '#3b82f6';
     const isCancelled = event.status === 'CANCELLED';
     
+    if (event.isBackgroundBlock) {
+        return {
+           style: {
+              background: 'repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 10px, #f8fafc 10px, #f8fafc 20px)',
+              color: '#94a3b8',
+              border: 'none',
+              pointerEvents: 'none' as any,
+              opacity: 0.8,
+              zIndex: 1,
+              borderRadius: '0',
+              fontWeight: 'bold',
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'inset 0 0 5px rgba(0,0,0,0.02)'
+           }
+        };
+    }
+
     if (event.isBlocker) {
       return {
         style: {
@@ -313,7 +394,8 @@ export default function CalendarPage() {
           whiteSpace: 'nowrap',
           textOverflow: 'ellipsis',
           opacity: 0.95,
-          cursor: 'pointer'
+          cursor: 'pointer',
+          zIndex: 5
         }
       };
     }
@@ -416,7 +498,7 @@ export default function CalendarPage() {
           <div className="h-full bg-white rounded-xl overflow-hidden">
             <Calendar
               localizer={localizer}
-              events={events}
+              events={[...events, ...backgroundBlocks]}
               startAccessor="start"
               endAccessor="end"
               style={{ height: '100%', fontFamily: 'inherit' }}
