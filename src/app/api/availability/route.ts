@@ -16,8 +16,13 @@ export async function GET(request: Request) {
       );
     }
 
-    const requestedDate = parseISO(dateParam);
-    const dayOfWeek = requestedDate.getDay(); // 0 = Sunday, 1 = Monday...
+    const { fromZonedTime, toZonedTime } = require('date-fns-tz');
+    const PANAMA_TZ = 'America/Panama';
+
+    // Parse date in Panama timezone to accurately get the correct day of week
+    const dateInPanama = fromZonedTime(`${dateParam}T12:00:00`, PANAMA_TZ);
+    const panamaDateForDay = toZonedTime(dateInPanama, PANAMA_TZ);
+    const dayOfWeek = panamaDateForDay.getDay(); // 0 = Sunday, 1 = Monday...
 
     // 1. Get Service details
     const service = await prisma.service.findUnique({
@@ -43,10 +48,6 @@ export async function GET(request: Request) {
     
     // Simplification: pick the first matching rule
     const rule = rules[0]; 
-
-    // 3. Get existing appointments for that day
-    const { fromZonedTime, toZonedTime } = require('date-fns-tz');
-    const PANAMA_TZ = 'America/Panama';
 
     // dateParam is like "2024-11-20"
     // Get the start and end of that day in Panama Time, converted to UTC Dates

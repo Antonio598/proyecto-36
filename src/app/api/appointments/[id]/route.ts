@@ -31,6 +31,33 @@ export async function PUT(
       const durationMs = currentAppt.endTime.getTime() - currentAppt.startTime.getTime();
       const end = new Date(start.getTime() + durationMs);
       
+      const { fromZonedTime, toZonedTime } = require('date-fns-tz');
+      const { format } = require('date-fns');
+      const panamaDate = toZonedTime(start, 'America/Panama');
+
+      // Availability check
+      const rules = await prisma.availabilityRule.findMany({
+         where: {
+            subaccountId: currentAppt.subaccountId,
+            dayOfWeek: panamaDate.getDay()
+         }
+      });
+
+      if (rules.length === 0 && !currentAppt.isBlocker) {
+         return NextResponse.json({ error: 'La clínica está cerrada en este día, no hay horarios disponibles.' }, { status: 400 });
+      }
+
+      if (rules.length > 0 && !currentAppt.isBlocker) {
+         const rule = rules[0];
+         const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
+         const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
+         const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
+
+         if (start < workStart || end > workEnd) {
+            return NextResponse.json({ error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
+         }
+      }
+
       // Basic Overlap validation check (excluding current appointment)
       const overlappingAppt = await prisma.appointment.findFirst({
         where: {
@@ -45,7 +72,7 @@ export async function PUT(
         }
       });
 
-      if (overlappingAppt) {
+      if (overlappingAppt && !currentAppt.isBlocker) {
         return NextResponse.json(
           { error: 'Reprogramming time slot is already booked.' },
           { status: 409 }

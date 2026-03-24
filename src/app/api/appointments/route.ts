@@ -91,8 +91,9 @@ export async function POST(request: Request) {
     }
 
     const naiveLocalTime = startTime.substring(0, 19);
-    const { fromZonedTime } = require('date-fns-tz');
+    const { fromZonedTime, toZonedTime } = require('date-fns-tz');
     const start = fromZonedTime(naiveLocalTime, 'America/Panama');
+    const panamaDate = toZonedTime(start, 'America/Panama');
     
     let end: Date;
     if (isBlocker) {
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
     }
 
     // 1. Fetch AvailabilityRules to enforce the Sede's schedule
-    const requestedDayOfWeek = start.getDay();
+    const requestedDayOfWeek = panamaDate.getDay();
     const rules = await prisma.availabilityRule.findMany({
        where: {
           subaccountId: subaccountId || null,
@@ -119,8 +120,9 @@ export async function POST(request: Request) {
 
     if (rules.length > 0 && !isBlocker) {
        const rule = rules[0];
-       const workStart = fromZonedTime(`${format(start, 'yyyy-MM-dd')}T${rule.startTime}:00`, 'America/Panama');
-       const workEnd = fromZonedTime(`${format(start, 'yyyy-MM-dd')}T${rule.endTime}:00`, 'America/Panama');
+       const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
+       const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
+       const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
 
        // Both start and end must be within workStart and workEnd
        if (start < workStart || end > workEnd) {

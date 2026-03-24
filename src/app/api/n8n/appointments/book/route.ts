@@ -70,7 +70,9 @@ export async function POST(request: Request) {
     const end = new Date(start.getTime() + duration * 60000);
 
     // 2.5 Verify AvailabilityRules
-    const requestedDayOfWeek = start.getDay();
+    const { toZonedTime } = require('date-fns-tz');
+    const panamaDate = toZonedTime(start, 'America/Panama');
+    const requestedDayOfWeek = panamaDate.getDay();
     const rules = await prisma.availabilityRule.findMany({
        where: {
           subaccountId: finalSubaccountId,
@@ -84,8 +86,9 @@ export async function POST(request: Request) {
 
     const rule = rules[0];
     const { format } = require('date-fns');
-    const workStart = fromZonedTime(`${format(start, 'yyyy-MM-dd')}T${rule.startTime}:00`, 'America/Panama');
-    const workEnd = fromZonedTime(`${format(start, 'yyyy-MM-dd')}T${rule.endTime}:00`, 'America/Panama');
+    const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
+    const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
+    const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
 
     if (start < workStart || end > workEnd) {
        return NextResponse.json({ success: false, error: `El horario solicitado está fuera de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });

@@ -58,6 +58,32 @@ export async function PUT(request: Request) {
 
     const newEnd = new Date(newStart.getTime() + duration * 60000);
 
+    const { fromZonedTime, toZonedTime } = require('date-fns-tz');
+    const { format } = require('date-fns');
+    let finalSubaccountId = subaccountId || appointment.subaccountId;
+    if (finalSubaccountId) {
+       const panamaDate = toZonedTime(newStart, 'America/Panama');
+       const rules = await prisma.availabilityRule.findMany({
+          where: {
+             subaccountId: finalSubaccountId,
+             dayOfWeek: panamaDate.getDay()
+          }
+       });
+
+       if (rules.length === 0) {
+          return NextResponse.json({ success: false, error: 'La clínica está cerrada en este día, no hay horarios disponibles.' }, { status: 400 });
+       }
+
+       const rule = rules[0];
+       const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
+       const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
+       const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
+
+       if (newStart < workStart || newEnd > workEnd) {
+          return NextResponse.json({ success: false, error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
+       }
+    }
+
     let overlapWhere: any = {
       id: { not: appointment.id }, // Ignore self
       status: { notIn: ['CANCELLED'] },
