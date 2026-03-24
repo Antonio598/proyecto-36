@@ -12,9 +12,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: 'phone, oldStartTime, and newStartTime are required' }, { status: 400 });
     }
 
-    phone = phone.replace(/\D/g, '');
+    phone = phone.trim();
     if (!phone) {
-       return NextResponse.json({ success: false, error: 'phone must contain at least one numeric digit' }, { status: 400 });
+       return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
     }
 
     // 1. Find Patient

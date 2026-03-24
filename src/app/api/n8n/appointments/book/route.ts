@@ -13,10 +13,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'phone, fullName, serviceId, and startTime are required' }, { status: 400 });
     }
 
-    // Extract only the numbers from the phone string (in case it contains junk text)
-    phone = phone.replace(/\D/g, '');
+    phone = phone.trim();
     if (!phone) {
-       return NextResponse.json({ success: false, error: 'phone must contain at least one numeric digit' }, { status: 400 });
+       return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
     }
 
     // 1. Verify Service exists

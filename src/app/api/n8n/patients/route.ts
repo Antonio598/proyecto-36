@@ -36,10 +36,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'fullName and phone are required' }, { status: 400 });
     }
 
-    // Extraer solo los números del teléfono (por si n8n envía texto basura)
-    phone = phone.replace(/\D/g, '');
+    phone = phone.trim();
     if (!phone) {
-       return NextResponse.json({ success: false, error: 'phone must contain at least one numeric digit' }, { status: 400 });
+       return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
     }
 
     const patientData = {
