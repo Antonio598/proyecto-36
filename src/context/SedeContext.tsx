@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { apiFetch } from '@/lib/apiFetch';
 
 interface Subaccount {
   id: string;
@@ -24,12 +25,11 @@ export function SedeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function fetchSedes() {
       try {
-        const res = await fetch('/api/subaccounts');
+        const res = await apiFetch('/api/subaccounts');
         if (res.ok) {
           const data = await res.json();
           setSedes(data);
-          
-          // Try to load from localStorage or fall back to first sede
+
           const stored = localStorage.getItem('med_selected_sede');
           if (stored && data.find((s: Subaccount) => s.id === stored)) {
             setSelectedSedeState(stored);
@@ -44,7 +44,7 @@ export function SedeProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     }
-    
+
     fetchSedes();
   }, []);
 

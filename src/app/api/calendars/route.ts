@@ -1,13 +1,25 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAccountIdFromRequest } from '@/lib/serverAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
+    const accountId = getAccountIdFromRequest(request);
     const { searchParams } = new URL(request.url);
     const subaccountId = searchParams.get('subaccountId');
-    const where = subaccountId ? { subaccountId } : {};
+
+    let where: any = {};
+    if (subaccountId) {
+      where.subaccountId = subaccountId;
+    } else if (accountId) {
+      const accountSubaccounts = await prisma.subaccount.findMany({
+        where: { accountId },
+        select: { id: true },
+      });
+      where.subaccountId = { in: accountSubaccounts.map(s => s.id) };
+    }
 
     const calendars = await prisma.calendar.findMany({
       where,
@@ -15,9 +27,7 @@ export async function GET(request: Request) {
       include: {
         subaccount: true,
         doctor: true,
-        _count: {
-          select: { appointments: true, configurations: true }
-        }
+        _count: { select: { appointments: true, configurations: true } }
       }
     });
     return NextResponse.json(calendars);
@@ -33,10 +43,7 @@ export async function POST(request: Request) {
     const { name, subaccountId, doctorId } = body;
 
     if (!name || !subaccountId || !doctorId) {
-      return NextResponse.json(
-        { error: 'Name, subaccountId, and doctorId are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Name, subaccountId, and doctorId are required' }, { status: 400 });
     }
 
     const calendar = await prisma.calendar.create({

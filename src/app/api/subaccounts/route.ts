@@ -1,16 +1,16 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAccountIdFromRequest } from '@/lib/serverAuth';
 
-export const dynamic = 'force-dynamic';
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const accountId = getAccountIdFromRequest(request);
     const subaccounts = await prisma.subaccount.findMany({
+      where: accountId ? { accountId } : {},
       orderBy: { createdAt: 'desc' },
       include: {
-        _count: {
-          select: { doctors: true, services: true, appointments: true }
-        }
+        _count: { select: { doctors: true, services: true, appointments: true } }
       }
     });
     return NextResponse.json(subaccounts);
@@ -22,18 +22,16 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const accountId = getAccountIdFromRequest(request);
     const body = await request.json();
     const { name } = body;
 
     if (!name) {
-      return NextResponse.json(
-        { error: 'Name is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
     const subaccount = await prisma.subaccount.create({
-      data: { name },
+      data: { name, ...(accountId ? { accountId } : {}) },
     });
 
     return NextResponse.json(subaccount, { status: 201 });

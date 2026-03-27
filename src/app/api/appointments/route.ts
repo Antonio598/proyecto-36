@@ -1,42 +1,45 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAccountIdFromRequest } from '@/lib/serverAuth';
 
 import { parseISO, format } from 'date-fns';
 export async function GET(request: Request) {
   try {
+    const accountId = getAccountIdFromRequest(request);
     const { searchParams } = new URL(request.url);
     const dateQuery = searchParams.get('date');
     const subaccountId = searchParams.get('subaccountId');
     const calendarId = searchParams.get('calendarId');
 
     let whereClause: any = {
-      status: { notIn: ['CANCELLED'] } // Only active by default
+      status: { notIn: ['CANCELLED'] }
     };
 
     if (dateQuery) {
       const startOfDay = new Date(`${dateQuery}T00:00:00.000Z`);
       const endOfDay = new Date(`${dateQuery}T23:59:59.999Z`);
-      whereClause.startTime = {
-        gte: startOfDay,
-        lt: endOfDay,
-      };
+      whereClause.startTime = { gte: startOfDay, lt: endOfDay };
     }
-    
+
     if (subaccountId) {
       whereClause.subaccountId = subaccountId;
+    } else if (accountId) {
+      // Scope to this account's subaccounts
+      const accountSubaccounts = await prisma.subaccount.findMany({
+        where: { accountId },
+        select: { id: true },
+      });
+      whereClause.subaccountId = { in: accountSubaccounts.map(s => s.id) };
     }
-    
+
     if (calendarId) {
       whereClause.calendarId = calendarId;
     }
 
     const appointments = await prisma.appointment.findMany({
       where: whereClause,
-      include: {
-        patient: true,
-        service: true,
-      },
+      include: { patient: true, service: true },
       orderBy: { startTime: 'asc' },
     });
 
@@ -46,6 +49,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
 
 export async function POST(request: Request) {
   try {
