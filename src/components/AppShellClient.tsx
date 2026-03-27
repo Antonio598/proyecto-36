@@ -8,9 +8,10 @@ import { SedeProvider } from '@/context/SedeContext';
 export default function AppShellClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
+  const isSuperAdmin = pathname.startsWith('/superadmin');
 
-  // Login page renders without sidebar/chatbot
-  if (isLoginPage) {
+  // Login and super admin pages render without sidebar/chatbot
+  if (isLoginPage || isSuperAdmin) {
     return <>{children}</>;
   }
 

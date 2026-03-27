@@ -8,11 +8,7 @@ interface AccountStats {
   name: string;
   apiKey: string;
   createdAt: string;
-  _count: {
-    subaccounts: number;
-    patients: number;
-    users: number;
-  };
+  _count: { subaccounts: number; patients: number; users: number };
 }
 
 interface GlobalStats {
@@ -27,20 +23,15 @@ export default function SuperAdminPage() {
   const [accounts, setAccounts] = useState<AccountStats[]>([]);
   const [stats, setStats] = useState<GlobalStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [newAccountName, setNewAccountName] = useState('');
+  const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [adminId, setAdminId] = useState<string>('');
 
-  const fetchData = useCallback(async () => {
-    const session = localStorage.getItem('med_session');
-    if (!session) { router.replace('/login'); return; }
-    let parsed: any;
-    try { parsed = JSON.parse(session); } catch { router.replace('/login'); return; }
-    if (parsed?.role !== 'SUPERADMIN') { router.replace('/'); return; }
-
+  const fetchData = useCallback(async (id: string) => {
     const res = await fetch('/api/superadmin/accounts', {
-      headers: { 'x-superadmin-id': parsed.id },
+      headers: { 'x-superadmin-id': id },
     });
     if (!res.ok) { router.replace('/'); return; }
     const data = await res.json();
@@ -49,135 +40,147 @@ export default function SuperAdminPage() {
     setLoading(false);
   }, [router]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const raw = localStorage.getItem('med_session');
+    if (!raw) { router.replace('/login'); return; }
+    let parsed: any;
+    try { parsed = JSON.parse(raw); } catch { router.replace('/login'); return; }
+    if (parsed?.role !== 'SUPERADMIN') { router.replace('/'); return; }
+    setAdminId(parsed.id);
+    fetchData(parsed.id);
+  }, [fetchData, router]);
 
   const createAccount = async () => {
-    if (!newAccountName.trim()) return;
+    if (!newName.trim()) return;
     setCreating(true);
     setError(null);
-    const session = localStorage.getItem('med_session');
-    const parsed = session ? JSON.parse(session) : null;
     const res = await fetch('/api/superadmin/accounts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-superadmin-id': parsed?.id ?? '' },
-      body: JSON.stringify({ name: newAccountName.trim() }),
+      headers: { 'Content-Type': 'application/json', 'x-superadmin-id': adminId },
+      body: JSON.stringify({ name: newName.trim() }),
     });
     const data = await res.json();
-    if (res.ok) {
-      setNewAccountName('');
-      fetchData();
-    } else {
-      setError(data.error || 'Error al crear cuenta');
-    }
+    if (res.ok) { setNewName(''); fetchData(adminId); }
+    else setError(data.error || 'Error al crear cuenta');
     setCreating(false);
   };
 
-  const copyKey = (key: string) => {
+  const copy = (key: string) => {
     navigator.clipboard.writeText(key);
     setCopied(key);
     setTimeout(() => setCopied(null), 2000);
   };
 
-  if (loading) {
-    return (
-      <div className="sa-loading">
-        <div className="sa-spinner" />
-      </div>
-    );
-  }
+  const logout = () => { localStorage.removeItem('med_session'); router.replace('/login'); };
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="sa-spin" />
+      <style>{`.sa-spin{width:40px;height:40px;border-radius:50%;border:3px solid #1e1b4b;border-top-color:#7c3aed;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  const statCards = [
+    { label: 'Cuentas', value: stats?.totalAccounts ?? 0, icon: '🏢', grad: 'linear-gradient(135deg,#7c3aed,#6d28d9)' },
+    { label: 'Sedes', value: stats?.totalSubaccounts ?? 0, icon: '🏥', grad: 'linear-gradient(135deg,#2563eb,#1d4ed8)' },
+    { label: 'Usuarios', value: stats?.totalUsers ?? 0, icon: '👤', grad: 'linear-gradient(135deg,#059669,#047857)' },
+    { label: 'Citas totales', value: stats?.totalAppointments ?? 0, icon: '📅', grad: 'linear-gradient(135deg,#ea580c,#c2410c)' },
+  ];
 
   return (
-    <div className="sa-root">
-      {/* Header */}
-      <header className="sa-header">
-        <div className="sa-header-inner">
-          <div className="sa-logo">
-            <span className="sa-logo-icon">⚡</span>
-            <span className="sa-logo-text">Super Admin</span>
+    <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e2e8f0', fontFamily: 'Inter,system-ui,sans-serif' }}>
+      {/* ─ Header ─ */}
+      <header style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)', borderBottom: '1px solid rgba(124,58,237,.25)', position: 'sticky', top: 0, zIndex: 50, boxShadow: '0 4px 24px rgba(0,0,0,.5)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, padding: '0 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>⚡</div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: '#a78bfa', letterSpacing: '-0.5px' }}>Super Admin</div>
+              <div style={{ fontSize: 11, color: '#6366f1', marginTop: -2 }}>Panel de Control Global</div>
+            </div>
           </div>
-          <button
-            className="sa-logout"
-            onClick={() => { localStorage.removeItem('med_session'); router.replace('/login'); }}
-          >
+          <button onClick={logout} style={{ background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', color: '#fca5a5', padding: '8px 18px', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
             Cerrar sesión
           </button>
         </div>
       </header>
 
-      <main className="sa-main">
-        {/* Stats */}
-        <section className="sa-stats-grid">
-          {[
-            { label: 'Cuentas', value: stats?.totalAccounts ?? 0, icon: '🏢', color: 'purple' },
-            { label: 'Sedes', value: stats?.totalSubaccounts ?? 0, icon: '🏥', color: 'blue' },
-            { label: 'Usuarios', value: stats?.totalUsers ?? 0, icon: '👤', color: 'green' },
-            { label: 'Citas totales', value: stats?.totalAppointments ?? 0, icon: '📅', color: 'orange' },
-          ].map((s) => (
-            <div key={s.label} className={`sa-stat-card sa-stat-${s.color}`}>
-              <span className="sa-stat-icon">{s.icon}</span>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '36px 24px' }}>
+        {/* ─ Stats ─ */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16, marginBottom: 36 }}>
+          {statCards.map(s => (
+            <div key={s.label} style={{ background: '#12122a', borderRadius: 16, padding: 24, display: 'flex', alignItems: 'center', gap: 18, border: '1px solid rgba(255,255,255,.06)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: s.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0, boxShadow: '0 8px 20px rgba(0,0,0,.4)' }}>{s.icon}</div>
               <div>
-                <p className="sa-stat-value">{s.value.toLocaleString()}</p>
-                <p className="sa-stat-label">{s.label}</p>
+                <div style={{ fontSize: 32, fontWeight: 900, lineHeight: 1, color: '#f8fafc' }}>{s.value.toLocaleString()}</div>
+                <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 4 }}>{s.label}</div>
               </div>
             </div>
           ))}
-        </section>
+        </div>
 
-        {/* Create Account */}
-        <section className="sa-section">
-          <h2 className="sa-section-title">Crear nueva cuenta</h2>
-          <div className="sa-create-row">
+        {/* ─ Create Account ─ */}
+        <div style={{ background: '#12122a', borderRadius: 16, padding: 24, marginBottom: 24, border: '1px solid rgba(124,58,237,.2)' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#c4b5fd', marginBottom: 14 }}>➕ Crear nueva cuenta</h2>
+          <div style={{ display: 'flex', gap: 12 }}>
             <input
-              className="sa-input"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && createAccount()}
               placeholder="Nombre de la empresa / clínica..."
-              value={newAccountName}
-              onChange={(e) => setNewAccountName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && createAccount()}
+              style={{ flex: 1, background: '#0a0a14', border: '1px solid rgba(124,58,237,.3)', borderRadius: 10, padding: '11px 16px', color: '#f1f5f9', fontSize: 15, outline: 'none' }}
             />
-            <button className="sa-btn-primary" onClick={createAccount} disabled={creating}>
+            <button
+              onClick={createAccount}
+              disabled={creating}
+              style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 14px rgba(124,58,237,.4)', opacity: creating ? 0.6 : 1 }}
+            >
               {creating ? 'Creando...' : '+ Crear'}
             </button>
           </div>
-          {error && <p className="sa-error">{error}</p>}
-        </section>
+          {error && <p style={{ color: '#f87171', fontSize: 13, marginTop: 8 }}>{error}</p>}
+        </div>
 
-        {/* Accounts Table */}
-        <section className="sa-section">
-          <h2 className="sa-section-title">Cuentas registradas ({accounts.length})</h2>
-          <div className="sa-table-wrap">
-            <table className="sa-table">
+        {/* ─ Accounts Table ─ */}
+        <div style={{ background: '#12122a', borderRadius: 16, border: '1px solid rgba(255,255,255,.06)', overflow: 'hidden' }}>
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(124,58,237,.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#c4b5fd' }}>🏢 Cuentas registradas</h2>
+            <span style={{ background: 'rgba(124,58,237,.15)', color: '#a78bfa', borderRadius: 20, padding: '3px 12px', fontSize: 13, fontWeight: 700 }}>{accounts.length}</span>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr>
-                  <th>Cuenta</th>
-                  <th>API Key (para n8n)</th>
-                  <th>Sedes</th>
-                  <th>Usuarios</th>
-                  <th>Pacientes</th>
-                  <th>Creada</th>
+                <tr style={{ background: 'rgba(124,58,237,.08)' }}>
+                  {['Cuenta', 'API Key (para n8n)', 'Sedes', 'Usuarios', 'Pacientes', 'Creada'].map(h => (
+                    <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {accounts.length === 0 ? (
-                  <tr><td colSpan={6} className="sa-empty">No hay cuentas registradas aún.</td></tr>
-                ) : accounts.map((acc) => (
-                  <tr key={acc.id}>
-                    <td className="sa-td-name">{acc.name}</td>
-                    <td>
-                      <div className="sa-apikey-cell">
-                        <code className="sa-apikey">{acc.apiKey}</code>
-                        <button
-                          className="sa-copy-btn"
-                          onClick={() => copyKey(acc.apiKey)}
-                          title="Copiar API Key"
-                        >
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px 16px', color: '#475569', fontSize: 14 }}>
+                      No hay cuentas registradas aún.<br />
+                      <span style={{ fontSize: 12, color: '#334155', marginTop: 4, display: 'block' }}>Usa el formulario de arriba para crear la primera cuenta.</span>
+                    </td>
+                  </tr>
+                ) : accounts.map((acc, i) => (
+                  <tr key={acc.id} style={{ borderTop: '1px solid rgba(255,255,255,.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.01)' }}>
+                    <td style={{ padding: '14px 16px', fontSize: 14, fontWeight: 600, color: '#f1f5f9' }}>{acc.name}</td>
+                    <td style={{ padding: '14px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <code style={{ background: 'rgba(0,0,0,.4)', border: '1px solid rgba(255,255,255,.08)', padding: '3px 8px', borderRadius: 6, fontSize: 11, color: '#a78bfa', fontFamily: 'monospace', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                          {acc.apiKey}
+                        </code>
+                        <button onClick={() => copy(acc.apiKey)} title="Copiar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 2 }}>
                           {copied === acc.apiKey ? '✅' : '📋'}
                         </button>
                       </div>
                     </td>
-                    <td className="sa-td-center">{acc._count.subaccounts}</td>
-                    <td className="sa-td-center">{acc._count.users}</td>
-                    <td className="sa-td-center">{acc._count.patients}</td>
-                    <td className="sa-td-date">
+                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.subaccounts}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.users}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.patients}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>
                       {new Date(acc.createdAt).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                   </tr>
@@ -185,131 +188,8 @@ export default function SuperAdminPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
       </main>
-
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0f0f1a; }
-        .sa-loading {
-          display: flex; align-items: center; justify-content: center;
-          min-height: 100vh; background: #0f0f1a;
-        }
-        .sa-spinner {
-          width: 40px; height: 40px; border-radius: 50%;
-          border: 3px solid #2a2a4a; border-top-color: #7c3aed;
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .sa-root { min-height: 100vh; background: #0f0f1a; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
-
-        .sa-header {
-          background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-          border-bottom: 1px solid rgba(124,58,237,0.3);
-          padding: 0 24px;
-          position: sticky; top: 0; z-index: 50;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        }
-        .sa-header-inner {
-          max-width: 1200px; margin: 0 auto;
-          display: flex; align-items: center; justify-content: space-between;
-          height: 64px;
-        }
-        .sa-logo { display: flex; align-items: center; gap: 10px; }
-        .sa-logo-icon { font-size: 22px; }
-        .sa-logo-text { font-size: 20px; font-weight: 700; color: #a78bfa; letter-spacing: -0.5px; }
-
-        .sa-logout {
-          background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
-          color: #fca5a5; padding: 8px 16px; border-radius: 8px;
-          cursor: pointer; font-size: 13px; transition: all 0.2s;
-        }
-        .sa-logout:hover { background: rgba(239,68,68,0.2); }
-
-        .sa-main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
-
-        .sa-stats-grid {
-          display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 16px; margin-bottom: 32px;
-        }
-        .sa-stat-card {
-          background: #1a1a2e; border-radius: 16px;
-          padding: 24px; display: flex; align-items: center; gap: 16px;
-          border: 1px solid rgba(255,255,255,0.06);
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .sa-stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
-        .sa-stat-purple { border-top: 2px solid #7c3aed; }
-        .sa-stat-blue   { border-top: 2px solid #2563eb; }
-        .sa-stat-green  { border-top: 2px solid #16a34a; }
-        .sa-stat-orange { border-top: 2px solid #ea580c; }
-        .sa-stat-icon { font-size: 28px; }
-        .sa-stat-value { font-size: 28px; font-weight: 800; line-height: 1.1; color: #f1f5f9; }
-        .sa-stat-label { font-size: 13px; color: #94a3b8; margin-top: 2px; }
-
-        .sa-section { margin-bottom: 28px; }
-        .sa-section-title { font-size: 18px; font-weight: 600; color: #c4b5fd; margin-bottom: 16px; }
-
-        .sa-create-row { display: flex; gap: 12px; }
-        .sa-input {
-          flex: 1; background: #1a1a2e; border: 1px solid rgba(124,58,237,0.3);
-          border-radius: 10px; padding: 11px 16px; color: #f1f5f9;
-          font-size: 15px; outline: none; transition: border-color 0.2s;
-        }
-        .sa-input:focus { border-color: #7c3aed; }
-        .sa-input::placeholder { color: #64748b; }
-
-        .sa-btn-primary {
-          background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white;
-          border: none; border-radius: 10px; padding: 11px 24px;
-          font-size: 15px; font-weight: 600; cursor: pointer; white-space: nowrap;
-          transition: all 0.2s; box-shadow: 0 4px 14px rgba(124,58,237,0.4);
-        }
-        .sa-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.5); }
-        .sa-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .sa-error { color: #f87171; font-size: 13px; margin-top: 8px; }
-
-        .sa-table-wrap {
-          background: #1a1a2e; border-radius: 16px; overflow: hidden;
-          border: 1px solid rgba(255,255,255,0.06);
-        }
-        .sa-table { width: 100%; border-collapse: collapse; }
-        .sa-table thead tr {
-          background: rgba(124,58,237,0.15);
-          border-bottom: 1px solid rgba(124,58,237,0.3);
-        }
-        .sa-table th {
-          text-align: left; padding: 14px 16px;
-          font-size: 12px; font-weight: 600; color: #a78bfa; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .sa-table tbody tr {
-          border-bottom: 1px solid rgba(255,255,255,0.04);
-          transition: background 0.15s;
-        }
-        .sa-table tbody tr:hover { background: rgba(124,58,237,0.06); }
-        .sa-table tbody tr:last-child { border-bottom: none; }
-        .sa-table td { padding: 14px 16px; font-size: 14px; color: #cbd5e1; }
-
-        .sa-td-name { color: #f1f5f9; font-weight: 500; }
-        .sa-td-center { text-align: center; }
-        .sa-td-date { color: #64748b; font-size: 13px; }
-
-        .sa-apikey-cell { display: flex; align-items: center; gap: 8px; }
-        .sa-apikey {
-          background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);
-          padding: 4px 8px; border-radius: 6px; font-size: 11px; color: #a78bfa;
-          font-family: monospace; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .sa-copy-btn {
-          background: none; border: none; cursor: pointer; font-size: 15px;
-          padding: 2px; border-radius: 4px; transition: transform 0.1s;
-        }
-        .sa-copy-btn:hover { transform: scale(1.2); }
-
-        .sa-empty { text-align: center; color: #475569; padding: 32px !important; }
-      `}</style>
     </div>
   );
 }
