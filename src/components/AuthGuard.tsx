@@ -10,13 +10,26 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check localStorage for session
-    const session = localStorage.getItem('med_session');
+    const raw = localStorage.getItem('med_session');
+    let session: any = null;
+    if (raw) {
+      try { session = JSON.parse(raw); } catch { session = { role: 'RECEPTIONIST' }; }
+    }
 
-    if (session) {
+    const isSuperAdmin = session?.role === 'SUPERADMIN';
+    const onSuperAdminPath = pathname.startsWith('/superadmin');
+
+    if (!session) {
+      // Not logged in
+      if (pathname !== '/login') router.replace('/login');
+    } else if (isSuperAdmin && !onSuperAdminPath && pathname !== '/login') {
+      // Superadmin trying to access normal app → redirect to their dashboard
+      router.replace('/superadmin');
+    } else if (!isSuperAdmin && onSuperAdminPath) {
+      // Normal user trying to access super admin → redirect out
+      router.replace('/');
+    } else {
       setAuthenticated(true);
-    } else if (pathname !== '/login') {
-      router.replace('/login');
     }
 
     setChecked(true);

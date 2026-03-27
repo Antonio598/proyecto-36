@@ -18,7 +18,16 @@ export default function LoginPage() {
   useEffect(() => {
     const session = localStorage.getItem('med_session');
     if (session) {
-      window.location.href = '/';
+      try {
+        const parsed = JSON.parse(session);
+        if (parsed?.role === 'SUPERADMIN') {
+          window.location.href = '/superadmin';
+        } else {
+          window.location.href = '/';
+        }
+      } catch {
+        window.location.href = '/';
+      }
     } else {
       setChecked(true);
     }
@@ -72,11 +81,15 @@ export default function LoginPage() {
 
       // Save session and user info for auth guard
       if (data.success) {
-        localStorage.setItem('med_session', 'authenticated');
+        // Store full user object as JSON so AuthGuard can read role
+        localStorage.setItem('med_session', JSON.stringify(data.user));
         localStorage.setItem('med_user', JSON.stringify(data.user));
+        if (data.user?.role === 'SUPERADMIN') {
+          window.location.href = '/superadmin';
+        } else {
+          window.location.href = '/';
+        }
       }
-
-      window.location.href = '/';
     } catch {
       setError('Error de conexión. Intenta de nuevo.');
       setLoading(false);

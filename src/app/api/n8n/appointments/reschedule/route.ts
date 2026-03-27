@@ -1,9 +1,16 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
 
 export async function PUT(request: Request) {
   try {
+    const apiKey = extractApiKey(request);
+    const account = await getAccountByApiKey(apiKey);
+    if (!account) {
+      return NextResponse.json({ success: false, error: 'Invalid or missing API key (x-api-key header).' }, { status: 401 });
+    }
+
     const body = await request.json();
     let { phone, oldStartTime, newStartTime, id, newCalendarId, subaccountId } = body;
     phone = (phone || id)?.toString();
@@ -14,12 +21,12 @@ export async function PUT(request: Request) {
 
     phone = phone.trim();
     if (!phone) {
-       return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
     }
 
-    // 1. Find Patient
+    // 1. Find Patient scoped to this account
     const patient = await prisma.patient.findUnique({
-      where: { phone },
+      where: { phone_accountId: { phone, accountId: account.id } },
     });
 
     if (!patient) {
@@ -28,11 +35,10 @@ export async function PUT(request: Request) {
 
     // 2. Find specific active appointment
     const oldStart = new Date(oldStartTime);
-    
     let whereClause: any = {
       patientId: patient.id,
       startTime: oldStart,
-      status: { notIn: ['CANCELLED'] } // Only reschedule active ones
+      status: { notIn: ['CANCELLED'] },
     };
     if (subaccountId) {
       whereClause.subaccountId = subaccountId;
@@ -40,24 +46,24 @@ export async function PUT(request: Request) {
 
     const appointment = await prisma.appointment.findFirst({
       where: whereClause,
-      include: { service: true }
+      include: { service: true },
     });
 
     if (!appointment) {
       return NextResponse.json({ success: false, error: 'Active appointment not found for this patient at the old start time' }, { status: 404 });
     }
 
-    // 3. Overlap Check for new time (using dynamic duration based on calendar)
+    // 3. Overlap Check for new time
     const newStart = new Date(newStartTime);
     let duration = appointment.service?.durationMinutes || 30;
     let targetCalendarId = newCalendarId || appointment.calendarId;
 
     if (targetCalendarId && appointment.serviceId) {
       const config = await prisma.serviceConfiguration.findUnique({
-         where: { serviceId_calendarId: { serviceId: appointment.serviceId, calendarId: targetCalendarId } }
+        where: { serviceId_calendarId: { serviceId: appointment.serviceId, calendarId: targetCalendarId } },
       });
       if (config) {
-         duration = config.durationMinutes;
+        duration = config.durationMinutes;
       }
     }
 
@@ -67,43 +73,35 @@ export async function PUT(request: Request) {
     const { format } = require('date-fns');
     let finalSubaccountId = subaccountId || appointment.subaccountId;
     if (finalSubaccountId) {
-       const panamaDate = toZonedTime(newStart, 'America/Panama');
-       const rules = await prisma.availabilityRule.findMany({
-          where: {
-             subaccountId: finalSubaccountId,
-             dayOfWeek: panamaDate.getDay()
-          }
-       });
+      const panamaDate = toZonedTime(newStart, 'America/Panama');
+      const rules = await prisma.availabilityRule.findMany({
+        where: { subaccountId: finalSubaccountId, dayOfWeek: panamaDate.getDay() },
+      });
 
-       if (rules.length === 0) {
-          return NextResponse.json({ success: false, error: 'La clínica está cerrada en este día, no hay horarios disponibles.' }, { status: 400 });
-       }
+      if (rules.length === 0) {
+        return NextResponse.json({ success: false, error: 'La clínica está cerrada en este día, no hay horarios disponibles.' }, { status: 400 });
+      }
 
-       const rule = rules[0];
-       const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
-       const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
-       const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
+      const rule = rules[0];
+      const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
+      const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
+      const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
 
-       if (newStart < workStart || newEnd > workEnd) {
-          return NextResponse.json({ success: false, error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
-       }
+      if (newStart < workStart || newEnd > workEnd) {
+        return NextResponse.json({ success: false, error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
+      }
     }
 
     let overlapWhere: any = {
-      id: { not: appointment.id }, // Ignore self
+      id: { not: appointment.id },
       status: { notIn: ['CANCELLED'] },
-      OR: [
-        { startTime: { lt: newEnd }, endTime: { gt: newStart } }
-      ]
+      OR: [{ startTime: { lt: newEnd }, endTime: { gt: newStart } }],
     };
     if (targetCalendarId) {
       overlapWhere.calendarId = targetCalendarId;
     }
 
-    const overlappingAppt = await prisma.appointment.findFirst({
-      where: overlapWhere
-    });
-
+    const overlappingAppt = await prisma.appointment.findFirst({ where: overlapWhere });
     if (overlappingAppt) {
       return NextResponse.json({ success: false, error: 'New time slot overlaps with another appointment' }, { status: 409 });
     }
@@ -114,12 +112,12 @@ export async function PUT(request: Request) {
       data: {
         startTime: newStart,
         endTime: newEnd,
-        calendarId: targetCalendarId !== undefined ? targetCalendarId : undefined
+        calendarId: targetCalendarId !== undefined ? targetCalendarId : undefined,
       },
       include: {
-        patient: { select: { fullName: true, phone: true }},
-        service: { select: { name: true }}
-      }
+        patient: { select: { fullName: true, phone: true } },
+        service: { select: { name: true } },
+      },
     });
 
     return NextResponse.json({ success: true, data: updatedAppointment });

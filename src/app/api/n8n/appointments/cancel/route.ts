@@ -1,9 +1,16 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
 
 export async function POST(request: Request) {
   try {
+    const apiKey = extractApiKey(request);
+    const account = await getAccountByApiKey(apiKey);
+    if (!account) {
+      return NextResponse.json({ success: false, error: 'Invalid or missing API key (x-api-key header).' }, { status: 401 });
+    }
+
     const body = await request.json();
     let { phone, startTime, id, subaccountId } = body;
     phone = (phone || id)?.toString();
@@ -14,12 +21,12 @@ export async function POST(request: Request) {
 
     phone = phone.trim();
     if (!phone) {
-       return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
     }
 
-    // 1. Find Patient
+    // 1. Find Patient scoped to this account
     const patient = await prisma.patient.findUnique({
-      where: { phone },
+      where: { phone_accountId: { phone, accountId: account.id } },
     });
 
     if (!patient) {
@@ -31,15 +38,13 @@ export async function POST(request: Request) {
     let whereClause: any = {
       patientId: patient.id,
       startTime: targetStart,
-      status: { notIn: ['CANCELLED'] }
+      status: { notIn: ['CANCELLED'] },
     };
     if (subaccountId) {
       whereClause.subaccountId = subaccountId;
     }
 
-    const appointment = await prisma.appointment.findFirst({
-      where: whereClause
-    });
+    const appointment = await prisma.appointment.findFirst({ where: whereClause });
 
     if (!appointment) {
       return NextResponse.json({ success: false, error: 'Active appointment not found for this patient at the specified time' }, { status: 404 });
@@ -50,9 +55,9 @@ export async function POST(request: Request) {
       where: { id: appointment.id },
       data: { status: 'CANCELLED' },
       include: {
-        patient: { select: { fullName: true, phone: true }},
-        service: { select: { name: true }}
-      }
+        patient: { select: { fullName: true, phone: true } },
+        service: { select: { name: true } },
+      },
     });
 
     return NextResponse.json({ success: true, data: updatedAppointment });
@@ -61,4 +66,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
-

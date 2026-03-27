@@ -2,9 +2,16 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { startOfDay, endOfDay } from 'date-fns';
+import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
 
 export async function GET(request: Request) {
   try {
+    const apiKey = extractApiKey(request);
+    const account = await getAccountByApiKey(apiKey);
+    if (!account) {
+      return NextResponse.json({ success: false, error: 'Invalid or missing API key (x-api-key header).' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get('date');
     const subaccountId = searchParams.get('subaccountId');
@@ -22,30 +29,27 @@ export async function GET(request: Request) {
       endDate = endOfDay(parsedDate);
     } else {
       startDate = startOfDay(new Date());
-      // Check 30 days ahead
-      endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); 
+      endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
     }
 
     let whereClause: any = {
       status: { notIn: ['CANCELLED'] },
       startTime: { gte: startDate },
       endTime: { lte: endDate },
+      // Only show appointments belonging to this account's subaccounts
+      subaccount: { accountId: account.id },
     };
 
     if (calendarId) {
-       whereClause.calendarId = calendarId;
+      whereClause.calendarId = calendarId;
     } else {
-       if (subaccountId) whereClause.subaccountId = subaccountId;
-       if (doctorId) whereClause.doctorId = doctorId;
+      if (subaccountId) whereClause.subaccountId = subaccountId;
+      if (doctorId) whereClause.doctorId = doctorId;
     }
 
     const appointments = await prisma.appointment.findMany({
       where: whereClause,
-      select: {
-        id: true,
-        startTime: true,
-        endTime: true,
-      },
+      select: { id: true, startTime: true, endTime: true },
       orderBy: { startTime: 'asc' },
     });
 

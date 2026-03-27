@@ -14,6 +14,7 @@ enum Role {
   ADMIN
   RECEPTIONIST
   PROFESSIONAL
+  SUPERADMIN
 }
 
 enum AppointmentStatus {
@@ -30,6 +31,8 @@ model User {
   passwordHash String
   role         Role          @default(RECEPTIONIST)
   appointments Appointment[] @relation("ProfessionalAppointments")
+  accountId    String?
+  account      Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -37,14 +40,18 @@ model User {
 model Patient {
   id               String        @id @default(uuid())
   fullName         String
-  phone            String        @unique // PRIMARY KEY LÓGICO
+  phone            String        // PRIMARY KEY LÓGICO
   cedula_pasaporte String?
   edad             Int?
   email            String?
   notes            String?
   appointments     Appointment[]
+  accountId        String?
+  account          Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+
+  @@unique([phone, accountId])
 }
 
 model Service {
@@ -120,7 +127,20 @@ model Subaccount {
   configurations    ServiceConfiguration[]
   availabilityRules AvailabilityRule[]
   createdAt         DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  updatedAt         DateTime               @updatedAt
+  accountId         String?
+  account           Account?               @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id          String       @id @default(uuid())
+  name        String
+  apiKey      String       @unique @default(uuid())
+  subaccounts Subaccount[]
+  users       User[]
+  patients    Patient[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model Doctor {
