@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, UserCircle, Phone, Clock, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { apiFetch } from '@/lib/apiFetch';
 
 interface Patient {
   id: string;
@@ -28,7 +29,7 @@ export default function PatientsPage() {
   const fetchPatients = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/patients');
+      const res = await apiFetch('/api/patients');
       if (res.ok) {
         const data = await res.json();
         setPatients(data);
@@ -55,11 +56,8 @@ export default function PatientsPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/patients', {
+      const res = await apiFetch('/api/patients', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(formData),
       });
 
@@ -83,7 +81,7 @@ export default function PatientsPage() {
     
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/patients/${id}`, {
+      const res = await apiFetch(`/api/patients/${id}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Error al eliminar paciente');

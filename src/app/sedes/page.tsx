@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Building, Edit2, Trash2, X, AlertCircle } from 'lucide-react';
+import { apiFetch } from '@/lib/apiFetch';
 
 interface Subaccount {
   id: string;
@@ -24,7 +25,7 @@ export default function SedesPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/subaccounts');
+      const res = await apiFetch('/api/subaccounts');
       if (res.ok) setSubaccounts(await res.json());
     } catch (err) {
       console.error(err);
@@ -46,9 +47,8 @@ export default function SedesPage() {
     const method = editingSede ? 'PUT' : 'POST';
 
     try {
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
@@ -66,7 +66,7 @@ export default function SedesPage() {
   const deleteSede = async (id: string) => {
     if (!confirm('¿Seguro que deseas eliminar esta sede? Se borrarán sus datos asociados.')) return;
     try {
-      const res = await fetch(`/api/subaccounts/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/subaccounts/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('No se pudo eliminar');
       await fetchData();
     } catch (err: any) {
