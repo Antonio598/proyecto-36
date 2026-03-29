@@ -8,6 +8,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const serviceId = searchParams.get('service_id');
     const dateParam = searchParams.get('date');
+    const calendarId = searchParams.get('calendar_id'); // Optional specific calendar
 
     if (!serviceId || !dateParam) {
       return NextResponse.json(
@@ -33,13 +34,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
     }
 
-    // 2. Get Availability Rules for that day from the Subaccount
-    const rules = await prisma.availabilityRule.findMany({
-      where: {
-        dayOfWeek,
-        subaccountId: service.subaccountId
-      }
-    });
+    let rules: any[] = [];
+
+    // 2. Get Availability Rules for that day from Calendar first
+    if (calendarId) {
+       rules = await prisma.availabilityRule.findMany({
+         where: {
+           dayOfWeek,
+           calendarId,
+         } as any
+       });
+    }
+
+    // 2b. Fallback to Subaccount rules if no specific calendar rules exist
+    if (rules.length === 0) {
+       rules = await prisma.availabilityRule.findMany({
+         where: {
+           dayOfWeek,
+           subaccountId: service.subaccountId,
+           calendarId: null,
+         } as any
+       });
+    }
 
     if (rules.length === 0) {
        // If no rules are set, return empty slots (everything is blocked)

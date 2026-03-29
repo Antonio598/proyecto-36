@@ -1,0 +1,13 @@
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": PostgreSQL database "postgres", schema "public" at "supabase.masterhavenshop.com.mx:5432"
+Error: ERROR: must be owner of table Account
+   0: sql_schema_connector::apply_migration::migration_step
+           with step=AlterTable(AlterTable { table_ids: MigrationPair { previous: TableId(0), next: TableId(7) }, changes: [AlterColumn(AlterColumn { column_id: MigrationPair { previous: TableColumnId(0), next: TableColumnId(63) }, changes: ColumnChanges { type_change: None, changes: BitFlags<ColumnChange>(0b10, Default) }, type_change: None }), AlterColumn(AlterColumn { column_id: MigrationPair { previous: TableColumnId(2), next: TableColumnId(65) }, changes: ColumnChanges { type_change: None, changes: BitFlags<ColumnChange>(0b10, Default) }, type_change: None }), AlterColumn(AlterColumn { column_id: MigrationPair { previous: TableColumnId(4), next: TableColumnId(67) }, changes: ColumnChanges { type_change: None, changes: BitFlags<ColumnChange>(0b10, Default) }, type_change: None })] })
+             at schema-engine\connectors\sql-schema-connector\src\apply_migration.rs:28
+   1: sql_schema_connector::apply_migration::apply_migration
+             at schema-engine\connectors\sql-schema-connector\src\apply_migration.rs:11
+   2: schema_core::state::SchemaPush
+             at schema-engine\core\src\state.rs:533
+

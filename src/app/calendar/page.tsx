@@ -63,15 +63,13 @@ export default function CalendarPage() {
     if (!selectedSede) return;
     const fetchConfigs = async () => {
       try {
-        const [patientsRes, servicesRes, calendarsRes, rulesRes] = await Promise.all([
+        const [patientsRes, servicesRes, calendarsRes] = await Promise.all([
           fetch('/api/patients'),
           fetch(`/api/services?subaccountId=${selectedSede}`),
-          fetch(`/api/calendars?subaccountId=${selectedSede}`),
-          fetch(`/api/availability-rules?subaccountId=${selectedSede}`)
+          fetch(`/api/calendars?subaccountId=${selectedSede}`)
         ]);
         if (patientsRes.ok) setPatients(await patientsRes.json());
         if (servicesRes.ok) setServices(await servicesRes.json());
-        if (rulesRes.ok) setAvailabilityRules(await rulesRes.json());
         if (calendarsRes.ok) {
            const data = await calendarsRes.json();
            setCalendars(data);
@@ -129,8 +127,26 @@ export default function CalendarPage() {
     }
   };
 
+  const fetchRules = async () => {
+    if (!selectedSede) return;
+    try {
+      let url = `/api/availability-rules?subaccountId=${selectedSede}`;
+      if (selectedCalendarId) url += `&calendarId=${selectedCalendarId}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        let rules = await res.json();
+        if (selectedCalendarId && rules.length === 0) {
+           const globalRes = await fetch(`/api/availability-rules?subaccountId=${selectedSede}`);
+           if (globalRes.ok) rules = await globalRes.json();
+        }
+        setAvailabilityRules(rules);
+      }
+    } catch (err) { console.error('Error fetching rules', err); }
+  };
+
   useEffect(() => {
     fetchAppointments();
+    fetchRules();
   }, [selectedSede, selectedCalendarId]);
 
   useEffect(() => {

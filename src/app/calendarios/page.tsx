@@ -24,7 +24,7 @@ export default function CalendariosPage() {
   const [formData, setFormData] = useState({ name: '', doctorId: '' });
   
   // SCHEDULE MODAL
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleModalState, setScheduleModalState] = useState<{isOpen: boolean, calendarId: string | null, calendarName: string | null}>({ isOpen: false, calendarId: null, calendarName: null });
   const [schedules, setSchedules] = useState([
     { dayOfWeek: 1, active: true, startTime: '09:00', endTime: '18:00' }, // Lunes
     { dayOfWeek: 2, active: true, startTime: '09:00', endTime: '18:00' }, // Martes
@@ -55,14 +55,41 @@ export default function CalendariosPage() {
     }
   };
 
-  const fetchSchedules = async () => {
+  const openScheduleModal = async (calendarId: string | null, calendarName: string | null) => {
     if (!selectedSede) return;
+    setScheduleModalState({ isOpen: true, calendarId, calendarName });
+    setIsSavingSchedules(false);
+    
+    // Reset to defaults first
+    const defaultSchedules = [
+      { dayOfWeek: 1, active: true, startTime: '09:00', endTime: '18:00' },
+      { dayOfWeek: 2, active: true, startTime: '09:00', endTime: '18:00' },
+      { dayOfWeek: 3, active: true, startTime: '09:00', endTime: '18:00' },
+      { dayOfWeek: 4, active: true, startTime: '09:00', endTime: '18:00' },
+      { dayOfWeek: 5, active: true, startTime: '09:00', endTime: '18:00' },
+      { dayOfWeek: 6, active: false, startTime: '09:00', endTime: '14:00' },
+      { dayOfWeek: 0, active: false, startTime: '09:00', endTime: '14:00' },
+    ];
+    setSchedules(defaultSchedules);
+
     try {
-      const res = await fetch(`/api/availability-rules?subaccountId=${selectedSede}`);
+      let url = `/api/availability-rules?subaccountId=${selectedSede}`;
+      if (calendarId) url += `&calendarId=${calendarId}`;
+      
+      const res = await fetch(url);
       if (res.ok) {
-        const rules = await res.json();
+        let rules = await res.json();
+        
+        // Si estamos viendo un calendario específico y no tiene reglas, traemos las de la sede global como plantilla
+        if (calendarId && rules.length === 0) {
+           const globalRes = await fetch(`/api/availability-rules?subaccountId=${selectedSede}`);
+           if (globalRes.ok) {
+              rules = await globalRes.json();
+           }
+        }
+
         if (rules.length > 0) {
-           const updatedSchedules = schedules.map(s => {
+           const updatedSchedules = defaultSchedules.map(s => {
              const rule = rules.find((r: any) => r.dayOfWeek === s.dayOfWeek);
              if (rule) return { ...s, active: true, startTime: rule.startTime, endTime: rule.endTime };
              return { ...s, active: false };
@@ -75,7 +102,6 @@ export default function CalendariosPage() {
 
   useEffect(() => { 
     fetchData(); 
-    fetchSchedules();
   }, [selectedSede]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,10 +141,10 @@ export default function CalendariosPage() {
       const res = await fetch('/api/availability-rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subaccountId: selectedSede, rules: activeRules })
+        body: JSON.stringify({ subaccountId: selectedSede, calendarId: scheduleModalState.calendarId, rules: activeRules })
       });
       if (res.ok) {
-        setIsScheduleModalOpen(false);
+        setScheduleModalState({ isOpen: false, calendarId: null, calendarName: null });
         alert('Horarios semanales guardados correctamente.');
       } else {
         alert('Error al guardar los horarios');
@@ -143,7 +169,7 @@ export default function CalendariosPage() {
             <Clock className="w-6 h-6 text-blue-600" /> Calendarios de la Sede
           </h2>
           <button 
-            onClick={() => setIsScheduleModalOpen(true)}
+            onClick={() => openScheduleModal(null, null)}
             className="flex items-center gap-1 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
           >
             Configurar Horario Semanal
@@ -172,8 +198,9 @@ export default function CalendariosPage() {
                 <tr key={cal.id}>
                   <td className="py-4 pl-4 text-sm font-bold text-gray-900">{cal.name}</td>
                   <td className="px-3 py-4 text-sm font-medium text-gray-700">{cal.doctor?.name || '---'}</td>
-                  <td className="py-4 pr-4 text-right">
-                    <button onClick={() => { setEditingCalendar(cal); setFormData({ name: cal.name, doctorId: cal.doctorId }); setIsModalOpen(true); }} className="text-blue-600 mr-2 font-bold bg-blue-50 px-3 py-1 rounded">Editar</button>
+                  <td className="py-4 pr-4 text-right flex items-center justify-end gap-2">
+                    <button onClick={() => openScheduleModal(cal.id, cal.name)} className="text-emerald-700 font-bold bg-emerald-50 px-3 py-1 rounded flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> Horario</button>
+                    <button onClick={() => { setEditingCalendar(cal); setFormData({ name: cal.name, doctorId: cal.doctorId }); setIsModalOpen(true); }} className="text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded">Editar</button>
                     <button onClick={() => deleteCalendar(cal.id)} className="text-red-600 font-bold bg-red-50 px-3 py-1 rounded">Borrar</button>
                   </td>
                 </tr>
@@ -205,15 +232,15 @@ export default function CalendariosPage() {
         </div>
       )}
 
-      {isScheduleModalOpen && (
+      {scheduleModalState.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-lg bg-white p-6 rounded-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
                <div>
-                 <h3 className="font-bold text-xl text-black flex items-center gap-2"><Clock className="w-5 h-5 text-blue-600"/> Horario Semanal</h3>
-                 <p className="text-sm text-gray-500 mt-1">Configura las horas en las que la sede recibe citas. Todo lo que esté fuera de estas horas será bloqueado.</p>
+                 <h3 className="font-bold text-xl text-black flex items-center gap-2"><Clock className="w-5 h-5 text-blue-600"/> Horario Semanal {scheduleModalState.calendarName ? `(${scheduleModalState.calendarName})` : '(Global de la Sede)'}</h3>
+                 <p className="text-sm text-gray-500 mt-1">Configura las horas en las que {scheduleModalState.calendarName ? 'este calendario' : 'la sede globalmente'} recibe citas. Los espacios no configurados aquí se muestran como bloqueados.</p>
                </div>
-               <button onClick={() => setIsScheduleModalOpen(false)}><X className="text-gray-400 hover:text-black"/></button>
+               <button onClick={() => setScheduleModalState({ isOpen: false, calendarId: null, calendarName: null })}><X className="text-gray-400 hover:text-black"/></button>
             </div>
             
             <div className="space-y-3 mt-6">
@@ -252,7 +279,7 @@ export default function CalendariosPage() {
             <div className="flex justify-end gap-2 pt-6">
               <button 
                 type="button" 
-                onClick={() => setIsScheduleModalOpen(false)} 
+                onClick={() => setScheduleModalState({ isOpen: false, calendarId: null, calendarName: null })} 
                 className="px-4 py-2 bg-gray-100/80 hover:bg-gray-200 font-bold text-gray-700 rounded transition-colors"
                 disabled={isSavingSchedules}
               >
