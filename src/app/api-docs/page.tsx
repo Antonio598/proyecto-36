@@ -90,7 +90,7 @@ x-api-key: TU_API_KEY
                 <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">GET</span>
                 /api/n8n/calendars
               </h4>
-              <p className="text-sm text-gray-600">Retorna calendarios, precios y duraciones para un servicio. Requerido: <code>?serviceId=ID</code>. Opcional: <code>?subaccountId=X</code>.</p>
+              <p className="text-sm text-gray-600">Retorna calendarios, precios y duraciones. Requerido al menos uno: <code>?serviceId=ID</code> o <code>?subaccountId=X</code>.</p>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
@@ -102,9 +102,76 @@ x-api-key: TU_API_KEY
             </div>
           </div>
 
+          {/* ── GESTIÓN DE PACIENTES ── */}
+          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-4 flex items-center gap-2 mt-8">
+            <Code className="w-5 h-5 text-gray-500" /> 2. Gestión de Pacientes
+          </h3>
+
+          <div className="space-y-6 mb-8">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <h4 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
+                <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">GET</span>
+                /api/n8n/patients
+              </h4>
+              <p className="text-sm text-gray-600 mb-3">Busca un paciente por teléfono. Sin parámetros retorna todos los pacientes.</p>
+              <pre className="bg-gray-900 text-gray-100 p-3 rounded-md text-sm overflow-x-auto">
+{`// Headers:
+x-api-key: TU_API_KEY
+
+// Buscar por teléfono (opcional):
+GET /api/n8n/patients?phone=5551234567
+
+// Respuesta:
+{
+  "success": true,
+  "data": {
+    "id": "...",
+    "fullName": "Juan Pérez",
+    "phone": "5551234567",
+    "email": "juan@email.com",
+    "cedula_pasaporte": "8-123-456",
+    "edad": 35
+  }
+}`}
+              </pre>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <h4 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
+                <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">POST</span>
+                /api/n8n/patients
+              </h4>
+              <p className="text-sm text-gray-600 mb-3">
+                Crea un nuevo paciente o actualiza uno existente (upsert por <code>phone</code>).
+                Campos <strong>requeridos</strong>: <code>fullName</code> y <code>phone</code>.
+              </p>
+              <pre className="bg-gray-900 text-gray-100 p-3 rounded-md text-sm overflow-x-auto">
+{`// Headers:
+x-api-key: TU_API_KEY
+Content-Type: application/json
+
+// Body:
+{
+  "fullName": "Juan Pérez",         // requerido
+  "phone": "5551234567",            // requerido
+  "email": "juan@email.com",        // opcional
+  "cedula_pasaporte": "8-123-456",  // opcional
+  "edad": 35,                       // opcional (número)
+  "notes": "Alergia a la penicilina" // opcional
+}
+
+// Respuesta exitosa (201):
+{
+  "success": true,
+  "data": { "id": "...", "fullName": "Juan Pérez", ... }
+}`}
+              </pre>
+            </div>
+          </div>
+
           {/* ── GESTIÓN DE CITAS ── */}
           <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-4 flex items-center gap-2 mt-8">
-            <Terminal className="w-5 h-5 text-gray-500" /> 2. Gestión de Citas (POST/PUT)
+            <Terminal className="w-5 h-5 text-gray-500" /> 3. Gestión de Citas (POST/PUT)
           </h3>
 
           <div className="space-y-6">

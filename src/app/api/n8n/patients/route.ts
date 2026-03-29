@@ -1,9 +1,16 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
 
 export async function GET(request: Request) {
   try {
+    const apiKey = extractApiKey(request);
+    const account = await getAccountByApiKey(apiKey);
+    if (!account) {
+      return NextResponse.json({ success: false, error: 'Invalid or missing API key (x-api-key header).' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     let phone = searchParams.get('phone');
     const id = searchParams.get('id');
@@ -11,12 +18,13 @@ export async function GET(request: Request) {
 
     if (phone) {
       const patient = await prisma.patient.findUnique({
-        where: { phone },
+        where: { phone_accountId: { phone, accountId: account.id } },
       });
       return NextResponse.json(patient ? { success: true, data: patient } : { success: false, error: 'Patient not found' });
     }
 
     const patients = await prisma.patient.findMany({
+      where: { accountId: account.id },
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json({ success: true, data: patients });
@@ -28,6 +36,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const apiKey = extractApiKey(request);
+    const account = await getAccountByApiKey(apiKey);
+    if (!account) {
+      return NextResponse.json({ success: false, error: 'Invalid or missing API key (x-api-key header).' }, { status: 401 });
+    }
+
     const body = await request.json();
     let { fullName, phone, email, notes, id, cedula_pasaporte, edad } = body;
     phone = (phone || id)?.toString();
@@ -38,7 +52,7 @@ export async function POST(request: Request) {
 
     phone = phone.trim();
     if (!phone) {
-       return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
     }
 
     const patientData = {
@@ -48,19 +62,18 @@ export async function POST(request: Request) {
       notes: notes || null,
       cedula_pasaporte: cedula_pasaporte || null,
       edad: edad ? parseInt(edad, 10) : null,
+      accountId: account.id,
     };
 
-    // Upsert para crear o actualizar basándose en el num. de teléfono
+    // Upsert: crear o actualizar basándose en (phone + accountId)
     const patient = await prisma.patient.upsert({
-      where: { phone },
+      where: { phone_accountId: { phone, accountId: account.id } },
       update: {
-         ...patientData,
-         // Prevenir sobrescribir con null si no lo enviaron y ya existe:
-         fullName: patientData.fullName,
-         email: patientData.email !== null ? patientData.email : undefined,
-         notes: patientData.notes !== null ? patientData.notes : undefined,
-         cedula_pasaporte: patientData.cedula_pasaporte !== null ? patientData.cedula_pasaporte : undefined,
-         edad: patientData.edad !== null ? patientData.edad : undefined,
+        fullName: patientData.fullName,
+        email: patientData.email !== null ? patientData.email : undefined,
+        notes: patientData.notes !== null ? patientData.notes : undefined,
+        cedula_pasaporte: patientData.cedula_pasaporte !== null ? patientData.cedula_pasaporte : undefined,
+        edad: patientData.edad !== null ? patientData.edad : undefined,
       },
       create: patientData,
     });

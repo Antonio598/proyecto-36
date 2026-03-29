@@ -16,15 +16,19 @@ export async function GET(request: Request) {
     const serviceId = searchParams.get('serviceId');
     const subaccountId = searchParams.get('subaccountId');
 
-    if (!serviceId) {
-      return NextResponse.json({ success: false, error: 'serviceId is required' }, { status: 400 });
+    if (!serviceId && !subaccountId) {
+      return NextResponse.json({ success: false, error: 'serviceId or subaccountId is required' }, { status: 400 });
     }
 
     let whereClause: any = {
-      serviceId,
       // Scope to this account's subaccounts
       subaccount: { accountId: account.id },
     };
+    
+    if (serviceId) {
+      whereClause.serviceId = serviceId;
+    }
+    
     if (subaccountId) {
       whereClause.subaccountId = subaccountId;
     }
