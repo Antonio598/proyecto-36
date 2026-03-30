@@ -35,25 +35,24 @@ export async function GET(request: Request) {
     }
 
     let rules: any[] = [];
+    let activeCalendarId = calendarId;
 
-    // 2. Get Availability Rules for that day from Calendar first
-    if (calendarId) {
-       rules = await prisma.availabilityRule.findMany({
-         where: {
-           dayOfWeek,
-           calendarId,
-         } as any
-       });
+    // If no specific calendar is requested, find the first calendar that offers this service
+    if (!activeCalendarId) {
+      const config = await prisma.serviceConfiguration.findFirst({
+        where: { serviceId: service.id }
+      });
+      if (config) {
+        activeCalendarId = config.calendarId;
+      }
     }
 
-    // 2b. Fallback to Subaccount rules if no specific calendar rules exist
-    if (rules.length === 0) {
+    if (activeCalendarId) {
        rules = await prisma.availabilityRule.findMany({
          where: {
            dayOfWeek,
-           subaccountId: service.subaccountId,
-           calendarId: null,
-         } as any
+           calendarId: activeCalendarId,
+         }
        });
     }
 
