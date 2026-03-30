@@ -7,7 +7,7 @@ const db = prisma as any;
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const superAdmin = await verifySuperAdmin(request);
   if (!superAdmin) {
@@ -15,7 +15,7 @@ export async function DELETE(
   }
 
   try {
-    const accountId = params.id;
+    const { id: accountId } = await params;
 
     // Delete the account. Because of `onDelete: Cascade` in schema,
     // this will delete the subaccounts, users, patients, etc. connected to it.
