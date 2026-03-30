@@ -134,12 +134,7 @@ export default function CalendarPage() {
       if (selectedCalendarId) url += `&calendarId=${selectedCalendarId}`;
       const res = await fetch(url);
       if (res.ok) {
-        let rules = await res.json();
-        if (selectedCalendarId && rules.length === 0) {
-           const globalRes = await fetch(`/api/availability-rules?subaccountId=${selectedSede}`);
-           if (globalRes.ok) rules = await globalRes.json();
-        }
-        setAvailabilityRules(rules);
+        setAvailabilityRules(await res.json());
       }
     } catch (err) { console.error('Error fetching rules', err); }
   };
@@ -465,7 +460,6 @@ export default function CalendarPage() {
               >
                 <span className="truncate">
                   {calendars.length === 0 ? 'Sin calendarios creados' : 
-                   selectedCalendarId === '' ? 'Todos (Vista Global)' : 
                    (calendars.find(c => c.id === selectedCalendarId)?.name + (calendars.find(c => c.id === selectedCalendarId)?.doctor?.name ? ` - ${calendars.find(c => c.id === selectedCalendarId)?.doctor?.name}` : ''))}
                 </span>
                 <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isCalendarOpen ? '-rotate-180 text-blue-500' : ''}`} />
@@ -473,15 +467,6 @@ export default function CalendarPage() {
 
               {isCalendarOpen && (
                 <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl overflow-hidden py-1">
-                  {calendars.length > 0 && (
-                    <button
-                      onClick={() => { setSelectedCalendarId(''); setIsCalendarOpen(false); }}
-                      className={`w-full text-left flex items-center justify-between px-4 py-3 text-sm transition-colors ${selectedCalendarId === '' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 font-medium hover:bg-gray-50'}`}
-                    >
-                      Todos (Vista Global)
-                      {selectedCalendarId === '' && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
-                    </button>
-                  )}
                   {calendars.length === 0 ? (
                     <div className="px-4 py-3 text-sm text-gray-500 font-medium text-center">No hay calendarios</div>
                   ) : (
@@ -526,8 +511,8 @@ export default function CalendarPage() {
               eventPropGetter={eventStyleGetter}
               selectable={selectedCalendarId !== ''} 
               onSelectSlot={(slot) => {
-                 if(selectedCalendarId === '') {
-                    alert('Debes seleccionar un Calendario específico en la parte superior (' + (calendars[0]?.name || '') + ') para poder agendar o bloquear un espacio.');
+                 if(!selectedCalendarId) {
+                    alert('Debes crear o seleccionar un Calendario específico en la parte superior para poder agendar o bloquear un espacio.');
                     return;
                  }
                  handleSelectSlot(slot);
