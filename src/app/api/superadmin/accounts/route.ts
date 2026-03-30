@@ -64,14 +64,43 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name } = await request.json();
-    if (!name) {
-      return NextResponse.json({ error: 'Account name is required' }, { status: 400 });
+    const { name, email, password } = await request.json();
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: 'Todos los campos (nombre, correo, contraseña) son requeridos' }, { status: 400 });
     }
 
-    const account = await db.account.create({ data: { name } });
+    if (password.length < 6) {
+      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+    }
 
-    return NextResponse.json({ success: true, data: account }, { status: 201 });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return NextResponse.json({ error: 'Ya existe un usuario con ese correo' }, { status: 400 });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Run in transaction to ensure consistency
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create account
+      const account = await (tx as any).account.create({ data: { name } });
+
+      // 2. Create user for that account
+      await tx.user.create({
+        data: {
+          email,
+          name, // Default name to the company name or handle this later
+          passwordHash,
+          role: 'ADMIN',
+          accountId: account.id,
+        },
+      });
+
+      return account;
+    });
+
+    return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {
     console.error('Error in superadmin accounts POST:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

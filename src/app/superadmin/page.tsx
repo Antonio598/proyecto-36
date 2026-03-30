@@ -24,7 +24,10 @@ export default function SuperAdminPage() {
   const [stats, setStats] = useState<GlobalStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [adminId, setAdminId] = useState<string>('');
@@ -51,18 +54,37 @@ export default function SuperAdminPage() {
   }, [fetchData, router]);
 
   const createAccount = async () => {
-    if (!newName.trim()) return;
+    if (!newName.trim() || !newEmail.trim() || !newPassword.trim()) {
+      setError('Todos los campos son requeridos');
+      return;
+    }
     setCreating(true);
     setError(null);
     const res = await fetch('/api/superadmin/accounts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-superadmin-id': adminId },
-      body: JSON.stringify({ name: newName.trim() }),
+      body: JSON.stringify({ name: newName.trim(), email: newEmail.trim(), password: newPassword }),
     });
     const data = await res.json();
-    if (res.ok) { setNewName(''); fetchData(adminId); }
+    if (res.ok) { setNewName(''); setNewEmail(''); setNewPassword(''); fetchData(adminId); }
     else setError(data.error || 'Error al crear cuenta');
     setCreating(false);
+  };
+
+  const deleteAccount = async (id: string, name: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente la cuenta "${name}" y todos sus datos?`)) return;
+    setDeletingId(id);
+    const res = await fetch(`/api/superadmin/accounts/${id}`, {
+      method: 'DELETE',
+      headers: { 'x-superadmin-id': adminId },
+    });
+    if (res.ok) {
+      fetchData(adminId);
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Error al eliminar la cuenta');
+    }
+    setDeletingId(null);
   };
 
   const copy = (key: string) => {
@@ -122,13 +144,27 @@ export default function SuperAdminPage() {
         {/* ─ Create Account ─ */}
         <div style={{ background: '#12122a', borderRadius: 16, padding: 24, marginBottom: 24, border: '1px solid rgba(124,58,237,.2)' }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: '#c4b5fd', marginBottom: 14 }}>➕ Crear nueva cuenta</h2>
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <input
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && createAccount()}
               placeholder="Nombre de la empresa / clínica..."
-              style={{ flex: 1, background: '#0a0a14', border: '1px solid rgba(124,58,237,.3)', borderRadius: 10, padding: '11px 16px', color: '#f1f5f9', fontSize: 15, outline: 'none' }}
+              style={{ flex: 1, minWidth: '200px', background: '#0a0a14', border: '1px solid rgba(124,58,237,.3)', borderRadius: 10, padding: '11px 16px', color: '#f1f5f9', fontSize: 15, outline: 'none' }}
+            />
+            <input
+              value={newEmail}
+              onChange={e => setNewEmail(e.target.value)}
+              type="email"
+              placeholder="Correo del administrador..."
+              style={{ flex: 1, minWidth: '200px', background: '#0a0a14', border: '1px solid rgba(124,58,237,.3)', borderRadius: 10, padding: '11px 16px', color: '#f1f5f9', fontSize: 15, outline: 'none' }}
+            />
+            <input
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              type="password"
+              placeholder="Contraseña..."
+              onKeyDown={e => e.key === 'Enter' && createAccount()}
+              style={{ flex: 1, minWidth: '200px', background: '#0a0a14', border: '1px solid rgba(124,58,237,.3)', borderRadius: 10, padding: '11px 16px', color: '#f1f5f9', fontSize: 15, outline: 'none' }}
             />
             <button
               onClick={createAccount}
@@ -151,7 +187,7 @@ export default function SuperAdminPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'rgba(124,58,237,.08)' }}>
-                  {['Cuenta', 'API Key (para n8n)', 'Sedes', 'Usuarios', 'Pacientes', 'Creada'].map(h => (
+                  {['Cuenta', 'API Key (para n8n)', 'Sedes', 'Usuarios', 'Pacientes', 'Creada', 'Acciones'].map(h => (
                     <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{h}</th>
                   ))}
                 </tr>
@@ -159,7 +195,7 @@ export default function SuperAdminPage() {
               <tbody>
                 {accounts.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px 16px', color: '#475569', fontSize: 14 }}>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '48px 16px', color: '#475569', fontSize: 14 }}>
                       No hay cuentas registradas aún.<br />
                       <span style={{ fontSize: 12, color: '#334155', marginTop: 4, display: 'block' }}>Usa el formulario de arriba para crear la primera cuenta.</span>
                     </td>
@@ -182,6 +218,15 @@ export default function SuperAdminPage() {
                     <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.patients}</td>
                     <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>
                       {new Date(acc.createdAt).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td style={{ padding: '14px 16px' }}>
+                      <button 
+                        onClick={() => deleteAccount(acc.id, acc.name)}
+                        disabled={deletingId === acc.id}
+                        style={{ background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', color: '#f87171', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        {deletingId === acc.id ? 'Eliminando...' : 'Eliminar'}
+                      </button>
                     </td>
                   </tr>
                 ))}
