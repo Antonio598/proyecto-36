@@ -30,6 +30,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
+    if (accountId) {
+      const account = await prisma.account.findUnique({
+        where: { id: accountId },
+        include: { _count: { select: { subaccounts: true } } }
+      });
+      
+      if (!account) {
+        return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+      }
+
+      if (account.maxSubaccounts !== null && account._count.subaccounts >= account.maxSubaccounts) {
+        return NextResponse.json(
+          { error: `Límite de sedes alcanzado (${account.maxSubaccounts}). Para aumentar tu límite, por favor contacta a soporte.` },
+          { status: 403 }
+        );
+      }
+    }
+
     const subaccount = await prisma.subaccount.create({
       data: { name, ...(accountId ? { accountId } : {}) },
     });

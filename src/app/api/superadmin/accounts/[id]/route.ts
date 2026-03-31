@@ -29,3 +29,32 @@ export async function DELETE(
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const superAdmin = await verifySuperAdmin(request);
+  if (!superAdmin) {
+    return NextResponse.json({ error: 'Forbidden: SUPERADMIN only' }, { status: 403 });
+  }
+
+  try {
+    const { id: accountId } = await params;
+    const body = await request.json();
+
+    if ('maxSubaccounts' in body) {
+      await db.account.update({
+        where: { id: accountId },
+        data: {
+          maxSubaccounts: body.maxSubaccounts === '' || body.maxSubaccounts === null ? null : Number(body.maxSubaccounts),
+        },
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error updating account:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

@@ -135,14 +135,15 @@ model Subaccount {
 }
 
 model Account {
-  id          String       @id @default(uuid())
-  name        String
-  apiKey      String       @unique @default(uuid())
-  subaccounts Subaccount[]
-  users       User[]
-  patients    Patient[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id             String       @id @default(uuid())
+  name           String
+  apiKey         String       @unique @default(uuid())
+  maxSubaccounts Int?
+  subaccounts    Subaccount[]
+  users          User[]
+  patients       Patient[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
 model Doctor {

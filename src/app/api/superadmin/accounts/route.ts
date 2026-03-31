@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [accounts, users, appointments, subaccounts] = await Promise.all([
+    const [rawAccounts, users, appointments, subaccounts] = await Promise.all([
       db.account.findMany({
         include: {
           _count: { select: { subaccounts: true, patients: true, users: true } },
@@ -38,6 +38,22 @@ export async function GET(request: Request) {
       prisma.appointment.count(),
       prisma.subaccount.count(),
     ]);
+
+    // Fetch appointments and services count for each account
+    const accounts = await Promise.all(rawAccounts.map(async (acc: any) => {
+      const [appointmentsCount, servicesCount] = await Promise.all([
+        prisma.appointment.count({ where: { subaccount: { accountId: acc.id } } }),
+        prisma.service.count({ where: { subaccount: { accountId: acc.id } } })
+      ]);
+      return {
+        ...acc,
+        _count: {
+          ...acc._count,
+          appointments: appointmentsCount,
+          services: servicesCount
+        }
+      };
+    }));
 
     return NextResponse.json({
       success: true,

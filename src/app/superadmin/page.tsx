@@ -8,7 +8,8 @@ interface AccountStats {
   name: string;
   apiKey: string;
   createdAt: string;
-  _count: { subaccounts: number; patients: number; users: number };
+  maxSubaccounts: number | null;
+  _count: { subaccounts: number; patients: number; users: number; appointments: number; services: number };
 }
 
 interface GlobalStats {
@@ -85,6 +86,26 @@ export default function SuperAdminPage() {
       alert(data.error || 'Error al eliminar la cuenta');
     }
     setDeletingId(null);
+  };
+
+  const changeLimit = async (id: string, currentLimit: number | null) => {
+    const newVal = prompt('Ingresa el límite máximo de sedes permitidas (o deja en blanco para ilimitado):', currentLimit !== null ? String(currentLimit) : '');
+    if (newVal === null) return;
+    
+    const parsed = newVal.trim() === '' ? null : parseInt(newVal.trim(), 10);
+    if (newVal.trim() !== '' && isNaN(parsed as number)) {
+      alert('Por favor ingresa un número válido o deja en blanco');
+      return;
+    }
+
+    const res = await fetch(`/api/superadmin/accounts/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-superadmin-id': adminId },
+      body: JSON.stringify({ maxSubaccounts: parsed }),
+    });
+
+    if (res.ok) fetchData(adminId);
+    else alert('Error al actualizar el límite');
   };
 
   const copy = (key: string) => {
@@ -187,7 +208,7 @@ export default function SuperAdminPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'rgba(124,58,237,.08)' }}>
-                  {['Cuenta', 'API Key (para n8n)', 'Sedes', 'Usuarios', 'Pacientes', 'Creada', 'Acciones'].map(h => (
+                  {['Cuenta', 'API Key (para n8n)', 'Sedes', 'Citas', 'Pacientes', 'Servicios', 'Usuarios', 'Creada', 'Acciones'].map(h => (
                     <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{h}</th>
                   ))}
                 </tr>
@@ -195,7 +216,7 @@ export default function SuperAdminPage() {
               <tbody>
                 {accounts.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '48px 16px', color: '#475569', fontSize: 14 }}>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '48px 16px', color: '#475569', fontSize: 14 }}>
                       No hay cuentas registradas aún.<br />
                       <span style={{ fontSize: 12, color: '#334155', marginTop: 4, display: 'block' }}>Usa el formulario de arriba para crear la primera cuenta.</span>
                     </td>
@@ -213,9 +234,16 @@ export default function SuperAdminPage() {
                         </button>
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.subaccounts}</td>
-                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.users}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        {acc._count.subaccounts} / {acc.maxSubaccounts !== null ? acc.maxSubaccounts : '∞'}
+                        <button onClick={() => changeLimit(acc.id, acc.maxSubaccounts)} title="Cambiar límite de sedes" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, opacity: 0.7, padding: 0 }}>✏️</button>
+                      </div>
+                    </td>
+                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.appointments || 0}</td>
                     <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.patients}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.services || 0}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>{acc._count.users}</td>
                     <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>
                       {new Date(acc.createdAt).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
