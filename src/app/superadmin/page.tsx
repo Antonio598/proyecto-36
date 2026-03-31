@@ -34,15 +34,24 @@ export default function SuperAdminPage() {
   const [adminId, setAdminId] = useState<string>('');
 
   const fetchData = useCallback(async (id: string) => {
-    const res = await fetch('/api/superadmin/accounts', {
-      headers: { 'x-superadmin-id': id },
-    });
-    if (!res.ok) { router.replace('/'); return; }
-    const data = await res.json();
-    setAccounts(data.data.accounts);
-    setStats(data.data.stats);
-    setLoading(false);
-  }, [router]);
+    try {
+      const res = await fetch('/api/superadmin/accounts', {
+        headers: { 'x-superadmin-id': id },
+      });
+      if (!res.ok) { 
+        setError('Error al cargar la información del servidor. Intenta reiniciar el servidor.');
+        setLoading(false);
+        return; 
+      }
+      const data = await res.json();
+      setAccounts(data.data.accounts);
+      setStats(data.data.stats);
+      setLoading(false);
+    } catch (err) {
+      setError('Error de conexión.');
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const raw = localStorage.getItem('med_session');
