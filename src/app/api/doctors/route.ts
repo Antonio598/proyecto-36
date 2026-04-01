@@ -46,6 +46,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name and subaccountId are required' }, { status: 400 });
     }
 
+    const subaccount = await prisma.subaccount.findUnique({
+      where: { id: subaccountId },
+      include: {
+        account: {
+          select: { maxDoctors: true, id: true }
+        }
+      }
+    });
+
+    if (!subaccount) {
+      return NextResponse.json({ error: 'Subaccount not found' }, { status: 404 });
+    }
+
+    if (subaccount.account?.maxDoctors !== null) {
+      const doctorsCount = await prisma.doctor.count({
+        where: { subaccount: { accountId: subaccount.account.id } }
+      });
+      
+      if (doctorsCount >= subaccount.account.maxDoctors) {
+        return NextResponse.json({ error: 'Has alcanzado el límite máximo de médicos permitidos en tu plan.' }, { status: 403 });
+      }
+    }
+
     const doctor = await prisma.doctor.create({
       data: { name, subaccountId },
       include: { subaccount: true }

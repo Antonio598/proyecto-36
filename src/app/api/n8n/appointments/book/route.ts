@@ -69,15 +69,32 @@ export async function POST(request: Request) {
     const { toZonedTime } = require('date-fns-tz');
     const panamaDate = toZonedTime(start, 'America/Panama');
     const requestedDayOfWeek = panamaDate.getDay();
+    let rulesWhere: any = { dayOfWeek: requestedDayOfWeek };
+    if (calendarId) {
+      rulesWhere.OR = [
+        { calendarId: calendarId },
+        { subaccountId: finalSubaccountId, calendarId: null }
+      ];
+    } else {
+      rulesWhere.subaccountId = finalSubaccountId;
+      rulesWhere.calendarId = null;
+    }
+
     const rules = await prisma.availabilityRule.findMany({
-      where: { subaccountId: finalSubaccountId, dayOfWeek: requestedDayOfWeek },
+      where: rulesWhere,
     });
 
-    if (rules.length === 0) {
+    let rule = null;
+    if (calendarId) {
+      rule = rules.find(r => r.calendarId === calendarId) || rules.find(r => r.subaccountId === finalSubaccountId);
+    } else {
+      rule = rules[0];
+    }
+
+    if (!rule) {
       return NextResponse.json({ success: false, error: 'La clínica está cerrada en este día.' }, { status: 400 });
     }
 
-    const rule = rules[0];
     const { format } = require('date-fns');
     const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
     const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');

@@ -43,12 +43,18 @@ export async function PATCH(
     const { id: accountId } = await params;
     const body = await request.json();
 
+    const updateData: any = {};
     if ('maxSubaccounts' in body) {
+      updateData.maxSubaccounts = body.maxSubaccounts === '' || body.maxSubaccounts === null ? null : Number(body.maxSubaccounts);
+    }
+    if ('maxDoctors' in body) {
+      updateData.maxDoctors = body.maxDoctors === '' || body.maxDoctors === null ? null : Number(body.maxDoctors);
+    }
+
+    if (Object.keys(updateData).length > 0) {
       await db.account.update({
         where: { id: accountId },
-        data: {
-          maxSubaccounts: body.maxSubaccounts === '' || body.maxSubaccounts === null ? null : Number(body.maxSubaccounts),
-        },
+        data: updateData,
       });
     }
 

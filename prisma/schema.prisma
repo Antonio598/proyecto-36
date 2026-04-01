@@ -139,6 +139,7 @@ model Account {
   name           String
   apiKey         String       @unique @default(uuid())
   maxSubaccounts Int?
+  maxDoctors     Int?
   subaccounts    Subaccount[]
   users          User[]
   patients       Patient[]

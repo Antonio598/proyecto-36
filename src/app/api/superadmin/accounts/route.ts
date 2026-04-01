@@ -39,18 +39,20 @@ export async function GET(request: Request) {
       prisma.subaccount.count(),
     ]);
 
-    // Fetch appointments and services count for each account
+    // Fetch appointments, services, and doctors count for each account
     const accounts = await Promise.all(rawAccounts.map(async (acc: any) => {
-      const [appointmentsCount, servicesCount] = await Promise.all([
+      const [appointmentsCount, servicesCount, doctorsCount] = await Promise.all([
         prisma.appointment.count({ where: { subaccount: { accountId: acc.id } } }),
-        prisma.service.count({ where: { subaccount: { accountId: acc.id } } })
+        prisma.service.count({ where: { subaccount: { accountId: acc.id } } }),
+        prisma.doctor.count({ where: { subaccount: { accountId: acc.id } } })
       ]);
       return {
         ...acc,
         _count: {
           ...acc._count,
           appointments: appointmentsCount,
-          services: servicesCount
+          services: servicesCount,
+          doctors: doctorsCount
         }
       };
     }));

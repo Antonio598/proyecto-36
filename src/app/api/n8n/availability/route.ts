@@ -60,18 +60,28 @@ export async function GET(request: Request) {
       if (doctorId) whereClause.doctorId = doctorId;
     }
 
-    const appointments = await prisma.appointment.findMany({
+    const appointmentsData = await prisma.appointment.findMany({
       where: whereClause,
-      select: { id: true, startTime: true, endTime: true },
+      select: { id: true, startTime: true, endTime: true, isBlocker: true },
       orderBy: { startTime: 'asc' },
     });
 
+    const appointments = appointmentsData.map(appt => ({
+       id: appt.id,
+       startTime: appt.startTime,
+       endTime: appt.endTime,
+       isBlocker: true, // we consider any DB appointment/blocker as occupied
+       type: appt.isBlocker ? 'manual-block' : 'appointment',
+    }));
+
     // --- Inject Blockers based on AvailabilityRules ---
-    let rulesWhere: any = {};
+    const rulesWhere: any = {};
     if (calendarId) {
-      rulesWhere.calendarId = calendarId;
+      rulesWhere.OR = [
+        { calendarId: calendarId },
+        { subaccountId: { not: null }, calendarId: null }
+      ];
     } else if (subaccountId) {
-      // Find rules for that subaccount or any calendar in that subaccount
       rulesWhere.OR = [
         { subaccountId: subaccountId },
         { calendar: { subaccountId: subaccountId } }
@@ -85,7 +95,7 @@ export async function GET(request: Request) {
 
     const rules = await prisma.availabilityRule.findMany({
       where: rulesWhere,
-      orderBy: { createdAt: 'desc' } // prioritize newer rules if multiple exist
+      orderBy: { createdAt: 'desc' }
     });
 
     const fakeAppointments = [];
@@ -94,7 +104,15 @@ export async function GET(request: Request) {
       const dayDate = fromZonedTime(`${dayStr}T12:00:00`, PANAMA_TZ);
       const dayOfWeek = toZonedTime(dayDate, PANAMA_TZ).getDay();
 
-      const dayRule = rules.find(r => r.dayOfWeek === dayOfWeek);
+      // Find best rule for day: calendar specific, then subaccount
+      let dayRule = null;
+      if (calendarId) {
+        dayRule = rules.find(r => r.calendarId === calendarId && r.dayOfWeek === dayOfWeek) || 
+                  rules.find(r => r.subaccountId && !r.calendarId && r.dayOfWeek === dayOfWeek);
+      } else {
+        // Just find first matching dayOfWeek based on search
+        dayRule = rules.find(r => r.dayOfWeek === dayOfWeek);
+      }
 
       const dayStartUTC = fromZonedTime(`${dayStr}T00:00:00`, PANAMA_TZ);
       const dayEndUTC = fromZonedTime(`${dayStr}T23:59:59`, PANAMA_TZ);
@@ -105,6 +123,8 @@ export async function GET(request: Request) {
           id: `blocked-full-${dayStr}`,
           startTime: dayStartUTC,
           endTime: dayEndUTC,
+          isBlocker: true,
+          type: 'closed',
         });
       } else {
         // Block before start
@@ -113,7 +133,9 @@ export async function GET(request: Request) {
           fakeAppointments.push({
              id: `blocked-morning-${dayStr}`,
              startTime: dayStartUTC,
-             endTime: workStartUTC
+             endTime: workStartUTC,
+             isBlocker: true,
+             type: 'closed-morning',
           });
         }
         // Block after end
@@ -122,7 +144,9 @@ export async function GET(request: Request) {
            fakeAppointments.push({
               id: `blocked-evening-${dayStr}`,
               startTime: workEndUTC,
-              endTime: dayEndUTC
+              endTime: dayEndUTC,
+              isBlocker: true,
+              type: 'closed-evening',
            });
         }
       }
