@@ -69,9 +69,12 @@ export async function GET(request: Request) {
     const startOfRequestedDay = fromZonedTime(`${dateParam}T00:00:00`, PANAMA_TZ);
     const endOfRequestedDay = fromZonedTime(`${dateParam}T23:59:59`, PANAMA_TZ);
 
+    const subaccountId = searchParams.get('subaccountId');
+
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         status: { notIn: ['CANCELLED'] },
+        ...(subaccountId ? { subaccountId } : {}),
         startTime: {
           gte: startOfRequestedDay,
           lte: endOfRequestedDay,

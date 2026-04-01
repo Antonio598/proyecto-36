@@ -1,17 +1,25 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
 import { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, User, ChevronDown, Stethoscope } from 'lucide-react';
+import { useSede } from '@/context/SedeContext';
+import { getAccountId } from '@/lib/apiFetch';
 
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
 
+  const { selectedSede } = useSede();
+  const accountId = getAccountId();
+
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat' }),
+    api: '/api/chat',
+    body: {
+      subaccountId: selectedSede,
+      accountId: accountId,
+    }
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
@@ -170,7 +178,7 @@ export default function ChatbotWidget() {
             </button>
           </form>
           <div className="text-[10px] text-center text-gray-400 mt-2">
-            Desarrollado con Gemini Pro
+            Desarrollado con OpenAI IntelliDocs
           </div>
         </div>
       </div>
