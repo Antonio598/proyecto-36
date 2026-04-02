@@ -2,7 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Bot, X, Send, User, ChevronDown, Stethoscope } from 'lucide-react';
 import { useSede } from '@/context/SedeContext';
 import { getAccountId } from '@/lib/apiFetch';
@@ -15,15 +15,18 @@ export default function ChatbotWidget() {
   const { selectedSede } = useSede();
   const accountId = getAccountId();
 
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
+  const transport = useMemo(
+    () => new DefaultChatTransport({
       api: '/api/chat',
       body: {
         subaccountId: selectedSede,
         accountId: accountId,
       }
-    })
-  });
+    }),
+    [selectedSede, accountId]
+  );
+
+  const { messages, sendMessage, status } = useChat({ transport });
 
   const isLoading = status === 'streaming' || status === 'submitted';
 

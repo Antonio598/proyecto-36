@@ -9,6 +9,13 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages, subaccountId, accountId } = await req.json();
 
+  if (!subaccountId || !accountId) {
+    return new Response(
+      JSON.stringify({ error: 'Falta contexto de sede o cuenta. Por favor recarga la página.' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   const result = streamText({
     model: openai('gpt-4o'),
     messages,
