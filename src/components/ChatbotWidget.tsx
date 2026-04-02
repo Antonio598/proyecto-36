@@ -112,6 +112,9 @@ export default function ChatbotWidget() {
             const text = getMessageText(m);
             const isToolOnly = !text && hasToolCall(m);
 
+            // Skip empty structural messages (step-start, etc.) that have no visible content
+            if (!text && !isToolOnly) return null;
+
             return (
               <div key={m.id} className={['flex', m.role === 'user' ? 'justify-end' : 'justify-start'].join(' ')}>
                 <div className={['flex gap-2 max-w-[85%]', m.role === 'user' ? 'flex-row-reverse' : 'flex-row'].join(' ')}>
