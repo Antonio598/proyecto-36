@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'phone and startTime are required' }, { status: 400 });
     }
 
-    phone = phone.trim();
+    phone = (phone || id)?.toString()?.replace(/\+/g, '').trim();
     if (!phone) {
       return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
     }
@@ -65,7 +65,17 @@ export async function POST(request: Request) {
     });
 
     if (!appointment) {
-      return NextResponse.json({ success: false, error: 'Active appointment not found for this patient at the specified time' }, { status: 404 });
+      // DEBUG: Find all active appointments for this patient to help the user
+      const allAppts = await prisma.appointment.findMany({
+        where: { patientId: patient.id, status: { notIn: ['CANCELLED'] } },
+        orderBy: { startTime: 'asc' },
+        take: 5
+      });
+      const existingTimes = allAppts.map(a => a.startTime.toISOString()).join(', ');
+      return NextResponse.json({ 
+        success: false, 
+        error: `No se encontró cita activa cerca de ${targetStart.toISOString()}. Citas encontradas para este paciente: [${existingTimes || 'Ninguna'}].` 
+      }, { status: 404 });
     }
 
     // 3. Mark as cancelled

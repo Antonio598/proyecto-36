@@ -23,7 +23,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: 'phone, oldStartTime, and newStartTime are required' }, { status: 400 });
     }
 
-    phone = phone.trim();
+    phone = (phone || id)?.toString()?.replace(/\+/g, '').trim();
     if (!phone) {
       return NextResponse.json({ success: false, error: 'phone or id must not be empty' }, { status: 400 });
     }
@@ -69,7 +69,17 @@ export async function PUT(request: Request) {
     });
 
     if (!appointment) {
-      return NextResponse.json({ success: false, error: 'Active appointment not found for this patient at the old start time' }, { status: 404 });
+      // DEBUG: Find all active appointments for this patient to help the user
+      const allAppts = await prisma.appointment.findMany({
+        where: { patientId: patient.id, status: { notIn: ['CANCELLED'] } },
+        orderBy: { startTime: 'asc' },
+        take: 5
+      });
+      const existingTimes = allAppts.map(a => a.startTime.toISOString()).join(', ');
+      return NextResponse.json({ 
+        success: false, 
+        error: `No se encontró cita activa cerca de ${oldStart.toISOString()}. Citas encontradas para este paciente: [${existingTimes || 'Ninguna'}]. Asegúrate de usar el formato YYYY-MM-DDTHH:mm:ssZ.` 
+      }, { status: 404 });
     }
 
     // 3. Overlap Check for new time
