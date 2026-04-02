@@ -58,10 +58,11 @@ export async function GET(request: Request) {
     }
 
     // --- Fetch Appointments (Blockers) ---
+    // Change: Find any appointment that OVERLAPS with the requested range
     let whereClause: any = {
       status: { notIn: ['CANCELLED'] },
-      startTime: { gte: startDateUTC },
-      endTime: { lte: endDateUTC },
+      startTime: { lt: endDateUTC },
+      endTime: { gt: startDateUTC },
       subaccount: { accountId: account.id },
     };
 
@@ -109,6 +110,9 @@ export async function GET(request: Request) {
       const dayDate = fromZonedTime(`${dayStr}T12:00:00`, PANAMA_TZ);
       const dayOfWeek = toZonedTime(dayDate, PANAMA_TZ).getDay();
 
+      const dayStartUTC = fromZonedTime(`${dayStr}T00:00:00`, PANAMA_TZ);
+      const dayEndUTC = fromZonedTime(`${dayStr}T23:59:59`, PANAMA_TZ);
+
       // Find best rules for day
       let dayRules = [];
       if (calendarId) {
@@ -120,9 +124,9 @@ export async function GET(request: Request) {
         dayRules = allRules.filter(r => r.dayOfWeek === dayOfWeek);
       }
 
+      // Change: Filter appointments that overlap the 24h window of this specific day
       const dayAppointments = appointmentsData.filter(appt => {
-        const apptDateStr = format(toZonedTime(appt.startTime, PANAMA_TZ), 'yyyy-MM-dd');
-        return apptDateStr === dayStr;
+        return (isBefore(appt.startTime, dayEndUTC) && isAfter(appt.endTime, dayStartUTC));
       });
 
       for (const rule of dayRules) {
@@ -153,14 +157,11 @@ export async function GET(request: Request) {
               type: 'available',
               date: dayStr
             });
-            // Jump by duration or fixed interval? 
-            // Usually we jump by duration to avoid overlapping slots, OR we jump by a fixed interval (like 30 mins) to show more start times.
-            // Let's use 30 minutes as a standard start time interval if duration is >= 30, otherwise use duration.
+            // Jump by 30 mins to show more start times, but ensure we don't return slots exceeding work hours
             const increment = Math.min(30, slotDuration);
             currentPointer = addMinutes(currentPointer, increment);
           } else {
-            // If busy, we should move the pointer past the appointment or increment?
-            // To be safe, increment by a small amount or jump to end of blocking appt.
+            // If busy, move it past current appointment or increment
             currentPointer = addMinutes(currentPointer, 15);
           }
         }
