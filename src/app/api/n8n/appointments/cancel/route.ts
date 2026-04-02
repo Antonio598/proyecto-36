@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
+import { fromZonedTime } from 'date-fns-tz';
+
+const PANAMA_TZ = 'America/Panama';
 
 export async function POST(request: Request) {
   try {
@@ -34,7 +37,8 @@ export async function POST(request: Request) {
     }
 
     // 2. Find specific active appointment
-    const targetStart = new Date(startTime);
+    // Change: Interpret startTime as Panama time
+    const targetStart = fromZonedTime(startTime, PANAMA_TZ);
     let whereClause: any = {
       patientId: patient.id,
       startTime: targetStart,

@@ -2,6 +2,10 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { format } from 'date-fns';
+
+const PANAMA_TZ = 'America/Panama';
 
 export async function PUT(request: Request) {
   try {
@@ -34,7 +38,8 @@ export async function PUT(request: Request) {
     }
 
     // 2. Find specific active appointment
-    const oldStart = new Date(oldStartTime);
+    // Change: Interpret oldStartTime as Panama time
+    const oldStart = fromZonedTime(oldStartTime, PANAMA_TZ);
     let whereClause: any = {
       patientId: patient.id,
       startTime: oldStart,
@@ -54,7 +59,8 @@ export async function PUT(request: Request) {
     }
 
     // 3. Overlap Check for new time
-    const newStart = new Date(newStartTime);
+    // Change: Interpret newStartTime as Panama time
+    const newStart = fromZonedTime(newStartTime, PANAMA_TZ);
     let duration = appointment.service?.durationMinutes || 30;
     let targetCalendarId = newCalendarId || appointment.calendarId;
 
@@ -69,11 +75,9 @@ export async function PUT(request: Request) {
 
     const newEnd = new Date(newStart.getTime() + duration * 60000);
 
-    const { fromZonedTime, toZonedTime } = require('date-fns-tz');
-    const { format } = require('date-fns');
     let finalSubaccountId = subaccountId || appointment.subaccountId;
     if (finalSubaccountId) {
-      const panamaDate = toZonedTime(newStart, 'America/Panama');
+      const panamaDate = toZonedTime(newStart, PANAMA_TZ);
       const rules = await prisma.availabilityRule.findMany({
         where: { subaccountId: finalSubaccountId, dayOfWeek: panamaDate.getDay() },
       });
@@ -84,8 +88,8 @@ export async function PUT(request: Request) {
 
       const rule = rules[0];
       const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
-      const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
-      const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
+      const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, PANAMA_TZ);
+      const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, PANAMA_TZ);
 
       if (newStart < workStart || newEnd > workEnd) {
         return NextResponse.json({ success: false, error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
