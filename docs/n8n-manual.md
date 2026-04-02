@@ -36,6 +36,19 @@ En n8n usa el nodo **HTTP Request** con método `GET`.
 - Puedes acotar por día: `?date=2024-12-01`.
 - Para una sede o médico específico: `?subaccountId=X&doctorId=Y&calendarId=Z`.
 
+### 1.5 Listar Citas Agendadas (NUEVO)
+`GET /api/n8n/appointments`
+- Retorna la lista de citas filtradas por los parámetros enviados.
+- **Parámetros opcionales:**
+    - `subaccountId=ID`: Filtrar por clínica/sede.
+    - `calendarId=ID`: Filtrar por médico/calendario.
+    - `phone=TEL`: Filtrar por teléfono del paciente.
+    - `date=YYYY-MM-DD`: Citas de un día específico.
+    - `startDate=YYYY-MM-DD` y `endDate=YYYY-MM-DD`: Citas en un rango de fechas.
+    - `status=ESTADO`: Filtrar por estado (PENDING, CONFIRMED, CANCELLED, COMPLETED). Por defecto excluye CANCELLED.
+    - `limit=N`: Cantidad de resultados (máx 100, defecto 50).
+- **Ejemplo:** `GET /api/n8n/appointments?date=2024-05-15&status=CONFIRMED`
+
 ---
 
 ## 2. Acciones de Citas (Agendar, Reagendar, Cancelar)
