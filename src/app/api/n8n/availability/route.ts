@@ -27,6 +27,9 @@ export async function GET(request: Request) {
     let endDateUTC: Date;
     let daysToGenerateInPanama: string[] = [];
 
+    const nowInPanama = toZonedTime(new Date(), PANAMA_TZ);
+    const todayStr = format(nowInPanama, 'yyyy-MM-dd');
+
     if (dateStr) {
       if (isNaN(new Date(dateStr).getTime())) {
         return NextResponse.json({ success: false, error: 'Invalid date format (use YYYY-MM-DD)' }, { status: 400 });
@@ -35,8 +38,6 @@ export async function GET(request: Request) {
       endDateUTC = fromZonedTime(`${dateStr}T23:59:59`, PANAMA_TZ);
       daysToGenerateInPanama.push(dateStr);
     } else {
-      const nowInPanama = toZonedTime(new Date(), PANAMA_TZ);
-      const todayStr = format(nowInPanama, 'yyyy-MM-dd');
       startDateUTC = fromZonedTime(`${todayStr}T00:00:00`, PANAMA_TZ);
       
       const futureDate = addDays(nowInPanama, 30);
@@ -66,8 +67,16 @@ export async function GET(request: Request) {
       subaccount: { accountId: account.id },
     };
 
+    let targetSubaccountId = subaccountId;
+
     if (calendarId) {
       whereClause.calendarId = calendarId;
+      // Fetch calendar to get its subaccountId for strict rule filtering
+      const cal = await prisma.calendar.findUnique({ 
+        where: { id: calendarId },
+        select: { subaccountId: true }
+      });
+      if (cal) targetSubaccountId = cal.subaccountId;
     } else {
       if (subaccountId) whereClause.subaccountId = subaccountId;
       if (doctorId) whereClause.doctorId = doctorId;
@@ -80,23 +89,13 @@ export async function GET(request: Request) {
     });
 
     // --- Fetch Availability Rules ---
-    const rulesWhere: any = {};
-    if (calendarId) {
-      rulesWhere.OR = [
-        { calendarId: calendarId },
-        { subaccountId: { not: null }, calendarId: null }
-      ];
-    } else if (subaccountId) {
-      rulesWhere.OR = [
-        { subaccountId: subaccountId },
-        { calendar: { subaccountId: subaccountId } }
-      ];
-    } else {
-      rulesWhere.OR = [
-        { subaccount: { accountId: account.id } },
-        { calendar: { subaccount: { accountId: account.id } } }
-      ];
-    }
+    // Scope rules by account to prevent leakage
+    const rulesWhere: any = {
+      OR: [
+        { calendar: { subaccount: { accountId: account.id } } },
+        { subaccount: { accountId: account.id } }
+      ]
+    };
 
     const allRules = await prisma.availabilityRule.findMany({
       where: rulesWhere,
@@ -107,6 +106,7 @@ export async function GET(request: Request) {
     const nowUTC = new Date();
 
     for (const dayStr of daysToGenerateInPanama) {
+      const isToday = dayStr === todayStr;
       const dayDate = fromZonedTime(`${dayStr}T12:00:00`, PANAMA_TZ);
       const dayOfWeek = toZonedTime(dayDate, PANAMA_TZ).getDay();
 
@@ -116,15 +116,21 @@ export async function GET(request: Request) {
       // Find best rules for day
       let dayRules = [];
       if (calendarId) {
+        // 1. Precise calendar rule
         dayRules = allRules.filter(r => r.calendarId === calendarId && r.dayOfWeek === dayOfWeek);
-        if (dayRules.length === 0) {
-          dayRules = allRules.filter(r => r.subaccountId && !r.calendarId && r.dayOfWeek === dayOfWeek);
+        // 2. Fallback to its specific subaccount rule
+        if (dayRules.length === 0 && targetSubaccountId) {
+          dayRules = allRules.filter(r => r.subaccountId === targetSubaccountId && !r.calendarId && r.dayOfWeek === dayOfWeek);
         }
+      } else if (targetSubaccountId) {
+        // Rules for this specific subaccount
+        dayRules = allRules.filter(r => r.subaccountId === targetSubaccountId && r.dayOfWeek === dayOfWeek);
       } else {
+        // General account rules if no context provided (broad)
         dayRules = allRules.filter(r => r.dayOfWeek === dayOfWeek);
       }
 
-      // Change: Filter appointments that overlap the 24h window of this specific day
+      // Filter appointments that overlap the 24h window of this specific day
       const dayAppointments = appointmentsData.filter(appt => {
         return (isBefore(appt.startTime, dayEndUTC) && isAfter(appt.endTime, dayStartUTC));
       });
@@ -140,8 +146,8 @@ export async function GET(request: Request) {
           if (isAfter(slotEnd, workEndTime)) break;
 
           // Check if slot is in the past
-          if (isBefore(currentPointer, nowUTC)) {
-            currentPointer = addMinutes(currentPointer, 30); // Increment pointer by small interval
+          if (isToday && isBefore(currentPointer, nowUTC)) {
+            currentPointer = addMinutes(currentPointer, 30);
             continue;
           }
 
@@ -154,14 +160,14 @@ export async function GET(request: Request) {
             freeSlots.push({
               startTime: currentPointer,
               endTime: slotEnd,
+              startTimeLocal: format(toZonedTime(currentPointer, PANAMA_TZ), 'yyyy-MM-dd HH:mm:ss'),
+              endTimeLocal: format(toZonedTime(slotEnd, PANAMA_TZ), 'yyyy-MM-dd HH:mm:ss'),
               type: 'available',
               date: dayStr
             });
-            // Jump by 30 mins to show more start times, but ensure we don't return slots exceeding work hours
             const increment = Math.min(30, slotDuration);
             currentPointer = addMinutes(currentPointer, increment);
           } else {
-            // If busy, move it past current appointment or increment
             currentPointer = addMinutes(currentPointer, 15);
           }
         }
