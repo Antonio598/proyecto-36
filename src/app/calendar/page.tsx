@@ -453,11 +453,15 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-6 h-full pb-10">
       {/* Header Premium */}
-      <div className="relative shrink-0 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-700 via-indigo-800 to-violet-900 py-6 px-5 md:py-10 md:px-10 text-white shadow-2xl z-20 overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl" />
+      <div className="relative shrink-0 z-20">
+        {/* Background & Decorations - Clipped */}
+        <div className="absolute inset-0 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-700 via-indigo-800 to-violet-900 shadow-2xl overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl" />
+        </div>
         
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-8">
+        {/* Content - Not Clipped */}
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-8 py-6 px-5 md:py-10 md:px-10 text-white">
           <div className="max-w-2xl">
             <h2 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-3 drop-shadow-sm">
               <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
