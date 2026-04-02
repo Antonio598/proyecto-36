@@ -38,9 +38,18 @@ export async function PUT(request: Request) {
     }
 
     // 2. Find specific active appointment
-    // Change: Interpret oldStartTime as Panama time strictly
-    const naiveOldStartTime = (oldStartTime as string).replace('Z', '').split('+')[0];
-    const oldStart = fromZonedTime(naiveOldStartTime, PANAMA_TZ);
+    // Robust date parsing (detect UTC 'Z' or offset, otherwise fallback to Panama local)
+    const parseDate = (dateStr: string) => {
+      if (!dateStr) return null;
+      if (dateStr.includes('Z') || /[\+\-]\d{2}:\d{2}$/.test(dateStr)) {
+        return new Date(dateStr);
+      }
+      return fromZonedTime(dateStr.substring(0, 19), PANAMA_TZ);
+    };
+
+    const oldStart = parseDate(oldStartTime);
+    if (!oldStart) return NextResponse.json({ success: false, error: 'Invalid oldStartTime' }, { status: 400 });
+
     let whereClause: any = {
       patientId: patient.id,
       startTime: oldStart,
@@ -60,9 +69,9 @@ export async function PUT(request: Request) {
     }
 
     // 3. Overlap Check for new time
-    // Change: Interpret newStartTime as Panama time strictly
-    const naiveNewStartTime = (newStartTime as string).replace('Z', '').split('+')[0];
-    const newStart = fromZonedTime(naiveNewStartTime, PANAMA_TZ);
+    const newStart = parseDate(newStartTime);
+    if (!newStart) return NextResponse.json({ success: false, error: 'Invalid newStartTime' }, { status: 400 });
+
     let duration = appointment.service?.durationMinutes || 30;
     let targetCalendarId = newCalendarId || appointment.calendarId;
 
