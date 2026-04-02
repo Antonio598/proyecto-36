@@ -16,7 +16,7 @@ const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales
 
 export default function CalendarPage() {
   const { selectedSede } = useSede();
-  const [view, setView] = useState(Views.WEEK);
+  const [view, setView] = useState<any>(Views.WEEK);
   const [date, setDate] = useState(new Date());
 
   const [events, setEvents] = useState<any[]>([]);
@@ -40,6 +40,20 @@ export default function CalendarPage() {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Screen Size Detection for Mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setView(Views.DAY);
+      } else {
+        setView(Views.WEEK);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -439,47 +453,63 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-6 h-full pb-10">
       {/* Header Premium */}
-      <div className="relative shrink-0 rounded-2xl bg-gradient-to-r from-blue-700 to-indigo-800 py-8 px-8 text-white shadow-xl z-20">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3 pb-2">
-              <CalendarIcon className="w-8 h-8 opacity-90" />
-              Supervisión de Calendario
+      <div className="relative shrink-0 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-700 via-indigo-800 to-violet-900 py-6 px-5 md:py-10 md:px-10 text-white shadow-2xl z-20 overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl" />
+        
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-8">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-3 drop-shadow-sm">
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                <CalendarIcon className="w-6 h-6 md:w-8 md:h-8" />
+              </div>
+              <span className="leading-tight">Supervisión de Calendario</span>
             </h2>
-            <p className="mt-1 text-blue-50 max-w-xl text-sm md:text-base font-medium">
-              Gestiona el tiempo de tus doctores. Selecciona qué calendario y doctor deseas inspeccionar hoy.
+            <p className="mt-2 text-blue-50/80 text-sm md:text-lg font-medium max-w-lg leading-relaxed">
+              Administra las citas y bloqueos de tus especialistas de forma centralizada.
             </p>
           </div>
           
-          <div className="flex flex-col gap-2 min-w-[300px]" ref={calendarRef}>
-            <label className="text-xs font-bold uppercase tracking-wider text-blue-100 pl-1">Seleccionar Calendario:</label>
-            <div className="relative">
+          <div className="flex flex-col gap-2 w-full lg:max-w-[360px]" ref={calendarRef}>
+            <label className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-blue-200/90 pl-1">
+              Calendario del Especialista:
+            </label>
+            <div className="relative group">
               <button
                 onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                className={`w-full flex items-center justify-between bg-white text-gray-900 border ${isCalendarOpen ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-200'} text-sm font-bold rounded-xl p-3.5 shadow-md transition-all duration-200`}
+                className={`w-full flex items-center justify-between bg-white/10 backdrop-blur-xl border ${isCalendarOpen ? 'border-white/40 ring-4 ring-white/10' : 'border-white/20 hover:bg-white/15'} text-white text-sm md:text-base font-bold rounded-2xl p-4 md:p-5 shadow-inner transition-all duration-300`}
               >
-                <span className="truncate">
-                  {calendars.length === 0 ? 'Sin calendarios creados' : 
-                   (calendars.find(c => c.id === selectedCalendarId)?.name + (calendars.find(c => c.id === selectedCalendarId)?.doctor?.name ? ` - ${calendars.find(c => c.id === selectedCalendarId)?.doctor?.name}` : ''))}
-                </span>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isCalendarOpen ? '-rotate-180 text-blue-500' : ''}`} />
+                <div className="flex items-center gap-3 truncate">
+                  <Clock className="w-4 h-4 md:w-5 md:h-5 text-blue-300" />
+                  <span className="truncate">
+                    {calendars.length === 0 ? 'Sin calendarios' : 
+                     (calendars.find(c => c.id === selectedCalendarId)?.name + (calendars.find(c => c.id === selectedCalendarId)?.doctor?.name ? ` - ${calendars.find(c => c.id === selectedCalendarId)?.doctor?.name}` : ''))}
+                  </span>
+                </div>
+                <ChevronDown className={`w-4 h-4 md:w-5 md:h-5 text-white/60 transition-transform duration-500 ${isCalendarOpen ? '-rotate-180 text-white' : ''}`} />
               </button>
 
               {isCalendarOpen && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl overflow-hidden py-1">
+                <div className="absolute top-full left-0 right-0 z-50 mt-3 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-200">
                   {calendars.length === 0 ? (
-                    <div className="px-4 py-3 text-sm text-gray-500 font-medium text-center">No hay calendarios</div>
+                    <div className="px-5 py-4 text-sm text-gray-500 font-bold text-center">No hay calendarios</div>
                   ) : (
-                    calendars.map(cal => (
-                      <button
-                        key={cal.id}
-                        onClick={() => { setSelectedCalendarId(cal.id); setIsCalendarOpen(false); }}
-                        className={`w-full text-left flex items-center justify-between px-4 py-3 text-sm transition-colors ${selectedCalendarId === cal.id ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 font-medium hover:bg-gray-50'}`}
-                      >
-                        <span className="truncate">{cal.doctor?.name ? `${cal.name} - ${cal.doctor.name}` : cal.name}</span>
-                        {selectedCalendarId === cal.id && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
-                      </button>
-                    ))
+                    <div className="max-h-72 overflow-y-auto">
+                      {calendars.map(cal => (
+                        <button
+                          key={cal.id}
+                          onClick={() => { setSelectedCalendarId(cal.id); setIsCalendarOpen(false); }}
+                          className={`w-full text-left flex items-center justify-between px-5 py-3.5 text-sm md:text-base transition-colors ${selectedCalendarId === cal.id ? 'bg-blue-50 text-blue-700 font-extrabold' : 'text-gray-700 font-bold hover:bg-gray-50'}`}
+                        >
+                          <span className="truncate">{cal.doctor?.name ? `${cal.name} - ${cal.doctor.name}` : cal.name}</span>
+                          {selectedCalendarId === cal.id && (
+                            <div className="bg-blue-600 rounded-full p-1">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -495,7 +525,7 @@ export default function CalendarPage() {
           <p className="mt-2 text-sm text-gray-500">Ve a "Config Calendarios" en el menú para crear uno y empezar a agendar citas a tus doctores.</p>
         </div>
       ) : (
-        <div className="bg-white p-2 rounded-2xl border border-gray-200 shadow-sm flex-1 min-h-[700px] overflow-hidden relative calendar-wrapper">
+        <div className="bg-white p-1 md:p-2 rounded-2xl border border-gray-200 shadow-sm flex-1 min-h-[400px] md:min-h-[700px] overflow-hidden relative calendar-wrapper">
           <div className="h-full bg-white rounded-xl overflow-hidden">
             <Calendar
               localizer={localizer}

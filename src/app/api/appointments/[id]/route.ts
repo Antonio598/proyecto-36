@@ -27,13 +27,17 @@ export async function PUT(
     };
 
     if (startTime) {
-      const start = new Date(startTime);
+      const { fromZonedTime, toZonedTime } = require('date-fns-tz');
+      const { format } = require('date-fns');
+      const PANAMA_TZ = 'America/Panama';
+
+      const naiveStartTime = (startTime as string).replace('Z', '').split('+')[0];
+      const start = fromZonedTime(naiveStartTime, PANAMA_TZ);
+      
       const durationMs = currentAppt.endTime.getTime() - currentAppt.startTime.getTime();
       const end = new Date(start.getTime() + durationMs);
       
-      const { fromZonedTime, toZonedTime } = require('date-fns-tz');
-      const { format } = require('date-fns');
-      const panamaDate = toZonedTime(start, 'America/Panama');
+      const panamaDate = toZonedTime(start, PANAMA_TZ);
 
       // Availability check
       const rules = await prisma.availabilityRule.findMany({

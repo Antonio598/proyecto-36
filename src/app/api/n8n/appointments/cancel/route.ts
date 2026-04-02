@@ -37,8 +37,9 @@ export async function POST(request: Request) {
     }
 
     // 2. Find specific active appointment
-    // Change: Interpret startTime as Panama time
-    const targetStart = fromZonedTime(startTime, PANAMA_TZ);
+    // Change: Interpret startTime as Panama time strictly
+    const naiveStartTime = (startTime as string).replace('Z', '').split('+')[0];
+    const targetStart = fromZonedTime(naiveStartTime, PANAMA_TZ);
     let whereClause: any = {
       patientId: patient.id,
       startTime: targetStart,

@@ -13,7 +13,8 @@ import {
   Stethoscope,
   Clock,
   ChevronDown,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 
 const navigation = [
@@ -27,7 +28,7 @@ const navigation = [
   { name: 'Doc API (n8n)', href: '/api-docs', icon: BookOpen },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () => void }) {
   const pathname = usePathname();
   const { sedes, selectedSede, setSelectedSede, isLoading } = useSede();
   
@@ -46,11 +47,19 @@ export function Sidebar() {
 
   return (
     <div className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white shadow-sm z-30 relative">
-      <div className="flex h-16 items-center px-6 border-b border-gray-100 bg-white">
+      <div className="flex h-16 items-center px-6 border-b border-gray-100 bg-white justify-between">
         <h1 className="text-xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black">M</div>
           Med<span className="text-blue-600">SaaS</span>
         </h1>
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="md:hidden p-2 -mr-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       <div className="px-4 py-5 border-b border-gray-100 bg-gray-50/50" ref={dropdownRef}>

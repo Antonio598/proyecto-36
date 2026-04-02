@@ -161,3 +161,58 @@ body {
   border-color: #3b82f6;
   box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
 }
+/* ==========================================================================
+   REACT BIG CALENDAR - MOBILE RESPONSIVENESS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .calendar-wrapper .rbc-calendar {
+    min-height: 500px;
+    height: calc(100vh - 220px) !important;
+  }
+
+  .calendar-wrapper .rbc-time-view {
+    border-radius: 0.75rem !important;
+  }
+
+  .calendar-wrapper .rbc-header {
+    padding: 0.6rem 0.25rem;
+    font-size: 0.7rem;
+  }
+
+  .calendar-wrapper .rbc-label {
+    font-size: 0.65rem;
+    padding: 0 0.2rem;
+  }
+
+  .calendar-wrapper .rbc-event-content {
+    font-size: 0.65rem;
+    line-height: 1.1;
+  }
+
+  /* Ajustar los grupos de botones del toolbar para que no se desborden */
+  .calendar-wrapper .rbc-toolbar {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .calendar-wrapper .rbc-toolbar-label {
+    font-size: 1rem;
+    font-weight: 800;
+    margin: 0.25rem 0;
+  }
+
+  .calendar-wrapper .rbc-btn-group {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .calendar-wrapper .rbc-btn-group button {
+    flex: 1;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}

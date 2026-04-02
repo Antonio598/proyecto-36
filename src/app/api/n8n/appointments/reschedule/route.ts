@@ -38,8 +38,9 @@ export async function PUT(request: Request) {
     }
 
     // 2. Find specific active appointment
-    // Change: Interpret oldStartTime as Panama time
-    const oldStart = fromZonedTime(oldStartTime, PANAMA_TZ);
+    // Change: Interpret oldStartTime as Panama time strictly
+    const naiveOldStartTime = (oldStartTime as string).replace('Z', '').split('+')[0];
+    const oldStart = fromZonedTime(naiveOldStartTime, PANAMA_TZ);
     let whereClause: any = {
       patientId: patient.id,
       startTime: oldStart,
@@ -59,8 +60,9 @@ export async function PUT(request: Request) {
     }
 
     // 3. Overlap Check for new time
-    // Change: Interpret newStartTime as Panama time
-    const newStart = fromZonedTime(newStartTime, PANAMA_TZ);
+    // Change: Interpret newStartTime as Panama time strictly
+    const naiveNewStartTime = (newStartTime as string).replace('Z', '').split('+')[0];
+    const newStart = fromZonedTime(naiveNewStartTime, PANAMA_TZ);
     let duration = appointment.service?.durationMinutes || 30;
     let targetCalendarId = newCalendarId || appointment.calendarId;
 

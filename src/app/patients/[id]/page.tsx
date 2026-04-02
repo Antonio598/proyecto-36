@@ -195,13 +195,13 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ id: s
             </h3>
 
             {appointments.length > 0 ? (
-              <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-blue-200 before:via-gray-100 before:to-transparent">
+              <div className="relative space-y-8 before:absolute before:inset-0 before:ml-4 md:before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-blue-200 before:via-gray-100 before:to-transparent">
                 {appointments.map((appt) => (
-                  <div key={appt.id} className="relative flex items-start gap-6 group">
-                    <div className="absolute left-0 mt-1.5 w-10 h-10 bg-white border-2 border-blue-500 rounded-full flex items-center justify-center z-10 shadow-sm group-hover:scale-110 transition-transform">
-                       <Stethoscope className="w-5 h-5 text-blue-600" />
+                  <div key={appt.id} className="relative flex items-start gap-4 md:gap-6 group">
+                    <div className="absolute left-0 mt-1.5 w-8 h-8 md:w-10 md:h-10 bg-white border-2 border-blue-500 rounded-full flex items-center justify-center z-10 shadow-sm group-hover:scale-110 transition-transform">
+                       <Stethoscope className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                     </div>
-                    <div className="ml-14 flex-1">
+                    <div className="ml-10 md:ml-14 flex-1">
                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                           <div>
                             <span className="text-sm font-black text-black block sm:inline">{format(new Date(appt.startTime), "EEEE, d 'de' MMMM", { locale: es })}</span>
