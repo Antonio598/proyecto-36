@@ -37,12 +37,25 @@ export async function POST(request: Request) {
     }
 
     // 2. Find specific active appointment
-    // Change: Interpret startTime as Panama time strictly
-    const naiveStartTime = (startTime as string).replace('Z', '').split('+')[0];
-    const targetStart = fromZonedTime(naiveStartTime, PANAMA_TZ);
+    // Robust date parsing (detect UTC 'Z' or offset, otherwise fallback to Panama local)
+    const parseDate = (dateStr: string) => {
+      if (!dateStr) return null;
+      if (dateStr.includes('Z') || /[\+\-]\d{2}:\d{2}$/.test(dateStr)) {
+        return new Date(dateStr);
+      }
+      return fromZonedTime(dateStr.substring(0, 19), PANAMA_TZ);
+    };
+
+    const targetStart = parseDate(startTime);
+    if (!targetStart) return NextResponse.json({ success: false, error: 'Invalid startTime' }, { status: 400 });
+
+    // Use a 60-second window centered on the target time to avoid millisecond/drift issues
+    const rangeStart = new Date(targetStart.getTime() - 60000);
+    const rangeEnd = new Date(targetStart.getTime() + 60000);
+
     let whereClause: any = {
       patientId: patient.id,
-      startTime: targetStart,
+      startTime: { gte: rangeStart, lte: rangeEnd },
       status: { notIn: ['CANCELLED'] },
     };
     if (subaccountId) {

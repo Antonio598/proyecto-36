@@ -50,9 +50,13 @@ export async function PUT(request: Request) {
     const oldStart = parseDate(oldStartTime);
     if (!oldStart) return NextResponse.json({ success: false, error: 'Invalid oldStartTime' }, { status: 400 });
 
+    // Use a 60-second window centered on the target time to avoid millisecond/drift issues
+    const rangeStart = new Date(oldStart.getTime() - 60000);
+    const rangeEnd = new Date(oldStart.getTime() + 60000);
+
     let whereClause: any = {
       patientId: patient.id,
-      startTime: oldStart,
+      startTime: { gte: rangeStart, lte: rangeEnd },
       status: { notIn: ['CANCELLED'] },
     };
     if (subaccountId) {
