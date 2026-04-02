@@ -50,22 +50,22 @@ export async function PUT(request: Request) {
     const oldStart = parseDate(oldStartTime);
     if (!oldStart) return NextResponse.json({ success: false, error: 'Invalid oldStartTime' }, { status: 400 });
 
-    // Use a 60-second window centered on the target time to avoid millisecond/drift issues
-    const rangeStart = new Date(oldStart.getTime() - 60000);
-    const rangeEnd = new Date(oldStart.getTime() + 60000);
+    // Use a 5-minute window centered on the target time to be extremely robust
+    const rangeStart = new Date(oldStart.getTime() - 5 * 60000);
+    const rangeEnd = new Date(oldStart.getTime() + 5 * 60000);
 
-    let whereClause: any = {
-      patientId: patient.id,
-      startTime: { gte: rangeStart, lte: rangeEnd },
-      status: { notIn: ['CANCELLED'] },
-    };
-    if (subaccountId) {
-      whereClause.subaccountId = subaccountId;
-    }
-
+    // IMPORTANT: We REMOVE the subaccountId filter from the search phase
+    // because n8n might send the wrong subaccountId for the existing appointment.
+    // We already scoped the patient to the account, so any active appointment
+    // for this patient in this time range is almost certainly the one we want.
     const appointment = await prisma.appointment.findFirst({
-      where: whereClause,
+      where: {
+        patientId: patient.id,
+        startTime: { gte: rangeStart, lte: rangeEnd },
+        status: { notIn: ['CANCELLED'] },
+      },
       include: { service: true },
+      orderBy: { startTime: 'asc' }
     });
 
     if (!appointment) {
