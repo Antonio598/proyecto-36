@@ -110,15 +110,43 @@ export async function POST(request: Request) {
     }
 
     // 1. Fetch AvailabilityRules to enforce the Sede's schedule
+    // First try subaccount-level rules, then fall back to calendar-level rules
     const requestedDayOfWeek = panamaDate.getDay();
-    const rules = await prisma.availabilityRule.findMany({
+    let rules = await prisma.availabilityRule.findMany({
        where: {
-          subaccountId: subaccountId || null,
+          subaccountId: subaccountId || undefined,
+          calendarId: null,
           dayOfWeek: requestedDayOfWeek
        }
     });
 
-    if (rules.length === 0 && !isBlocker) { // If it's a blocker, maybe we let them block an already closed day just in case? Or block it anyway. Let's strictly block if no rules.
+    // Fallback: check calendar-level rules if no subaccount-level rules exist
+    if (rules.length === 0 && calendarId) {
+      rules = await prisma.availabilityRule.findMany({
+        where: {
+          calendarId,
+          dayOfWeek: requestedDayOfWeek
+        }
+      });
+    }
+
+    // Second fallback: any calendar in this subaccount
+    if (rules.length === 0 && subaccountId) {
+      const calendarsInSede = await prisma.calendar.findMany({
+        where: { subaccountId },
+        select: { id: true }
+      });
+      if (calendarsInSede.length > 0) {
+        rules = await prisma.availabilityRule.findMany({
+          where: {
+            calendarId: { in: calendarsInSede.map(c => c.id) },
+            dayOfWeek: requestedDayOfWeek
+          }
+        });
+      }
+    }
+
+    if (rules.length === 0 && !isBlocker) {
        return NextResponse.json({ error: 'La clínica está cerrada en este día, no hay horarios disponibles.' }, { status: 400 });
     }
 

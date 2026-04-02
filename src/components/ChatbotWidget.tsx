@@ -15,15 +15,19 @@ export default function ChatbotWidget() {
   const { selectedSede } = useSede();
   const accountId = getAccountId();
 
+  // Ref always holds the latest context values — updated synchronously before each render
+  const bodyRef = useRef({ subaccountId: selectedSede, accountId });
+  useEffect(() => {
+    bodyRef.current = { subaccountId: selectedSede, accountId };
+  }, [selectedSede, accountId]);
+
+  // Transport created once; body is a lazy function so it reads fresh values on every request
   const transport = useMemo(
     () => new DefaultChatTransport({
       api: '/api/chat',
-      body: {
-        subaccountId: selectedSede,
-        accountId: accountId,
-      }
+      body: () => bodyRef.current,
     }),
-    [selectedSede, accountId]
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const { messages, sendMessage, status } = useChat({ transport });
