@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages } from 'ai';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 
@@ -16,9 +16,12 @@ export async function POST(req: Request) {
     );
   }
 
+  // useChat v6 sends UIMessages (with `parts`); streamText needs ModelMessages (with `content`)
+  const coreMessages = await convertToModelMessages(messages);
+
   const result = streamText({
     model: openai('gpt-4o'),
-    messages,
+    messages: coreMessages,
     system: `Eres el Asistente de Recepción Virtual de la Clínica. Eres amable, profesional y altamente eficiente. 
     Tu trabajo es ayudar a los pacientes a agendar citas médicas, añadir servicios al catálogo, registrar médicos y responder sus dudas de forma inteligente.
     
