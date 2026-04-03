@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
-import { fromZonedTime } from 'date-fns-tz';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 export async function GET(request: Request) {
   try {
@@ -23,6 +23,8 @@ export async function GET(request: Request) {
     const endDate = searchParams.get('endDate');
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '50', 10);
+
+    const PANAMA_TZ = 'America/Panama';
 
     let whereClause: any = {
       // Basic security: ensure appointments belong to the account via subaccounts
@@ -59,17 +61,17 @@ export async function GET(request: Request) {
     // Date filtering (America/Panama timezone interpretation)
     if (date) {
       // Specific day
-      const startOfDay = fromZonedTime(`${date}T00:00:00`, 'America/Panama');
-      const endOfDay = fromZonedTime(`${date}T23:59:59`, 'America/Panama');
+      const startOfDay = fromZonedTime(`${date}T00:00:00`, PANAMA_TZ);
+      const endOfDay = fromZonedTime(`${date}T23:59:59`, PANAMA_TZ);
       whereClause.startTime = { gte: startOfDay, lte: endOfDay };
     } else if (startDate || endDate) {
       // Date range
       whereClause.startTime = {};
       if (startDate) {
-        whereClause.startTime.gte = fromZonedTime(`${startDate}T00:00:00`, 'America/Panama');
+        whereClause.startTime.gte = fromZonedTime(`${startDate}T00:00:00`, PANAMA_TZ);
       }
       if (endDate) {
-        whereClause.startTime.lte = fromZonedTime(`${endDate}T23:59:59`, 'America/Panama');
+        whereClause.startTime.lte = fromZonedTime(`${endDate}T23:59:59`, PANAMA_TZ);
       }
     }
 
@@ -103,7 +105,15 @@ export async function GET(request: Request) {
       take: Math.min(limit, 100),
     });
 
-    return NextResponse.json({ success: true, data: appointments });
+    // Convert results to Panama Time for the response
+    const formattedAppointments = appointments.map(appt => ({
+      ...appt,
+      startTime: formatInTimeZone(appt.startTime, PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ssXXX"),
+      endTime: formatInTimeZone(appt.endTime, PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ssXXX"),
+      startTimeLocal: formatInTimeZone(appt.startTime, PANAMA_TZ, "yyyy-MM-dd HH:mm:ss"),
+    }));
+
+    return NextResponse.json({ success: true, data: formattedAppointments });
   } catch (error) {
     console.error('Error in n8n/appointments/GET:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
