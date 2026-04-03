@@ -100,6 +100,27 @@ x-api-key: TU_API_KEY
               </h4>
               <p className="text-sm text-gray-600">Retorna horarios <strong>ocupados</strong>. Acepta <code>?date=YYYY-MM-DD</code> y <code>?calendarId=X</code>, <code>?subaccountId=Y</code>, <code>?doctorId=Z</code>.</p>
             </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <h4 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
+                <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">GET</span>
+                /api/n8n/appointments
+              </h4>
+              <p className="text-sm text-gray-600 mb-3">Retorna la lista de citas agendadas con filtros opcionales.</p>
+              <pre className="bg-gray-900 text-gray-100 p-3 rounded-md text-sm overflow-x-auto">
+{`// Parámetros opcionales:
+// ?phone=TEL &date=YYYY-MM-DD &status=CONFIRMED &limit=50
+// ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+
+// Respuesta:
+{
+  "success": true,
+  "data": [
+    { "id": "...", "startTime": "...", "patient": { "fullName": "..." } }
+  ]
+}`}
+              </pre>
+            </div>
           </div>
 
           {/* ── GESTIÓN DE PACIENTES ── */}
