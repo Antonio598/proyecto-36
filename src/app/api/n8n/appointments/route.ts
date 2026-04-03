@@ -15,6 +15,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const subaccountId = searchParams.get('subaccountId');
     const calendarId = searchParams.get('calendarId');
+    const doctorId = searchParams.get('doctorId');
+    const serviceId = searchParams.get('serviceId');
     const phone = searchParams.get('phone');
     const date = searchParams.get('date');
     const startDate = searchParams.get('startDate');
@@ -33,6 +35,14 @@ export async function GET(request: Request) {
 
     if (calendarId) {
       whereClause.calendarId = calendarId;
+    }
+    
+    if (doctorId) {
+      whereClause.doctorId = doctorId;
+    }
+
+    if (serviceId) {
+      whereClause.serviceId = serviceId;
     }
 
     if (phone) {

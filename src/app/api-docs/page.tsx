@@ -108,7 +108,9 @@ x-api-key: TU_API_KEY
               </h4>
               <p className="text-sm text-gray-600 mb-3">Retorna la lista de citas agendadas con filtros opcionales.</p>
               <pre className="bg-gray-900 text-gray-100 p-3 rounded-md text-sm overflow-x-auto">
-{`// Parámetros opcionales:
+{`// Parámetros opcionales (IDs):
+// ?subaccountId=ID &calendarId=ID &doctorId=ID &serviceId=ID
+// Filtros adicionales:
 // ?phone=TEL &date=YYYY-MM-DD &status=CONFIRMED &limit=50
 // ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 

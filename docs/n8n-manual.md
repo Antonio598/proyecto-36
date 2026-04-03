@@ -41,10 +41,15 @@ En n8n usa el nodo **HTTP Request** con método `GET`.
 - Retorna la lista de citas filtradas por los parámetros enviados.
 - **Parámetros opcionales:**
     - `subaccountId=ID`: Filtrar por clínica/sede.
-    - `calendarId=ID`: Filtrar por médico/calendario.
-    - `phone=TEL`: Filtrar por teléfono del paciente.
-    - `date=YYYY-MM-DD`: Citas de un día específico.
-    - `startDate=YYYY-MM-DD` y `endDate=YYYY-MM-DD`: Citas en un rango de fechas.
+    - `calendarId=ID`: Filtrar por médico/calendario específico.
+    - `doctorId=ID`: Filtrar por médico asignado.
+    - `serviceId=ID`: Filtrar por tipo de servicio.
+    - `phone=TEL`: Filtrar por teléfono{
+// Parámetros opcionales:
+// ?phone=TEL &date=YYYY-MM-DD &status=CONFIRMED &limit=50
+// ?subaccountId=ID &calendarId=ID &doctorId=ID &serviceId=ID
+// ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+}: Citas en un rango de fechas.
     - `status=ESTADO`: Filtrar por estado (PENDING, CONFIRMED, CANCELLED, COMPLETED). Por defecto excluye CANCELLED.
     - `limit=N`: Cantidad de resultados (máx 100, defecto 50).
 - **Ejemplo:** `GET /api/n8n/appointments?date=2024-05-15&status=CONFIRMED`
