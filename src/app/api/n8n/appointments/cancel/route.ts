@@ -49,9 +49,10 @@ export async function POST(request: Request) {
     const targetStart = parseDate(startTime);
     if (!targetStart) return NextResponse.json({ success: false, error: 'Invalid startTime' }, { status: 400 });
 
-    // Use a 5-minute window centered on the target time to be extremely robust
-    const rangeStart = new Date(targetStart.getTime() - 5 * 60000);
-    const rangeEnd = new Date(targetStart.getTime() + 5 * 60000);
+    // Use a 125-minute window centered on the target time to be extremely robust
+    // This catches 1-hour timezone shifts (DST or offset mismatches)
+    const rangeStart = new Date(targetStart.getTime() - 125 * 60000);
+    const rangeEnd = new Date(targetStart.getTime() + 125 * 60000);
 
     // IMPORTANT: We REMOVE the subaccountId filter from the search phase
     // because n8n might send the wrong subaccountId for the existing appointment.
