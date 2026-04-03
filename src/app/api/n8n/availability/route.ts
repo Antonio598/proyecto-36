@@ -99,6 +99,7 @@ export async function GET(request: Request) {
 
     const allRules = await prisma.availabilityRule.findMany({
       where: rulesWhere,
+      include: { calendar: { select: { name: true } } },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -135,6 +136,9 @@ export async function GET(request: Request) {
         return (isBefore(appt.startTime, dayEndUTC) && isAfter(appt.endTime, dayStartUTC));
       });
 
+      // Deduplication set for this specific day
+      const seenSlots = new Set<string>();
+
       for (const rule of dayRules) {
         let currentPointer = fromZonedTime(`${dayStr}T${rule.startTime}:00`, PANAMA_TZ);
         const workEndTime = fromZonedTime(`${dayStr}T${rule.endTime}:00`, PANAMA_TZ);
@@ -144,6 +148,12 @@ export async function GET(request: Request) {
           const slotEnd = addMinutes(currentPointer, slotDuration);
           
           if (isAfter(slotEnd, workEndTime)) break;
+
+          const slotKey = `${rule.calendarId || 'global'}_${currentPointer.getTime()}`;
+          if (seenSlots.has(slotKey)) {
+            currentPointer = addMinutes(currentPointer, 30);
+            continue;
+          }
 
           // Check if slot is in the past
           if (isToday && isBefore(currentPointer, nowUTC)) {
@@ -158,6 +168,8 @@ export async function GET(request: Request) {
 
           if (!isBusy) {
             freeSlots.push({
+              calendarId: rule.calendarId || 'global',
+              calendarName: rule.calendar?.name || 'Regla General',
               startTime: formatInTimeZone(currentPointer, PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ssXXX"),
               endTime: formatInTimeZone(slotEnd, PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ssXXX"),
               startTimeLocal: format(toZonedTime(currentPointer, PANAMA_TZ), 'yyyy-MM-dd HH:mm:ss'),
@@ -165,6 +177,7 @@ export async function GET(request: Request) {
               type: 'available',
               date: dayStr
             });
+            seenSlots.add(slotKey);
             const increment = Math.min(30, slotDuration);
             currentPointer = addMinutes(currentPointer, increment);
           } else {
