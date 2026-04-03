@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { format, addDays, addMinutes, isBefore, isAfter, isEqual } from 'date-fns';
 
 const PANAMA_TZ = 'America/Panama';
@@ -158,8 +158,8 @@ export async function GET(request: Request) {
 
           if (!isBusy) {
             freeSlots.push({
-              startTime: currentPointer,
-              endTime: slotEnd,
+              startTime: formatInTimeZone(currentPointer, PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ssXXX"),
+              endTime: formatInTimeZone(slotEnd, PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ssXXX"),
               startTimeLocal: format(toZonedTime(currentPointer, PANAMA_TZ), 'yyyy-MM-dd HH:mm:ss'),
               endTimeLocal: format(toZonedTime(slotEnd, PANAMA_TZ), 'yyyy-MM-dd HH:mm:ss'),
               type: 'available',
