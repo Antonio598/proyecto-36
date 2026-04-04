@@ -265,6 +265,28 @@ export default function CalendarPage() {
     setError('');
   };
 
+  const handleQuickBlock = () => {
+    if (!selectedCalendarId) {
+      alert('Debes seleccionar un Calendario en la parte superior para poder bloquear un espacio.');
+      return;
+    }
+    const start = new Date();
+    const minutes = start.getMinutes();
+    const remainder = 15 - (minutes % 15);
+    start.setMinutes(minutes + remainder, 0, 0);
+    const end = new Date(start.getTime() + 60 * 60000);
+
+    setSelectedSlot({ start, end });
+    setSelectedEvent(null);
+    setForm({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
+    setIsBlockMode(true);
+    setRepeatCount(1);
+    setIsCreatingPatient(false);
+    setNewPatientForm({ fullName: '', phone: '' });
+    setIsModalOpen(true);
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -554,7 +576,8 @@ export default function CalendarPage() {
               onSelectEvent={handleSelectEvent}
               step={15}
               timeslots={4}
-              defaultView={Views.WEEK}
+              longPressThreshold={100}
+              defaultView={Views.DAY}
               min={new Date(new Date().setHours(7, 0, 0, 0))}
               max={new Date(new Date().setHours(21, 0, 0, 0))}
               messages={{
@@ -571,6 +594,15 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+
+      {/* FAB Botón Rápido para Móvil */}
+      <button 
+        onClick={handleQuickBlock}
+         className="md:hidden fixed bottom-[80px] right-4 z-40 bg-slate-800 text-white px-5 py-4 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-transform font-bold"
+      >
+        <Ban className="w-5 h-5" />
+        Bloquear
+      </button>
 
       {/* Modal Nueva Cita o Bloqueo */}
       {isModalOpen && selectedSlot && (
@@ -610,17 +642,69 @@ export default function CalendarPage() {
             <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
               {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 font-bold border border-red-200">{error}</div>}
               
-              <div className={`${isBlockMode ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-blue-50 border-blue-100 text-blue-900'} p-3 rounded-lg border flex items-center justify-between text-sm`}>
-                 <div className="flex items-center gap-3">
-                   <Clock className={`w-5 h-5 ${isBlockMode ? 'text-slate-500' : 'text-blue-600'}`} />
-                   <div><p className="font-bold">{format(selectedSlot.start, "EEEE d 'de' MMMM", { locale: es })}</p><p className="font-medium">{format(selectedSlot.start, "HH:mm")} - {format(selectedSlot.end, "HH:mm")} hrs</p></div>
+              <div className={`${isBlockMode ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-blue-50 border-blue-100 text-blue-900'} p-4 rounded-lg border flex flex-col sm:flex-row justify-between gap-4`}>
+                 <div className="flex-1 space-y-3">
+                   <div className="flex items-center gap-2">
+                     <Clock className={`w-5 h-5 ${isBlockMode ? 'text-slate-500' : 'text-blue-600'}`} />
+                     <span className="font-bold">Día y Horario</span>
+                   </div>
+                   
+                   <div>
+                     <label className="text-xs font-bold block mb-1">Fecha</label>
+                     <input type="date" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black font-medium focus:ring-2 focus:ring-blue-500" 
+                        value={format(selectedSlot.start, "yyyy-MM-dd")}
+                        onChange={(e) => {
+                           if (!e.target.value) return;
+                           const newDate = parse(e.target.value, "yyyy-MM-dd", new Date());
+                           newDate.setHours(selectedSlot.start.getHours(), selectedSlot.start.getMinutes());
+                           const endDiff = selectedSlot.end.getTime() - selectedSlot.start.getTime();
+                           const newEnd = new Date(newDate.getTime() + endDiff);
+                           setSelectedSlot({ start: newDate, end: newEnd });
+                        }}
+                     />
+                   </div>
+
+                   <div className="flex gap-3">
+                     <div className="flex-1">
+                       <label className="text-xs font-bold block mb-1">Inicio</label>
+                       <input type="time" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black font-medium focus:ring-2 focus:ring-blue-500" 
+                          value={format(selectedSlot.start, "HH:mm")}
+                          onChange={(e) => {
+                             if (!e.target.value) return;
+                             const [h,m] = e.target.value.split(':');
+                             const newS = new Date(selectedSlot.start);
+                             newS.setHours(Number(h), Number(m));
+                             
+                             let newE = new Date(selectedSlot.end);
+                             if (newS >= newE) {
+                                newE = new Date(newS.getTime() + 15 * 60000); // add 15 mins minimum
+                             }
+                             setSelectedSlot({...selectedSlot, start: newS, end: newE});
+                          }}
+                       />
+                     </div>
+                     <div className="flex-1">
+                       <label className="text-xs font-bold block mb-1">Fin</label>
+                       <input type="time" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black font-medium focus:ring-2 focus:ring-blue-500" 
+                          value={format(selectedSlot.end, "HH:mm")}
+                          onChange={(e) => {
+                             if (!e.target.value) return;
+                             const [h,m] = e.target.value.split(':');
+                             const newE = new Date(selectedSlot.end);
+                             newE.setHours(Number(h), Number(m));
+                             setSelectedSlot({...selectedSlot, end: newE});
+                          }}
+                       />
+                     </div>
+                   </div>
                  </div>
+
                  {isBlockMode && !selectedEvent && (
-                    <div className="text-right">
-                       <label className="text-xs font-bold text-slate-500 block">Repetir (Días)</label>
-                       <select value={repeatCount} onChange={e => setRepeatCount(Number(e.target.value))} className="mt-1 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded p-1 outline-none">
+                    <div className="w-full sm:w-auto mt-2 sm:mt-0">
+                       <label className="text-xs font-bold block mb-1">Repetir</label>
+                       <select value={repeatCount} onChange={e => setRepeatCount(Number(e.target.value))} className="w-full sm:w-auto block rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black font-medium">
                           <option value={1}>Solo hoy</option>
-                          <option value={2}>2 días</option>
+                          <option value={2}>2 días consecutivos</option>
                           <option value={3}>3 días</option>
                           <option value={4}>4 días</option>
                           <option value={5}>5 días</option>
