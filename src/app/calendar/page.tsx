@@ -642,16 +642,16 @@ export default function CalendarPage() {
             <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
               {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 font-bold border border-red-200">{error}</div>}
               
-              <div className={`${isBlockMode ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-blue-50 border-blue-100 text-blue-900'} p-4 rounded-lg border flex flex-col sm:flex-row justify-between gap-4`}>
-                 <div className="flex-1 space-y-3">
+              <div className={`${isBlockMode ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-blue-50 border-blue-100 text-blue-900'} p-3 md:p-4 rounded-lg border flex flex-col md:flex-row justify-between gap-4 w-full`}>
+                 <div className="flex-1 w-full space-y-3">
                    <div className="flex items-center gap-2">
                      <Clock className={`w-5 h-5 ${isBlockMode ? 'text-slate-500' : 'text-blue-600'}`} />
-                     <span className="font-bold">Día y Horario</span>
+                     <span className="font-bold text-sm md:text-base">Día y Horario</span>
                    </div>
                    
                    <div>
                      <label className="text-xs font-bold block mb-1">Fecha</label>
-                     <input type="date" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black font-medium focus:ring-2 focus:ring-blue-500" 
+                     <input type="date" className="block w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs md:text-sm text-black font-medium focus:ring-2 focus:ring-blue-500" 
                         value={format(selectedSlot.start, "yyyy-MM-dd")}
                         onChange={(e) => {
                            if (!e.target.value) return;
@@ -664,10 +664,10 @@ export default function CalendarPage() {
                      />
                    </div>
 
-                   <div className="flex gap-3">
-                     <div className="flex-1">
+                   <div className="grid grid-cols-2 gap-2">
+                     <div className="w-full">
                        <label className="text-xs font-bold block mb-1">Inicio</label>
-                       <input type="time" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black font-medium focus:ring-2 focus:ring-blue-500" 
+                       <input type="time" className="block w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs md:text-sm text-black font-medium focus:ring-2 focus:ring-blue-500" 
                           value={format(selectedSlot.start, "HH:mm")}
                           onChange={(e) => {
                              if (!e.target.value) return;
@@ -683,9 +683,9 @@ export default function CalendarPage() {
                           }}
                        />
                      </div>
-                     <div className="flex-1">
+                     <div className="w-full">
                        <label className="text-xs font-bold block mb-1">Fin</label>
-                       <input type="time" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black font-medium focus:ring-2 focus:ring-blue-500" 
+                       <input type="time" className="block w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs md:text-sm text-black font-medium focus:ring-2 focus:ring-blue-500" 
                           value={format(selectedSlot.end, "HH:mm")}
                           onChange={(e) => {
                              if (!e.target.value) return;
@@ -700,9 +700,9 @@ export default function CalendarPage() {
                  </div>
 
                  {isBlockMode && !selectedEvent && (
-                    <div className="w-full sm:w-auto mt-2 sm:mt-0">
+                    <div className="w-full md:w-auto mt-2 md:mt-0">
                        <label className="text-xs font-bold block mb-1">Repetir</label>
-                       <select value={repeatCount} onChange={e => setRepeatCount(Number(e.target.value))} className="w-full sm:w-auto block rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black font-medium">
+                       <select value={repeatCount} onChange={e => setRepeatCount(Number(e.target.value))} className="w-full md:w-auto block rounded-md border border-gray-300 bg-white px-2 py-2 text-xs md:text-sm text-black font-medium">
                           <option value={1}>Solo hoy</option>
                           <option value={2}>2 días consecutivos</option>
                           <option value={3}>3 días</option>

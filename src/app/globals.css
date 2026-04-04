@@ -193,8 +193,9 @@ body {
   
   /* Contenedor principal de las vistas para permitir scroll horizontal */
   .calendar-wrapper .rbc-calendar {
-    min-height: 550px;
-    height: calc(100vh - 280px) !important;
+    min-height: 450px !important;
+    height: 70vh !important;
+    max-height: calc(100dvh - 200px) !important;
     overflow-x: auto;
     overflow-y: hidden;
   }
