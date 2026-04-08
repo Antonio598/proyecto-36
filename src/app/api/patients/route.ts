@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   try {
     const accountId = getAccountIdFromRequest(request);
     const body = await request.json();
-    let { fullName, phone, email, notes, id } = body;
+    let { fullName, phone, email, notes, id, cedula_pasaporte } = body;
     phone = (phone || id)?.toString();
 
     if (!fullName || !phone) {
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     const patient = await prisma.patient.create({
-      data: { fullName, phone, email, notes, ...(accountId ? { accountId } : {}) },
+      data: { fullName, phone, email, notes, cedula_pasaporte, ...(accountId ? { accountId } : {}) },
     });
 
     return NextResponse.json(patient, { status: 201 });

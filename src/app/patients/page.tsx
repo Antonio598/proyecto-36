@@ -10,6 +10,7 @@ interface Patient {
   fullName: string;
   phone: string;
   email: string | null;
+  cedula_pasaporte: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -22,7 +23,7 @@ export default function PatientsPage() {
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ fullName: '', phone: '', email: '', notes: '' });
+  const [formData, setFormData] = useState({ fullName: '', phone: '', email: '', cedula_pasaporte: '', notes: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -68,7 +69,7 @@ export default function PatientsPage() {
 
       await fetchPatients();
       setIsModalOpen(false);
-      setFormData({ fullName: '', phone: '', email: '', notes: '' });
+      setFormData({ fullName: '', phone: '', email: '', cedula_pasaporte: '', notes: '' });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -172,7 +173,10 @@ export default function PatientsPage() {
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-black">
                         <div className="text-black font-bold flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-blue-600"/> {patient.phone}</div>
-                        <div className="text-black font-medium mt-0.5 opacity-70">{patient.email || '-'}</div>
+                        <div className="text-black font-medium mt-0.5 opacity-70">{patient.email || 'Sin correo'}</div>
+                        {patient.cedula_pasaporte && (
+                          <div className="text-black font-medium mt-0.5 opacity-70 text-xs truncate max-w-[150px]">ID: {patient.cedula_pasaporte}</div>
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-black">
                          <div className="flex items-center gap-1.5 text-black font-bold">
@@ -259,6 +263,17 @@ export default function PatientsPage() {
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-black font-medium sm:text-sm"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="cedula_pasaporte" className="block text-sm font-bold text-black mb-1">Cédula o Pasaporte</label>
+                <input
+                  type="text"
+                  id="cedula_pasaporte"
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-black font-medium sm:text-sm"
+                  value={formData.cedula_pasaporte}
+                  onChange={(e) => setFormData({ ...formData, cedula_pasaporte: e.target.value })}
                 />
               </div>
 
