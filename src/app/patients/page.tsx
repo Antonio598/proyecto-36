@@ -11,6 +11,7 @@ interface Patient {
   phone: string;
   email: string | null;
   cedula_pasaporte: string | null;
+  edad: number | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -23,7 +24,7 @@ export default function PatientsPage() {
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ fullName: '', phone: '', email: '', cedula_pasaporte: '', notes: '' });
+  const [formData, setFormData] = useState({ fullName: '', phone: '', email: '', cedula_pasaporte: '', edad: '', notes: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -69,7 +70,7 @@ export default function PatientsPage() {
 
       await fetchPatients();
       setIsModalOpen(false);
-      setFormData({ fullName: '', phone: '', email: '', cedula_pasaporte: '', notes: '' });
+      setFormData({ fullName: '', phone: '', email: '', cedula_pasaporte: '', edad: '', notes: '' });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -177,6 +178,9 @@ export default function PatientsPage() {
                         {patient.cedula_pasaporte && (
                           <div className="text-black font-medium mt-0.5 opacity-70 text-xs truncate max-w-[150px]">ID: {patient.cedula_pasaporte}</div>
                         )}
+                        {patient.edad && (
+                          <div className="text-black font-medium mt-0.5 opacity-70 text-xs">Edad: {patient.edad} años</div>
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-black">
                          <div className="flex items-center gap-1.5 text-black font-bold">
@@ -274,6 +278,17 @@ export default function PatientsPage() {
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-black font-medium sm:text-sm"
                   value={formData.cedula_pasaporte}
                   onChange={(e) => setFormData({ ...formData, cedula_pasaporte: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="edad" className="block text-sm font-bold text-black mb-1">Edad</label>
+                <input
+                  type="number"
+                  id="edad"
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-black font-medium sm:text-sm"
+                  value={formData.edad}
+                  onChange={(e) => setFormData({ ...formData, edad: e.target.value })}
                 />
               </div>
 
