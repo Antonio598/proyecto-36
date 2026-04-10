@@ -4,6 +4,8 @@ import prisma from '@/lib/prisma';
 import { getAccountIdFromRequest } from '@/lib/serverAuth';
 
 import { parseISO, format } from 'date-fns';
+import { sendAppointmentEmail } from '@/lib/mail';
+import { es } from 'date-fns/locale/es';
 export async function GET(request: Request) {
   try {
     const accountId = getAccountIdFromRequest(request);
@@ -219,6 +221,59 @@ export async function POST(request: Request) {
           createdCount++;
           if (i === 0) mainAppointment = appt;
         }
+    }
+
+    // --- Enviar correos de notificación ---
+    try {
+      if (mainAppointment && !isBlocker) {
+        // Obtener detalles del paciente, servicio y administradores
+        const [fullPatient, fullService, subaccount] = await Promise.all([
+          prisma.patient.findUnique({ where: { id: patientId } }),
+          prisma.service.findUnique({ where: { id: serviceId } }),
+          prisma.subaccount.findUnique({ 
+            where: { id: subaccountId || undefined },
+            include: { account: { include: { users: { where: { role: 'ADMIN' } } } } }
+          })
+        ]);
+
+        if (fullPatient && fullService) {
+          const dateStr = format(mainAppointment.startTime, "EEEE d 'de' MMMM", { locale: es });
+          const startStr = format(mainAppointment.startTime, "HH:mm");
+          const endStr = format(mainAppointment.endTime, "HH:mm");
+
+          // 1. Enviar al Paciente si tiene correo
+          if (fullPatient.email) {
+            await sendAppointmentEmail({
+              to: fullPatient.email,
+              subject: 'Confirmación de tu Cita - Master Haven',
+              patientName: fullPatient.fullName,
+              serviceName: fullService.name,
+              date: dateStr,
+              startTime: startStr,
+              endTime: endStr,
+              isOwner: false
+            });
+          }
+
+          // 2. Enviar a los administradores de la cuenta
+          const adminEmails = subaccount?.account?.users.map(u => u.email).filter(Boolean) as string[] || [];
+          for (const email of adminEmails) {
+            await sendAppointmentEmail({
+              to: email,
+              subject: 'Nueva Cita Recibida',
+              patientName: fullPatient.fullName,
+              serviceName: fullService.name,
+              date: dateStr,
+              startTime: startStr,
+              endTime: endStr,
+              isOwner: true
+            });
+          }
+        }
+      }
+    } catch (mailError) {
+      console.error('Error in email notification flow:', mailError);
+      // No bloqueamos la respuesta aunque falle el correo
     }
 
     // Return the primary appointment created (i=0) or success message

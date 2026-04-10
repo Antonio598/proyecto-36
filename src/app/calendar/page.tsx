@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale/es';
-import { X, Calendar as CalendarIcon, Clock, User, Stethoscope, Edit2, Trash2, Info, Ban, ChevronDown, Check } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, User, Stethoscope, Edit2, Trash2, Info, Ban, ChevronDown, Check, Mail, Fingerprint } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSede } from '@/context/SedeContext';
 
@@ -786,7 +786,34 @@ export default function CalendarPage() {
                 <>
                   <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <div className="bg-white p-2.5 rounded-lg shadow-sm"><User className="w-6 h-6 text-indigo-600" /></div>
-                    <div><p className="text-xs font-black text-indigo-600 uppercase">Paciente</p><p className="text-lg font-bold text-black">{selectedEvent.patient?.fullName}</p><p className="text-sm font-medium text-black/70">{selectedEvent.patient?.phone}</p></div>
+                    <div className="flex-1">
+                      <p className="text-xs font-black text-indigo-600 uppercase">Paciente</p>
+                      <p className="text-lg font-bold text-black">{selectedEvent.patient?.fullName}</p>
+                      <p className="text-sm font-medium text-black/70">{selectedEvent.patient?.phone}</p>
+                      
+                      {(selectedEvent.patient?.email || selectedEvent.patient?.cedula_pasaporte || selectedEvent.patient?.edad) && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-1 gap-2">
+                          {selectedEvent.patient?.email && (
+                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                              <Mail className="w-3.5 h-3.5 text-indigo-500" />
+                              <span>{selectedEvent.patient.email}</span>
+                            </div>
+                          )}
+                          {selectedEvent.patient?.cedula_pasaporte && (
+                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                              <Fingerprint className="w-3.5 h-3.5 text-indigo-500" />
+                              <span>ID: {selectedEvent.patient.cedula_pasaporte}</span>
+                            </div>
+                          )}
+                          {selectedEvent.patient?.edad && (
+                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                              <User className="w-3.5 h-3.5 text-indigo-500" />
+                              <span>{selectedEvent.patient.edad} años</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
