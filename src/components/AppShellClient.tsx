@@ -58,7 +58,7 @@ export default function AppShellClient({ children }: { children: React.ReactNode
           </header>
 
           <main className="flex-1 overflow-y-auto w-full p-4 md:p-6 lg:p-10 scroll-smooth">
-            <div className="mx-auto max-w-7xl h-full">
+            <div className="mx-auto max-w-7xl">
               {children}
             </div>
           </main>

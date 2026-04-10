@@ -159,7 +159,7 @@ export default function CalendariosPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 h-full pb-12">
+    <div className="flex flex-col gap-8 min-h-full pb-12">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-black flex items-center gap-2">

@@ -96,7 +96,7 @@ export default function PatientsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-8 h-full">
+    <div className="flex flex-col gap-8 min-h-full">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-black tracking-tight text-black">Directorio de Pacientes</h2>
