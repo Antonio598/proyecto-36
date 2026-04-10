@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Package, Stethoscope, Tag, X, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { useSede } from '@/context/SedeContext';
+import { apiFetch } from '@/lib/apiFetch';
 
 interface Service {
   id: string;
@@ -49,9 +50,9 @@ export default function ServicesPage() {
     setIsLoading(true);
     try {
       const [servicesRes, productsRes, docsRes] = await Promise.all([
-        selectedSede ? fetch(`/api/services?subaccountId=${selectedSede}`) : Promise.resolve(null),
-        fetch('/api/products'),
-        selectedSede ? fetch(`/api/doctors?subaccountId=${selectedSede}`) : Promise.resolve(null)
+        selectedSede ? apiFetch(`/api/services?subaccountId=${selectedSede}`) : Promise.resolve(null),
+        apiFetch('/api/products'),
+        selectedSede ? apiFetch(`/api/doctors?subaccountId=${selectedSede}`) : Promise.resolve(null)
       ]);
       
       if (servicesRes?.ok) setServices(await servicesRes.json());
@@ -103,9 +104,8 @@ export default function ServicesPage() {
     try {
       const payload = { ...serviceForm, subaccountId: selectedSede };
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
@@ -131,9 +131,8 @@ export default function ServicesPage() {
     const method = editingProduct ? 'PUT' : 'POST';
 
     try {
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productForm),
       });
 
@@ -153,7 +152,7 @@ export default function ServicesPage() {
   const deleteService = async (id: string) => {
     if (!confirm('¿Estás seguro de que deseas eliminar este servicio?')) return;
     try {
-      const res = await fetch(`/api/services/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/services/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('No se pudo eliminar el servicio');
       await fetchData();
     } catch (err: any) {
@@ -164,7 +163,7 @@ export default function ServicesPage() {
   const deleteProduct = async (id: string) => {
     if (!confirm('¿Estás seguro de que deseas eliminar este producto?')) return;
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/products/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('No se pudo eliminar el producto');
       await fetchData();
     } catch (err: any) {

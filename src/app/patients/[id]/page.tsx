@@ -17,6 +17,7 @@ import {
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
+import { apiFetch } from '@/lib/apiFetch';
 
 interface Patient {
   id: string;
@@ -57,8 +58,8 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ id: s
       setIsLoading(true);
       try {
         const [patientRes, historyRes] = await Promise.all([
-          fetch(`/api/patients/${id}`),
-          fetch(`/api/appointments/history/${id}`)
+          apiFetch(`/api/patients/${id}`),
+          apiFetch(`/api/appointments/history/${id}`)
         ]);
 
         if (!patientRes.ok) throw new Error('No se pudo encontrar al paciente');

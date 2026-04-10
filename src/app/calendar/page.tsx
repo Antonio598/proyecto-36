@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale/es';
 import { X, Calendar as CalendarIcon, Clock, User, Stethoscope, Edit2, Trash2, Info, Ban, ChevronDown, Check, Mail, Fingerprint } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSede } from '@/context/SedeContext';
+import { apiFetch } from '@/lib/apiFetch';
 
 const locales = {
   'es': es,
@@ -78,9 +79,9 @@ export default function CalendarPage() {
     const fetchConfigs = async () => {
       try {
         const [patientsRes, servicesRes, calendarsRes] = await Promise.all([
-          fetch('/api/patients'),
-          fetch(`/api/services?subaccountId=${selectedSede}`),
-          fetch(`/api/calendars?subaccountId=${selectedSede}`)
+          apiFetch('/api/patients'),
+          apiFetch(`/api/services?subaccountId=${selectedSede}`),
+          apiFetch(`/api/calendars?subaccountId=${selectedSede}`)
         ]);
         if (patientsRes.ok) setPatients(await patientsRes.json());
         if (servicesRes.ok) setServices(await servicesRes.json());
@@ -109,7 +110,7 @@ export default function CalendarPage() {
       if (selectedCalendarId) {
         url += `&calendarId=${selectedCalendarId}`;
       }
-      const apptsRes = await fetch(url);
+      const apptsRes = await apiFetch(url);
       if (apptsRes.ok) {
         const data = await apptsRes.json();
         const { formatInTimeZone } = require('date-fns-tz');
@@ -146,7 +147,7 @@ export default function CalendarPage() {
     try {
       let url = `/api/availability-rules?subaccountId=${selectedSede}`;
       if (selectedCalendarId) url += `&calendarId=${selectedCalendarId}`;
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       if (res.ok) {
         setAvailabilityRules(await res.json());
       }
@@ -322,9 +323,8 @@ export default function CalendarPage() {
         }
       }
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -358,9 +358,8 @@ export default function CalendarPage() {
     setIsCreatingPatientSubmitting(true);
     setError('');
     try {
-      const res = await fetch('/api/patients', {
+      const res = await apiFetch('/api/patients', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPatientForm)
       });
       if (!res.ok) {
@@ -385,7 +384,7 @@ export default function CalendarPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/appointments/${selectedEvent.id}`, {
+      const res = await apiFetch(`/api/appointments/${selectedEvent.id}`, {
         method: 'DELETE'
       });
 

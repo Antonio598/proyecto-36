@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Clock, Edit2, Trash2, X } from 'lucide-react';
 import { useSede } from '@/context/SedeContext';
+import { apiFetch } from '@/lib/apiFetch';
 
 interface Doctor { id: string; name: string; subaccountId: string; }
 interface Calendar {
@@ -43,8 +44,8 @@ export default function CalendariosPage() {
     setIsLoading(true);
     try {
       const [calRes, docRes] = await Promise.all([
-        fetch(`/api/calendars?subaccountId=${selectedSede}`),
-        fetch(`/api/doctors?subaccountId=${selectedSede}`)
+        apiFetch(`/api/calendars?subaccountId=${selectedSede}`),
+        apiFetch(`/api/doctors?subaccountId=${selectedSede}`)
       ]);
       if (calRes.ok) setCalendars(await calRes.json());
       if (docRes.ok) setDoctors(await docRes.json());
@@ -76,7 +77,7 @@ export default function CalendariosPage() {
       let url = `/api/availability-rules?subaccountId=${selectedSede}`;
       if (calendarId) url += `&calendarId=${calendarId}`;
       
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       if (res.ok) {
         let rules = await res.json();
         
@@ -103,9 +104,8 @@ export default function CalendariosPage() {
     if (!selectedSede) return;
     const url = editingCalendar ? `/api/calendars/${editingCalendar.id}` : '/api/calendars';
     const payload = { ...formData, subaccountId: selectedSede };
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method: editingCalendar ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (res.ok) {
@@ -118,7 +118,7 @@ export default function CalendariosPage() {
 
   const deleteCalendar = async (id: string) => {
     if (!confirm('¿Seguro?')) return;
-    const res = await fetch(`/api/calendars/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/calendars/${id}`, { method: 'DELETE' });
     if (res.ok) fetchData();
   };
 
@@ -132,9 +132,8 @@ export default function CalendariosPage() {
     }));
     
     try {
-      const res = await fetch('/api/availability-rules', {
+      const res = await apiFetch('/api/availability-rules', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subaccountId: selectedSede, calendarId: scheduleModalState.calendarId, rules: activeRules })
       });
       

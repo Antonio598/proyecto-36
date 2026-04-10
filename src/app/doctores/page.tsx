@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Stethoscope, Edit2, Trash2, X } from 'lucide-react';
 import { useSede } from '@/context/SedeContext';
+import { apiFetch } from '@/lib/apiFetch';
 
 interface Subaccount { id: string; name: string; }
 interface Doctor {
@@ -25,7 +26,7 @@ export default function DoctoresPage() {
     if (!selectedSede) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/doctors?subaccountId=${selectedSede}`);
+      const res = await apiFetch(`/api/doctors?subaccountId=${selectedSede}`);
       if (res.ok) setDoctors(await res.json());
     } catch (err) {
       console.error(err);
@@ -42,9 +43,8 @@ export default function DoctoresPage() {
 
     const url = editingDoctor ? `/api/doctors/${editingDoctor.id}` : '/api/doctors';
     const payload = { ...formData, subaccountId: selectedSede };
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method: editingDoctor ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (res.ok) {
@@ -57,7 +57,7 @@ export default function DoctoresPage() {
 
   const deleteDoctor = async (id: string) => {
     if (!confirm('¿Seguro?')) return;
-    const res = await fetch(`/api/doctors/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/doctors/${id}`, { method: 'DELETE' });
     if (res.ok) fetchData();
   };
 
