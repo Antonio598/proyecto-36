@@ -1,7 +1,5 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function sendAppointmentEmail({
   to,
   subject,
@@ -21,10 +19,13 @@ export async function sendAppointmentEmail({
   endTime: string;
   isOwner?: boolean;
 }) {
-  if (!process.env.RESEND_API_KEY) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
     console.warn('RESEND_API_KEY no encontrada. El correo no será enviado.');
     return;
   }
+
+  const resend = new Resend(apiKey);
 
   try {
     const html = isOwner 
