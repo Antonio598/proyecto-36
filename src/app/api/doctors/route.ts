@@ -11,9 +11,19 @@ export async function GET(request: Request) {
     const subaccountId = searchParams.get('subaccountId');
 
     let where: any = {};
+
+    if (!accountId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (subaccountId) {
+      // Validate ownership
+      const sub = await prisma.subaccount.findFirst({
+        where: { id: subaccountId, accountId }
+      });
+      if (!sub) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       where.subaccountId = subaccountId;
-    } else if (accountId) {
+    } else {
       // Filter to doctors in this account's subaccounts
       const accountSubaccounts = await prisma.subaccount.findMany({
         where: { accountId },

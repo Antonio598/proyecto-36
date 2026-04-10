@@ -6,25 +6,31 @@ import { getAccountIdFromRequest } from '@/lib/serverAuth';
 export async function GET(request: Request) {
   try {
     const accountId = getAccountIdFromRequest(request);
-    const { searchParams } = new URL(request.url);
-    let phone = searchParams.get('phone');
-    const id = searchParams.get('id');
-    phone = (phone || id)?.toString() || null;
+    
+    if (!accountId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (phone && accountId) {
+    const { searchParams } = new URL(request.url);
+    const phone = searchParams.get('phone');
+    const id = searchParams.get('id');
+    const searchValue = (phone || id)?.toString() || null;
+
+    if (searchValue) {
       const patient = await prisma.patient.findFirst({
-        where: { phone, accountId },
+        where: { 
+          accountId,
+          OR: [
+            { phone: searchValue },
+            { id: searchValue }
+          ]
+        },
       });
       return NextResponse.json(patient ? [patient] : []);
     }
 
-    if (phone) {
-      const patient = await prisma.patient.findFirst({ where: { phone } });
-      return NextResponse.json(patient ? [patient] : []);
-    }
-
     const patients = await prisma.patient.findMany({
-      where: accountId ? { accountId } : {},
+      where: { accountId },
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json(patients);
@@ -45,9 +51,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'FullName and phone are required' }, { status: 400 });
     }
 
+    if (!accountId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Check if phone already exists in this account
     const existingPatient = await prisma.patient.findFirst({
-      where: accountId ? { phone, accountId } : { phone },
+      where: { phone, accountId },
     });
 
     if (existingPatient) {

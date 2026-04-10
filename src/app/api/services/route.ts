@@ -9,11 +9,20 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const subaccountId = searchParams.get('subaccountId');
 
-    // Scope to account's subaccounts if accountId is present
     let whereClause: any = {};
+
+    if (!accountId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (subaccountId) {
+      // Validate ownership of subaccount
+      const sub = await prisma.subaccount.findFirst({
+        where: { id: subaccountId, accountId }
+      });
+      if (!sub) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       whereClause.subaccountId = subaccountId;
-    } else if (accountId) {
+    } else {
       // Only return services from subaccounts belonging to this account
       const accountSubaccounts = await prisma.subaccount.findMany({
         where: { accountId },

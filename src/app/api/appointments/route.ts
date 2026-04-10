@@ -18,6 +18,10 @@ export async function GET(request: Request) {
       status: { notIn: ['CANCELLED'] }
     };
 
+    if (!accountId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (dateQuery) {
       const startOfDay = new Date(`${dateQuery}T00:00:00.000Z`);
       const endOfDay = new Date(`${dateQuery}T23:59:59.999Z`);
@@ -25,8 +29,13 @@ export async function GET(request: Request) {
     }
 
     if (subaccountId) {
+      // Validate ownership
+      const sub = await prisma.subaccount.findFirst({
+        where: { id: subaccountId, accountId }
+      });
+      if (!sub) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       whereClause.subaccountId = subaccountId;
-    } else if (accountId) {
+    } else {
       // Scope to this account's subaccounts
       const accountSubaccounts = await prisma.subaccount.findMany({
         where: { accountId },
