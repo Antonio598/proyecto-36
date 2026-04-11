@@ -236,14 +236,19 @@ export async function POST(request: Request) {
     try {
       if (mainAppointment && !isBlocker) {
         // Obtener detalles del paciente, servicio y administradores
-        const [fullPatient, fullService, subaccount] = await Promise.all([
+        const [fullPatient, fullService] = await Promise.all([
           prisma.patient.findUnique({ where: { id: patientId } }),
-          prisma.service.findUnique({ where: { id: serviceId } }),
-          prisma.subaccount.findUnique({ 
-            where: { id: subaccountId || undefined },
-            include: { account: { include: { users: { where: { role: 'ADMIN' } } } } }
-          })
+          prisma.service.findUnique({ where: { id: serviceId } })
         ]);
+
+        let adminEmails: string[] = [];
+        if (mainAppointment.subaccountId) {
+          const sub = await prisma.subaccount.findUnique({ 
+            where: { id: mainAppointment.subaccountId },
+            include: { account: { include: { users: { where: { role: 'ADMIN' } } } } }
+          });
+          adminEmails = sub?.account?.users.map(u => u.email).filter(Boolean) as string[] || [];
+        }
 
         if (fullPatient && fullService) {
           const dateStr = format(mainAppointment.startTime, "EEEE d 'de' MMMM", { locale: es });
@@ -265,7 +270,6 @@ export async function POST(request: Request) {
           }
 
           // 2. Enviar a los administradores de la cuenta
-          const adminEmails = subaccount?.account?.users.map(u => u.email).filter(Boolean) as string[] || [];
           for (const email of adminEmails) {
             await sendAppointmentEmail({
               to: email,

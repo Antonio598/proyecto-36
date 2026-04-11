@@ -71,7 +71,7 @@ export default function CalendarPage() {
 
   // Quick Create Patient State
   const [isCreatingPatient, setIsCreatingPatient] = useState(false);
-  const [newPatientForm, setNewPatientForm] = useState({ fullName: '', phone: '' });
+  const [newPatientForm, setNewPatientForm] = useState({ fullName: '', phone: '', email: '' });
   const [isCreatingPatientSubmitting, setIsCreatingPatientSubmitting] = useState(false);
 
   useEffect(() => {
@@ -247,7 +247,7 @@ export default function CalendarPage() {
     setIsBlockMode(false);
     setRepeatCount(1);
     setIsCreatingPatient(false);
-    setNewPatientForm({ fullName: '', phone: '' });
+    setNewPatientForm({ fullName: '', phone: '', email: '' });
     setIsModalOpen(true);
     setError('');
   };
@@ -283,7 +283,7 @@ export default function CalendarPage() {
     setIsBlockMode(true);
     setRepeatCount(1);
     setIsCreatingPatient(false);
-    setNewPatientForm({ fullName: '', phone: '' });
+    setNewPatientForm({ fullName: '', phone: '', email: '' });
     setIsModalOpen(true);
     setError('');
   };
@@ -370,7 +370,7 @@ export default function CalendarPage() {
       setPatients(prev => [...prev, newPatient]);
       setForm(prev => ({ ...prev, patientId: newPatient.id }));
       setIsCreatingPatient(false);
-      setNewPatientForm({ fullName: '', phone: '' });
+      setNewPatientForm({ fullName: '', phone: '', email: '' });
     } catch(err: any) {
       setError(err.message);
     } finally {
@@ -725,10 +725,11 @@ export default function CalendarPage() {
                     </div>
                     {isCreatingPatient ? (
                       <div className="space-y-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
-                        <input type="text" placeholder="Nombre Completo" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500" value={newPatientForm.fullName} onChange={e => setNewPatientForm({...newPatientForm, fullName: e.target.value})} />
+                        <input type="text" placeholder="Nombre Completo *" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500 font-medium" value={newPatientForm.fullName} onChange={e => setNewPatientForm({...newPatientForm, fullName: e.target.value})} />
+                        <input type="email" placeholder="Correo Electrónico (Para notificaciones)" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500 font-medium" value={newPatientForm.email} onChange={e => setNewPatientForm({...newPatientForm, email: e.target.value})} />
                         <div className="flex gap-2">
-                          <input type="text" placeholder="Teléfono" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500" value={newPatientForm.phone} onChange={e => setNewPatientForm({...newPatientForm, phone: e.target.value})} />
-                          <button type="button" onClick={handleCreatePatient} disabled={isCreatingPatientSubmitting} className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold disabled:opacity-50">
+                          <input type="text" placeholder="Teléfono *" className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:ring-blue-500 focus:border-blue-500 font-medium" value={newPatientForm.phone} onChange={e => setNewPatientForm({...newPatientForm, phone: e.target.value})} />
+                          <button type="button" onClick={handleCreatePatient} disabled={isCreatingPatientSubmitting} className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold disabled:opacity-50 hover:bg-blue-700 transition-colors">
                             {isCreatingPatientSubmitting ? '...' : 'Crear'}
                           </button>
                         </div>

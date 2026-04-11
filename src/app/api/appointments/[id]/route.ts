@@ -1,6 +1,9 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { sendAppointmentEmail } from '@/lib/mail';
+import { es } from 'date-fns/locale/es';
+import { format } from 'date-fns';
 
 export async function PUT(
   request: Request,
@@ -90,7 +93,53 @@ export async function PUT(
     const appointment = await prisma.appointment.update({
       where: { id },
       data: updatedData,
+      include: { patient: true, service: true, subaccount: { include: { account: { include: { users: { where: { role: 'ADMIN' } } } } } } }
     });
+
+    // --- Enviar correos de notificación ---
+    try {
+      if (!appointment.isBlocker && (startTime || status === 'CONFIRMED')) {
+        const dateStr = format(appointment.startTime, "EEEE d 'de' MMMM", { locale: es });
+        const startStr = format(appointment.startTime, "HH:mm");
+        const endStr = format(appointment.endTime, "HH:mm");
+
+        const isReschedule = !!startTime;
+        const type = isReschedule ? 'RESCHEDULE' : 'BOOKING';
+
+        // 1. Al Paciente
+        if (appointment.patient?.email) {
+          await sendAppointmentEmail({
+            to: appointment.patient.email,
+            subject: isReschedule ? 'Tu Cita ha sido Modificada - Master Haven' : 'Confirmación de tu Cita - Master Haven',
+            patientName: appointment.patient.fullName,
+            serviceName: appointment.service?.name || 'Servicio',
+            date: dateStr,
+            startTime: startStr,
+            endTime: endStr,
+            isOwner: false,
+            type
+          });
+        }
+
+        // 2. A los administradores
+        const adminEmails = appointment.subaccount?.account?.users.map(u => u.email).filter(Boolean) as string[] || [];
+        for (const email of adminEmails) {
+          await sendAppointmentEmail({
+            to: email,
+            subject: isReschedule ? 'Cita Reprogramada' : 'Nueva Cita Agendada',
+            patientName: appointment.patient?.fullName || 'Paciente',
+            serviceName: appointment.service?.name || 'Servicio',
+            date: dateStr,
+            startTime: startStr,
+            endTime: endStr,
+            isOwner: true,
+            type
+          });
+        }
+      }
+    } catch (mailError) {
+      console.error('Error sending update notification:', mailError);
+    }
 
     return NextResponse.json(appointment);
   } catch (error) {
@@ -126,8 +175,50 @@ export async function DELETE(
       // Soft-delete/CANCELLED for regular appointments
       const appointment = await prisma.appointment.update({
         where: { id },
-        data: { status: 'CANCELLED' }
+        data: { status: 'CANCELLED' },
+        include: { patient: true, service: true, subaccount: { include: { account: { include: { users: { where: { role: 'ADMIN' } } } } } } }
       });
+
+      // --- Enviar correos de notificación ---
+      try {
+        const dateStr = format(appointment.startTime, "EEEE d 'de' MMMM", { locale: es });
+        const startStr = format(appointment.startTime, "HH:mm");
+        const endStr = format(appointment.endTime, "HH:mm");
+
+        // 1. Al Paciente
+        if (appointment.patient?.email) {
+          await sendAppointmentEmail({
+            to: appointment.patient.email,
+            subject: 'Cita Cancelada - Master Haven',
+            patientName: appointment.patient.fullName,
+            serviceName: appointment.service?.name || 'Servicio',
+            date: dateStr,
+            startTime: startStr,
+            endTime: endStr,
+            isOwner: false,
+            type: 'CANCEL'
+          });
+        }
+
+        // 2. A los administradores
+        const adminEmails = appointment.subaccount?.account?.users.map(u => u.email).filter(Boolean) as string[] || [];
+        for (const email of adminEmails) {
+          await sendAppointmentEmail({
+            to: email,
+            subject: 'Cita Cancelada',
+            patientName: appointment.patient?.fullName || 'Paciente',
+            serviceName: appointment.service?.name || 'Servicio',
+            date: dateStr,
+            startTime: startStr,
+            endTime: endStr,
+            isOwner: true,
+            type: 'CANCEL'
+          });
+        }
+      } catch (mailError) {
+        console.error('Error sending cancel notification:', mailError);
+      }
+
       return NextResponse.json({ message: 'Appointment cancelled successfully', appointment });
     }
   } catch (error) {

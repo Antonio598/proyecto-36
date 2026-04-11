@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { fromZonedTime } from 'date-fns-tz';
 import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
+import { sendAppointmentEmail } from '@/lib/mail';
+import { es } from 'date-fns/locale/es';
+import { format } from 'date-fns';
 
 export async function POST(request: Request) {
   try {
@@ -13,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    let { phone, fullName, serviceId, startTime, notes, id, subaccountId, doctorId, calendarId } = body;
+    let { phone, fullName, email, serviceId, startTime, notes, id, subaccountId, doctorId, calendarId } = body;
     phone = (phone || id)?.toString();
 
     if (!phone || !fullName || !serviceId || !startTime) {
@@ -37,8 +40,8 @@ export async function POST(request: Request) {
     // 2. Resolve Patient (Upsert by Phone + Account)
     const patient = await prisma.patient.upsert({
       where: { phone_accountId: { phone, accountId: account.id } },
-      update: { fullName },
-      create: { phone, fullName, accountId: account.id, notes: notes || 'Auto-created via n8n integration' },
+      update: { fullName, email: email || undefined },
+      create: { phone, fullName, email, accountId: account.id, notes: notes || 'Auto-created via n8n integration' },
     });
 
     const naiveLocalTime = startTime.substring(0, 19);
@@ -137,6 +140,50 @@ export async function POST(request: Request) {
         service: { select: { name: true } },
       },
     });
+
+    // --- Enviar correos de notificación ---
+    try {
+      const dateStr = format(appointment.startTime, "EEEE d 'de' MMMM", { locale: es });
+      const startStr = format(appointment.startTime, "HH:mm");
+      const endStr = format(appointment.endTime, "HH:mm");
+
+      // 1. Enviar al Paciente si tiene correo
+      const patientEmail = email || patient.email;
+      if (patientEmail) {
+        await sendAppointmentEmail({
+          to: patientEmail,
+          subject: 'Confirmación de tu Cita - Master Haven',
+          patientName: patient.fullName,
+          serviceName: appointment.service?.name || 'Servicio',
+          date: dateStr,
+          startTime: startStr,
+          endTime: endStr,
+          isOwner: false
+        });
+      }
+
+      // 2. Enviar a los administradores de la cuenta
+      const fullAccount = await prisma.account.findUnique({
+        where: { id: account.id },
+        include: { users: { where: { role: 'ADMIN' } } }
+      });
+      
+      const adminEmails = fullAccount?.users.map(u => u.email).filter(Boolean) as string[] || [];
+      for (const adminEmail of adminEmails) {
+        await sendAppointmentEmail({
+          to: adminEmail,
+          subject: 'Nueva Cita Recibida (n8n)',
+          patientName: patient.fullName,
+          serviceName: appointment.service?.name || 'Servicio',
+          date: dateStr,
+          startTime: startStr,
+          endTime: endStr,
+          isOwner: true
+        });
+      }
+    } catch (mailError) {
+      console.error('Error in email notification flow (n8n):', mailError);
+    }
 
     return NextResponse.json({ success: true, data: appointment }, { status: 201 });
   } catch (error) {

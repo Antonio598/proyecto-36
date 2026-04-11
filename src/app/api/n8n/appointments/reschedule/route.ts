@@ -4,6 +4,8 @@ import prisma from '@/lib/prisma';
 import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { format } from 'date-fns';
+import { sendAppointmentEmail } from '@/lib/mail';
+import { es } from 'date-fns/locale/es';
 
 const PANAMA_TZ = 'America/Panama';
 
@@ -150,6 +152,51 @@ export async function PUT(request: Request) {
         service: { select: { name: true } },
       },
     });
+
+    // --- Enviar correos de notificación ---
+    try {
+      const dateStr = format(updatedAppointment.startTime, "EEEE d 'de' MMMM", { locale: es });
+      const startStr = format(updatedAppointment.startTime, "HH:mm");
+      const endStr = format(updatedAppointment.endTime, "HH:mm");
+
+      // 1. Enviar al Paciente
+      if (patient.email) {
+        await sendAppointmentEmail({
+          to: patient.email,
+          subject: 'Tu Cita ha sido Modificada - Master Haven',
+          patientName: patient.fullName,
+          serviceName: updatedAppointment.service?.name || 'Servicio',
+          date: dateStr,
+          startTime: startStr,
+          endTime: endStr,
+          isOwner: false,
+          type: 'RESCHEDULE'
+        });
+      }
+
+      // 2. Enviar a los administradores de la cuenta
+      const fullAccount = await prisma.account.findUnique({
+        where: { id: account.id },
+        include: { users: { where: { role: 'ADMIN' } } }
+      });
+      
+      const adminEmails = fullAccount?.users.map(u => u.email).filter(Boolean) as string[] || [];
+      for (const adminEmail of adminEmails) {
+        await sendAppointmentEmail({
+          to: adminEmail,
+          subject: 'Cita Reprogramada (n8n)',
+          patientName: patient.fullName,
+          serviceName: updatedAppointment.service?.name || 'Servicio',
+          date: dateStr,
+          startTime: startStr,
+          endTime: endStr,
+          isOwner: true,
+          type: 'RESCHEDULE'
+        });
+      }
+    } catch (mailError) {
+      console.error('Error in email notification flow (reschedule n8n):', mailError);
+    }
 
     return NextResponse.json({ success: true, data: updatedAppointment });
   } catch (error) {
