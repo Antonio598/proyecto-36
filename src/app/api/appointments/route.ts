@@ -65,7 +65,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { patientId, serviceId, professionalId, startTime, endTime, notes, status, subaccountId, calendarId, doctorId, isBlocker, repeatCount } = body;
+    const { patientId, serviceId, professionalId, startTime, endTime, notes, status, subaccountId, calendarId, doctorId, isBlocker, repeatCount, email } = body;
 
     if (!startTime) {
       return NextResponse.json({ error: 'startTime is required' }, { status: 400 });
@@ -236,10 +236,18 @@ export async function POST(request: Request) {
     try {
       if (mainAppointment && !isBlocker) {
         // Obtener detalles del paciente, servicio y administradores
-        const [fullPatient, fullService] = await Promise.all([
+        let [fullPatient, fullService] = await Promise.all([
           prisma.patient.findUnique({ where: { id: patientId } }),
           prisma.service.findUnique({ where: { id: serviceId } })
         ]);
+
+        // Si se proporciona un correo en la petición y el paciente no lo tenía, actualizarlo
+        if (fullPatient && email && fullPatient.email !== email) {
+          fullPatient = await prisma.patient.update({
+            where: { id: patientId },
+            data: { email }
+          });
+        }
 
         let adminEmails: string[] = [];
         if (mainAppointment.subaccountId) {
