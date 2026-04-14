@@ -8,8 +8,8 @@ import AuthGuard from "@/components/AuthGuard";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SaaS Medical Dashboard",
-  description: "Advanced API-First Patient and Appointment Management",
+  title: "Galenus AI Dashboard",
+  description: "Plataforma Inteligente de Gestión Médica",
 };
 
 export default function RootLayout({

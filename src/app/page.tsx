@@ -8,7 +8,7 @@ import {
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Dashboard | MedSaaS',
+  title: 'Dashboard | Galenus AI',
 };
 
 const stats = [

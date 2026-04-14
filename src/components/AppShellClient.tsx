@@ -46,8 +46,8 @@ export default function AppShellClient({ children }: { children: React.ReactNode
           {/* Mobile Header */}
           <header className="md:hidden flex h-16 shrink-0 items-center justify-between px-4 bg-white border-b border-gray-200 z-20">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-sm italic shadow-lg shadow-blue-200">M</div>
-              <span className="font-black text-gray-900 tracking-tight">Med<span className="text-blue-600">SaaS</span></span>
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-sm italic shadow-lg shadow-blue-200">G</div>
+              <span className="font-black text-gray-900 tracking-tight">Galenus <span className="text-blue-600">AI</span></span>
             </div>
             <button 
               onClick={() => setIsMenuOpen(true)}

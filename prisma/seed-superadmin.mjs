@@ -11,9 +11,9 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const EMAIL = 'admin@medsaas.com';      // Change this
-const PASSWORD = 'SuperAdmin2026!';      // Change this
-const NAME = 'Super Admin';
+const EMAIL = 'Galenus17@gmail.com';      // Change this
+const PASSWORD = 'Galenus.AI.1987';      // Change this
+const NAME = 'Galenus AI';
 
 async function main() {
   const hash = await bcrypt.hash(PASSWORD, 10);

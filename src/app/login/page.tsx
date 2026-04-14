@@ -105,7 +105,7 @@ export default function LoginPage() {
             <Stethoscope className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-            Med<span className="text-blue-600">SaaS</span>
+            Galenus <span className="text-blue-600">AI</span>
           </h1>
           <p className="text-gray-500 mt-1 text-sm">
             {isRegister ? 'Crea tu cuenta para comenzar' : 'Inicia sesión en tu panel'}
@@ -230,7 +230,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          © 2026 MedSaaS — Panel de Gestión Médica
+          © 2026 Galenus AI — Panel de Gestión Médica
         </p>
       </div>
     </div>
