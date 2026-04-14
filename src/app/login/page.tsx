@@ -1,17 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Stethoscope, Mail, Lock, Eye, EyeOff, ArrowRight, UserPlus, LogIn } from 'lucide-react';
+import { Stethoscope, Mail, Lock, Eye, EyeOff, ArrowRight, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
-  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [checked, setChecked] = useState(false);
 
   // Redirect if already logged in
@@ -33,33 +30,18 @@ export default function LoginPage() {
     }
   }, []);
 
-  if (!checked) return null; // Wait for session check before rendering login form
+  if (!checked) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
-
-    if (isRegister && password !== confirmPassword) {
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
-    if (isRegister && password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
-      return;
-    }
-
     setLoading(true);
 
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          action: isRegister ? 'register' : 'login',
-        }),
+        body: JSON.stringify({ email, password, action: 'login' }),
       });
 
       const data = await res.json();
@@ -70,18 +52,7 @@ export default function LoginPage() {
         return;
       }
 
-      if (isRegister) {
-        setSuccess('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.');
-        setIsRegister(false);
-        setPassword('');
-        setConfirmPassword('');
-        setLoading(false);
-        return;
-      }
-
-      // Save session and user info for auth guard
       if (data.success) {
-        // Store full user object as JSON so AuthGuard can read role
         localStorage.setItem('med_session', JSON.stringify(data.user));
         localStorage.setItem('med_user', JSON.stringify(data.user));
         if (data.user?.role === 'SUPERADMIN') {
@@ -107,9 +78,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
             Galenus <span className="text-blue-600">AI</span>
           </h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            {isRegister ? 'Crea tu cuenta para comenzar' : 'Inicia sesión en tu panel'}
-          </p>
+          <p className="text-gray-500 mt-1 text-sm">Inicia sesión en tu panel</p>
         </div>
 
         {/* Card */}
@@ -118,13 +87,6 @@ export default function LoginPage() {
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-start gap-2">
               <span className="shrink-0 mt-0.5">⚠️</span>
               <span>{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl flex items-start gap-2">
-              <span className="shrink-0 mt-0.5">✅</span>
-              <span>{success}</span>
             </div>
           )}
 
@@ -174,27 +136,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Confirm Password (register only) */}
-            {isRegister && (
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Confirmar contraseña
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    id="confirmPassword"
-                    type={showPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white"
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Submit */}
             <button
               type="submit"
@@ -203,11 +144,6 @@ export default function LoginPage() {
             >
               {loading ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : isRegister ? (
-                <>
-                  <UserPlus className="w-4 h-4" />
-                  Crear Cuenta
-                </>
               ) : (
                 <>
                   <LogIn className="w-4 h-4" />
@@ -217,16 +153,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Toggle */}
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess(''); }}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors cursor-pointer"
-            >
-              {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿Primera vez? Crea una cuenta'}
-            </button>
-          </div>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">

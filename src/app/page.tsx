@@ -137,13 +137,15 @@ export default function LandingPage() {
               >
                 Iniciar sesión
               </Link>
-              <Link
-                href="/login"
+              <a
+                href="https://wa.link/bc4253"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md shadow-blue-500/25"
               >
                 Comenzar ya
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -179,13 +181,15 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/login"
+            <a
+              href="https://wa.link/bc4253"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-base font-bold px-8 py-4 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/30 hover:scale-105 duration-200"
             >
-              Comenzar ya — Es Gratis
+              Comenzar ya
               <ArrowRight className="w-5 h-5" />
-            </Link>
+            </a>
             <a
               href="#features"
               className="inline-flex items-center gap-2 text-base font-semibold text-gray-700 hover:text-blue-600 px-6 py-4 rounded-2xl hover:bg-white/60 transition-all"
@@ -341,13 +345,15 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/login"
+            <a
+              href="https://wa.link/bc4253"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-white text-blue-700 text-base font-bold px-8 py-4 rounded-2xl hover:bg-blue-50 transition-all shadow-xl hover:scale-105 duration-200"
             >
-              Comenzar ahora — Gratis
+              Comenzar ahora
               <ArrowRight className="w-5 h-5" />
-            </Link>
+            </a>
             <a
               href="mailto:hola@galenusai.com"
               className="inline-flex items-center gap-2 text-base font-semibold text-blue-200 hover:text-white px-6 py-4 rounded-2xl hover:bg-white/10 transition-all"
@@ -384,11 +390,15 @@ export default function LandingPage() {
               © 2026 Galenus AI. Todos los derechos reservados. Plataforma Inteligente de Gestión Médica.
             </p>
             <nav className="flex gap-5">
-              {['Privacidad', 'Términos', 'Contacto'].map((l) => (
-                <a key={l} href="#" className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium">
-                  {l}
-                </a>
-              ))}
+              <a href="/privacidad" className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium">
+                Privacidad
+              </a>
+              <a href="/terminos" className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium">
+                Términos
+              </a>
+              <a href="https://wa.link/bc4253" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium">
+                Contacto
+              </a>
             </nav>
           </div>
         </div>
