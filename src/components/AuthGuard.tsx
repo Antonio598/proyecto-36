@@ -18,16 +18,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const isSuperAdmin = session?.role === 'SUPERADMIN';
     const onSuperAdminPath = pathname.startsWith('/superadmin');
+    const PUBLIC_ROUTES = ['/', '/login'];
 
     if (!session) {
-      // Not logged in
-      if (pathname !== '/login') router.replace('/login');
+      // Not logged in — allow through only on public routes
+      if (!PUBLIC_ROUTES.includes(pathname)) router.replace('/login');
     } else if (isSuperAdmin && !onSuperAdminPath && pathname !== '/login') {
       // Superadmin trying to access normal app → redirect to their dashboard
       router.replace('/superadmin');
     } else if (!isSuperAdmin && onSuperAdminPath) {
       // Normal user trying to access super admin → redirect out
-      router.replace('/');
+      router.replace('/dashboard');
+    } else if (pathname === '/') {
+      // Logged-in user on landing page → send to app dashboard
+      router.replace('/dashboard');
     } else {
       setAuthenticated(true);
     }
@@ -44,8 +48,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // On login page, always render
-  if (pathname === '/login') {
+  // On public pages (landing, login), always render
+  if (pathname === '/login' || pathname === '/') {
     return <>{children}</>;
   }
 

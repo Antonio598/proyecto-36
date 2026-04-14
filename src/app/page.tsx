@@ -1,102 +1,398 @@
-import { 
-  Users, 
-  CalendarCheck, 
-  TrendingUp,
-  Clock,
-  ArrowUpRight
-} from 'lucide-react';
 import Link from 'next/link';
+import {
+  Calendar,
+  Users,
+  Bell,
+  Building2,
+  Zap,
+  BarChart2,
+  ArrowRight,
+  Stethoscope,
+  CheckCircle,
+  Star,
+  Shield,
+  Clock,
+  TrendingUp,
+} from 'lucide-react';
 
 export const metadata = {
-  title: 'Dashboard | Galenus AI',
+  title: 'Galenus AI — La Plataforma Médica más Inteligente',
+  description:
+    'Gestiona tu clínica con inteligencia artificial. Agenda, pacientes, notificaciones automáticas, multi-sede y reportes en tiempo real.',
 };
 
-const stats = [
-  { name: 'Citas Hoy', value: '0', icon: CalendarCheck, change: '0', changeType: 'increase' },
-  { name: 'Pacientes Nuevos', value: '0', icon: Users, change: '0%', changeType: 'increase' },
-  { name: 'Ingresos Mes', value: '$0', icon: TrendingUp, change: '0%', changeType: 'increase' },
+const features = [
+  {
+    icon: Calendar,
+    title: 'Agenda Inteligente',
+    description:
+      'Gestiona citas con detección automática de conflictos, reprogramaciones y recordatorios sin esfuerzo.',
+  },
+  {
+    icon: Users,
+    title: 'Gestión de Pacientes',
+    description:
+      'Historial clínico completo, búsqueda instantánea y seguimiento personalizado de cada paciente.',
+  },
+  {
+    icon: Bell,
+    title: 'Notificaciones Automáticas',
+    description:
+      'Confirmaciones y recordatorios por correo electrónico para reducir las inasistencias a cero.',
+  },
+  {
+    icon: Building2,
+    title: 'Multi-sede',
+    description:
+      'Administra todas tus sucursales, médicos y calendarios desde un único panel centralizado.',
+  },
+  {
+    icon: Zap,
+    title: 'IA Integrada',
+    description:
+      'Asistente inteligente para consultas rápidas, análisis de datos y soporte operativo 24/7.',
+  },
+  {
+    icon: BarChart2,
+    title: 'Panel de Reportes',
+    description:
+      'Métricas de ingresos, ocupación y rendimiento en tiempo real para tomar mejores decisiones.',
+  },
 ];
 
-const upcomingAppointments: any[] = [];
+const testimonials = [
+  {
+    quote:
+      'Redujimos el tiempo de gestión de citas en un 45%. Nuestros médicos ahora se enfocan en los pacientes, no en el papeleo.',
+    name: 'Dra. Ana Rodríguez',
+    clinic: 'Clínica Santa María',
+    specialty: 'Medicina General',
+  },
+  {
+    quote:
+      'Los ingresos crecieron un 30% en los primeros 3 meses. La automatización de cobros y recordatorios marcó la diferencia.',
+    name: 'Dr. Carlos Méndez',
+    clinic: 'Centro Médico Integral',
+    specialty: 'Cardiología',
+  },
+  {
+    quote:
+      'Gestionar 4 sedes desde un solo lugar era impensable antes de Galenus AI. Ahora es nuestra realidad diaria.',
+    name: 'Dra. María González',
+    clinic: 'Policlínica Salud Total',
+    specialty: 'Gerencia Médica',
+  },
+];
 
-export default function DashboardPage() {
+const stats = [
+  { value: '500+', label: 'Clínicas activas' },
+  { value: '98%', label: 'Satisfacción de clientes' },
+  { value: '40%', label: 'Menos tiempo administrativo' },
+  { value: '30%', label: 'Aumento promedio de ingresos' },
+];
+
+const benefits = [
+  'Sin contratos a largo plazo',
+  'Configuración en menos de 10 minutos',
+  'Soporte incluido en todos los planes',
+  'Datos 100% seguros y privados',
+];
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-gray-900">Resumen General</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Métricas clave y próximas citas de tu consultorio.
-        </p>
-      </div>
+    <div className="min-h-screen bg-white text-slate-800">
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.map((item) => (
-          <div
-            key={item.name}
-            className="relative overflow-hidden rounded-xl bg-white p-6 shadow-sm border border-gray-100 transition-all hover:shadow-md"
-          >
-            <dt>
-              <div className="absolute rounded-md bg-blue-500/10 p-3">
-                <item.icon className="h-6 w-6 text-blue-600" aria-hidden="true" />
+      {/* ── NAVBAR ── */}
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-base italic shadow-md shadow-blue-500/30">
+                G
               </div>
-              <p className="ml-16 truncate text-sm font-medium text-gray-500">{item.name}</p>
-            </dt>
-            <dd className="ml-16 flex items-baseline pb-1 sm:pb-2">
-              <p className="text-2xl font-semibold text-gray-900">{item.value}</p>
-              <p
-                className={`ml-2 flex items-baseline text-sm font-semibold ${
-                  item.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                }`}
+              <span className="font-black text-gray-900 tracking-tight text-lg">
+                Galenus <span className="text-blue-600">AI</span>
+              </span>
+            </div>
+
+            {/* Nav links — hidden on mobile */}
+            <nav className="hidden md:flex items-center gap-8">
+              <a href="#features" className="text-sm text-gray-600 hover:text-blue-600 font-medium transition-colors">
+                Características
+              </a>
+              <a href="#testimonios" className="text-sm text-gray-600 hover:text-blue-600 font-medium transition-colors">
+                Casos de Éxito
+              </a>
+              <a href="#cta" className="text-sm text-gray-600 hover:text-blue-600 font-medium transition-colors">
+                Precios
+              </a>
+            </nav>
+
+            {/* Auth buttons */}
+            <div className="flex items-center gap-3">
+              <Link
+                href="/login"
+                className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors px-3 py-2 rounded-lg hover:bg-blue-50"
               >
-                {item.changeType === 'increase' ? (
-                  <ArrowUpRight className="h-4 w-4 flex-shrink-0 self-center text-green-500" aria-hidden="true" />
-                ) : null}
-                <span className="sr-only">
-                  {item.changeType === 'increase' ? 'Increased by' : 'Decreased by'}
-                </span>
-                {item.change}
-              </p>
-            </dd>
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md shadow-blue-500/25"
+              >
+                Comenzar ya
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
-        ))}
-      </div>
-
-      {/* Próximas Citas Widget */}
-      <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
-        <div className="border-b border-gray-200 px-6 py-5 flex items-center justify-between">
-          <h3 className="text-base font-semibold leading-6 text-gray-900">Próximas Citas (Hoy)</h3>
-          <Link href="/calendar" className="text-sm font-medium text-blue-600 hover:text-blue-500">
-            Ver Calendario &rarr;
-          </Link>
         </div>
-        <ul role="list" className="divide-y divide-gray-100">
-          {upcomingAppointments.map((appt) => (
-            <li key={appt.id} className="px-6 py-5 flex justify-between gap-x-6 hover:bg-gray-50 transition-colors">
-              <div className="flex min-w-0 gap-x-4 items-center">
-                <div className="h-10 w-10 flex-none rounded-full bg-blue-50 flex flex-col items-center justify-center text-blue-700 font-bold">
-                  {appt.patient.charAt(0)}
-                </div>
-                <div className="min-w-0 flex-auto">
-                  <p className="text-sm font-semibold leading-6 text-gray-900">{appt.patient}</p>
-                  <p className="mt-1 truncate text-xs leading-5 text-gray-500">{appt.service}</p>
-                </div>
+      </header>
+
+      {/* ── HERO ── */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-20 pb-28">
+        {/* Background decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-32 w-96 h-96 bg-blue-200/40 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-200/40 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 text-xs font-semibold px-4 py-1.5 rounded-full mb-6 border border-blue-200">
+            <Zap className="w-3.5 h-3.5" />
+            IA Médica de próxima generación
+          </div>
+
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight leading-[1.1] max-w-4xl mx-auto">
+            La plataforma médica más{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              inteligente
+            </span>{' '}
+            para tu clínica
+          </h1>
+
+          <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Reduce un <strong className="text-gray-900">40% el tiempo administrativo</strong>, mejora la satisfacción
+            de tus pacientes y haz crecer tus ingresos con automatización e inteligencia artificial.
+          </p>
+
+          {/* CTAs */}
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-base font-bold px-8 py-4 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/30 hover:scale-105 duration-200"
+            >
+              Comenzar ya — Es Gratis
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <a
+              href="#features"
+              className="inline-flex items-center gap-2 text-base font-semibold text-gray-700 hover:text-blue-600 px-6 py-4 rounded-2xl hover:bg-white/60 transition-all"
+            >
+              Ver características
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+
+          {/* Trust badges */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
+            {benefits.map((b) => (
+              <div key={b} className="flex items-center gap-1.5 text-sm text-gray-600">
+                <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                {b}
               </div>
-              <div className="flex flex-col items-end justify-center">
-                <div className="flex items-center gap-1 text-sm leading-6 text-gray-900 font-medium">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  {appt.time}
+            ))}
+          </div>
+
+          {/* Stats */}
+          <div className="mt-16 grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-3xl mx-auto">
+            {stats.map((s) => (
+              <div key={s.label} className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white shadow-sm">
+                <p className="text-3xl font-black text-gray-900">{s.value}</p>
+                <p className="text-sm text-gray-500 mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FEATURES ── */}
+      <section id="features" className="py-24 bg-gray-50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest mb-3">
+              Funcionalidades
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">
+              Todo lo que necesita tu clínica
+            </h2>
+            <p className="mt-4 text-lg text-gray-500">
+              Una plataforma completa diseñada por y para profesionales de la salud.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((f) => (
+              <div
+                key={f.title}
+                className="group bg-white rounded-2xl p-7 border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+              >
+                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-5 group-hover:bg-blue-100 transition-colors">
+                  <f.icon className="w-6 h-6 text-blue-600" />
                 </div>
-                <div className="mt-1 flex items-center gap-x-1.5">
-                  <div className={`flex-none rounded-full p-1 ${appt.status === 'Confirmada' ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
-                    <div className={`h-1.5 w-1.5 rounded-full ${appt.status === 'Confirmada' ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                <h3 className="text-base font-bold text-gray-900 mb-2">{f.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{f.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SOCIAL PROOF BANNER ── */}
+      <section className="py-14 bg-gradient-to-r from-blue-600 to-indigo-700">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="text-white text-center md:text-left">
+              <p className="text-2xl font-black">¿Por qué elegir Galenus AI?</p>
+              <p className="text-blue-100 mt-1">La plataforma más completa para gestión clínica en Latinoamérica.</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-8">
+              {[
+                { icon: Shield, label: 'Datos seguros', sub: 'Cifrado de extremo a extremo' },
+                { icon: Clock, label: 'Siempre disponible', sub: '99.9% de uptime garantizado' },
+                { icon: TrendingUp, label: 'ROI comprobado', sub: '+30% de ingresos promedio' },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-3 text-white">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                    <item.icon className="w-5 h-5" />
                   </div>
-                  <p className="text-xs leading-5 text-gray-500">{appt.status}</p>
+                  <div>
+                    <p className="font-bold text-sm">{item.label}</p>
+                    <p className="text-xs text-blue-100">{item.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ── */}
+      <section id="testimonios" className="py-24 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest mb-3">
+              Casos de Éxito
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">
+              Clínicas que ya transformaron su gestión
+            </h2>
+            <p className="mt-4 text-lg text-gray-500">
+              Resultados reales de profesionales que confiaron en Galenus AI.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+            {testimonials.map((t) => (
+              <div
+                key={t.name}
+                className="relative bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+              >
+                {/* Stars */}
+                <div className="flex gap-1 mb-5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+
+                <blockquote className="text-gray-700 text-sm leading-relaxed mb-6">
+                  &ldquo;{t.quote}&rdquo;
+                </blockquote>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                    {t.name.split(' ').slice(-1)[0].charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{t.name}</p>
+                    <p className="text-xs text-blue-600 font-medium">{t.clinic}</p>
+                    <p className="text-xs text-gray-400">{t.specialty}</p>
+                  </div>
                 </div>
               </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ── */}
+      <section id="cta" className="py-24 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/15 rounded-2xl mb-6">
+            <Stethoscope className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+            ¿Listo para transformar tu clínica?
+          </h2>
+          <p className="mt-5 text-lg text-blue-100 max-w-xl mx-auto">
+            Únete a más de <strong className="text-white">500 clínicas</strong> que ya gestionan su práctica con
+            inteligencia artificial. Sin tarjeta de crédito, sin complicaciones.
+          </p>
+
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 bg-white text-blue-700 text-base font-bold px-8 py-4 rounded-2xl hover:bg-blue-50 transition-all shadow-xl hover:scale-105 duration-200"
+            >
+              Comenzar ahora — Gratis
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <a
+              href="mailto:hola@galenusai.com"
+              className="inline-flex items-center gap-2 text-base font-semibold text-blue-200 hover:text-white px-6 py-4 rounded-2xl hover:bg-white/10 transition-all"
+            >
+              ¿Tienes preguntas? Contáctanos
+            </a>
+          </div>
+
+          {/* Mini trust row */}
+          <div className="mt-10 flex flex-wrap justify-center gap-6">
+            {benefits.map((b) => (
+              <div key={b} className="flex items-center gap-1.5 text-sm text-blue-100">
+                <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                {b}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className="bg-gray-50 border-t border-gray-100 py-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-sm italic">
+                G
+              </div>
+              <span className="font-black text-gray-900 tracking-tight">
+                Galenus <span className="text-blue-600">AI</span>
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 text-center">
+              © 2026 Galenus AI. Todos los derechos reservados. Plataforma Inteligente de Gestión Médica.
+            </p>
+            <nav className="flex gap-5">
+              {['Privacidad', 'Términos', 'Contacto'].map((l) => (
+                <a key={l} href="#" className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium">
+                  {l}
+                </a>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

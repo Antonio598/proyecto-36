@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
-import ChatbotWidget from "@/components/ChatbotWidget";
 import AuthGuard from "@/components/AuthGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Galenus AI Dashboard",
+  title: "Galenus AI — Gestión Médica Inteligente",
   description: "Plataforma Inteligente de Gestión Médica",
 };
 
