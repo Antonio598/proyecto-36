@@ -31,6 +31,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace('/dashboard');
     } else if (pathname === '/') {
       // Logged-in user on landing page → send to app dashboard
+      // Set authenticated=true first so /dashboard renders without a spinner flash
+      setAuthenticated(true);
       router.replace('/dashboard');
     } else {
       setAuthenticated(true);
