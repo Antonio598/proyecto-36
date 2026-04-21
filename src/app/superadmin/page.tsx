@@ -59,7 +59,7 @@ export default function SuperAdminPage() {
     if (!raw) { router.replace('/login'); return; }
     let parsed: any;
     try { parsed = JSON.parse(raw); } catch { router.replace('/login'); return; }
-    if (parsed?.role !== 'SUPERADMIN') { router.replace('/dashboard'); return; }
+    if (parsed?.role !== 'SUPERADMIN') { router.replace('/agent'); return; }
     setAdminId(parsed.id);
     fetchData(parsed.id);
   }, [fetchData, router]);

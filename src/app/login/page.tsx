@@ -20,10 +20,10 @@ export default function LoginPage() {
         if (parsed?.role === 'SUPERADMIN') {
           window.location.href = '/superadmin';
         } else {
-          window.location.href = '/dashboard';
+          window.location.href = '/agent';
         }
       } catch {
-        window.location.href = '/dashboard';
+        window.location.href = '/agent';
       }
     } else {
       setChecked(true);
@@ -58,7 +58,7 @@ export default function LoginPage() {
         if (data.user?.role === 'SUPERADMIN') {
           window.location.href = '/superadmin';
         } else {
-          window.location.href = '/dashboard';
+          window.location.href = '/agent';
         }
       }
     } catch {

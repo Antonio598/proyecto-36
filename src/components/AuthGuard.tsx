@@ -28,12 +28,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace('/superadmin');
     } else if (!isSuperAdmin && onSuperAdminPath) {
       // Normal user trying to access super admin → redirect out
-      router.replace('/dashboard');
+      router.replace('/agent');
     } else if (pathname === '/') {
       // Logged-in user on landing page → send to app dashboard
-      // Set authenticated=true first so /dashboard renders without a spinner flash
+      // Set authenticated=true first so /agent renders without a spinner flash
       setAuthenticated(true);
-      router.replace('/dashboard');
+      router.replace('/agent');
     } else {
       setAuthenticated(true);
     }
