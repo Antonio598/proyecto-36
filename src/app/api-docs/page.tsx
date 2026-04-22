@@ -32,7 +32,7 @@ x-api-key: TU_API_KEY_AQUI
 
 // Ejemplo con curl:
 curl -H "x-api-key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \\
-     https://my-funnel-proyecto-36.d3xtpr.easypanel.host/api/n8n/subaccounts
+     https://galenus.ai/api/n8n/subaccounts
 
 // Ejemplo en n8n (HTTP Request node):
 // Headers → Add Header:
@@ -46,7 +46,7 @@ curl -H "x-api-key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \\
           </div>
 
           <p className="text-gray-600 mb-6">
-            Todos los recursos se listan bajo la ruta base de tu servidor: <code>https://my-funnel-proyecto-36.d3xtpr.easypanel.host</code>.
+            Todos los recursos se listan bajo la ruta base de tu servidor: <code>https://galenus.ai</code>.
             <br />
             <strong>IMPORTANTE:</strong> Estas APIs usan <code>phone</code> como identificador principal. Ahora incluyen soporte Multi-Cuenta / Multi-Sede / Multi-Calendario.
           </p>
