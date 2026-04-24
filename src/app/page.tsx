@@ -22,7 +22,8 @@ export const metadata = {
     'Contrata tu agente de IA y organiza la atención de tu práctica médica en una sola plataforma. Para clínicas, consultorios y especialistas.',
 };
 
-const WA_LINK = 'https://wa.link/bc4253';
+const WA_LINK = 'https://api.whatsapp.com/send?phone=50769467117&text=Hola%2C%20quiero%20informaci%C3%B3n%20%20%F0%9F%98%80';
+const CONTACT_EMAIL = 'mailto:galenus17@gmail.com';
 
 const agentCapabilities = [
   {
@@ -508,7 +509,7 @@ export default function LandingPage() {
             <nav className="flex gap-5">
               <a href="/privacidad" className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium">Privacidad</a>
               <a href="/terminos" className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium">Términos</a>
-              <a href={WA_LINK} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium">Contacto</a>
+              <a href={CONTACT_EMAIL} className="text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium">Contacto</a>
             </nav>
           </div>
         </div>
