@@ -110,7 +110,7 @@ export async function PUT(
         if (appointment.patient?.email) {
           await sendAppointmentEmail({
             to: appointment.patient.email,
-            subject: isReschedule ? 'Tu Cita ha sido Modificada - Master Haven' : 'Confirmación de tu Cita - Master Haven',
+            subject: isReschedule ? 'Tu Cita ha sido Modificada - Galenus AI' : 'Confirmación de tu Cita - Galenus AI',
             patientName: appointment.patient.fullName,
             serviceName: appointment.service?.name || 'Servicio',
             date: dateStr,
@@ -189,7 +189,7 @@ export async function DELETE(
         if (appointment.patient?.email) {
           await sendAppointmentEmail({
             to: appointment.patient.email,
-            subject: 'Cita Cancelada - Master Haven',
+            subject: 'Cita Cancelada - Galenus AI',
             patientName: appointment.patient.fullName,
             serviceName: appointment.service?.name || 'Servicio',
             date: dateStr,

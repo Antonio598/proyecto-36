@@ -163,7 +163,7 @@ export async function PUT(request: Request) {
       if (patient.email) {
         await sendAppointmentEmail({
           to: patient.email,
-          subject: 'Tu Cita ha sido Modificada - Master Haven',
+          subject: 'Tu Cita ha sido Modificada - Galenus AI',
           patientName: patient.fullName,
           serviceName: updatedAppointment.service?.name || 'Servicio',
           date: dateStr,

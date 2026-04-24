@@ -102,7 +102,7 @@ export async function POST(request: Request) {
       if (patient.email) {
         await sendAppointmentEmail({
           to: patient.email,
-          subject: 'Cita Cancelada - Master Haven',
+          subject: 'Cita Cancelada - Galenus AI',
           patientName: patient.fullName,
           serviceName: updatedAppointment.service?.name || 'Servicio',
           date: dateStr,

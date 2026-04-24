@@ -260,13 +260,14 @@ export async function POST(request: Request) {
           });
         }
 
+        // Buscar admins directamente por accountId (no depende de que haya subaccountId)
         let adminEmails: string[] = [];
-        if (mainAppointment.subaccountId) {
-          const sub = await prisma.subaccount.findUnique({ 
-            where: { id: mainAppointment.subaccountId },
-            include: { account: { include: { users: { where: { role: 'ADMIN' } } } } }
+        if (accountId) {
+          const accountWithAdmins = await prisma.account.findUnique({
+            where: { id: accountId },
+            include: { users: { where: { role: 'ADMIN' } } }
           });
-          adminEmails = sub?.account?.users.map(u => u.email).filter(Boolean) as string[] || [];
+          adminEmails = accountWithAdmins?.users.map(u => u.email).filter(Boolean) as string[] || [];
         }
 
         if (fullPatient && fullService) {
@@ -278,7 +279,7 @@ export async function POST(request: Request) {
           if (fullPatient.email) {
             await sendAppointmentEmail({
               to: fullPatient.email,
-              subject: 'Confirmación de tu Cita - Master Haven',
+              subject: 'Confirmación de tu Cita - Galenus AI',
               patientName: fullPatient.fullName,
               serviceName: fullService.name,
               date: dateStr,

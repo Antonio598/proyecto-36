@@ -73,14 +73,14 @@ export async function sendAppointmentEmail({
         `}
         
         <p style="color: #64748b; font-size: 12px; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-          Este es un mensaje automático del sistema de gestión de citas de Master Haven. 
+          Este es un mensaje automático del sistema de gestión de citas de Galenus AI. 
           ${!isOwner ? 'Si deseas realizar cambios, por favor contáctanos.' : ''}
         </p>
       </div>
     `;
 
     await resend.emails.send({
-      from: 'Master Haven <onboarding@resend.dev>',
+      from: 'Galenus AI <onboarding@resend.dev>',
       to,
       subject: subject || getTitle(),
       html
