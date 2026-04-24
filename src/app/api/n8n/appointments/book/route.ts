@@ -44,8 +44,17 @@ export async function POST(request: Request) {
       create: { phone, fullName, email, accountId: account.id, notes: notes || 'Auto-created via n8n integration' },
     });
 
-    const naiveLocalTime = startTime.substring(0, 19);
-    const start = fromZonedTime(naiveLocalTime, 'America/Panama');
+    const PANAMA_TZ = 'America/Panama';
+    const parseDate = (dateStr: string) => {
+      if (!dateStr) return null;
+      if (dateStr.includes('Z') || /[\+\-]\d{2}:\d{2}$/.test(dateStr)) {
+        return new Date(dateStr);
+      }
+      return fromZonedTime(dateStr.substring(0, 19), PANAMA_TZ);
+    };
+
+    const start = parseDate(startTime);
+    if (!start) return NextResponse.json({ success: false, error: 'Invalid startTime' }, { status: 400 });
 
     // Resolve Duration and Price dynamically
     let duration = service.durationMinutes;
@@ -113,7 +122,16 @@ export async function POST(request: Request) {
       OR: [{ startTime: { lt: end }, endTime: { gt: start } }],
     };
     if (calendarId) {
-      overlapWhere.calendarId = calendarId;
+      overlapWhere.AND = [
+        {
+          OR: [
+            { calendarId: calendarId },
+            { subaccountId: finalSubaccountId, calendarId: null, isBlocker: true }
+          ]
+        }
+      ];
+    } else if (finalSubaccountId) {
+      overlapWhere.subaccountId = finalSubaccountId;
     }
 
     const overlappingAppt = await prisma.appointment.findFirst({ where: overlapWhere });

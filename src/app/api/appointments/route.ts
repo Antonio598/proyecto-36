@@ -191,7 +191,18 @@ export async function POST(request: Request) {
               }
            ]
         };
-        if (calendarId) overlappingWhere.calendarId = calendarId;
+        if (calendarId) {
+          overlappingWhere.AND = [
+            {
+              OR: [
+                { calendarId: calendarId },
+                { subaccountId: subaccountId || undefined, calendarId: null, isBlocker: true }
+              ]
+            }
+          ];
+        } else if (subaccountId) {
+          overlappingWhere.subaccountId = subaccountId;
+        }
 
         const overlappingAppt = await prisma.appointment.findFirst({
           where: overlappingWhere
