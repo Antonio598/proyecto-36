@@ -45,7 +45,14 @@ export async function GET(request: Request) {
     }
 
     if (calendarId) {
-      whereClause.calendarId = calendarId;
+      whereClause.AND = [
+        {
+          OR: [
+             { calendarId: calendarId },
+             { subaccountId: subaccountId || undefined, calendarId: null, isBlocker: true }
+          ]
+        }
+      ];
     }
 
     const appointments = await prisma.appointment.findMany({
