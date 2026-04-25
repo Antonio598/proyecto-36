@@ -127,7 +127,8 @@ export async function POST(request: Request) {
       end = new Date(start.getTime() + finalDurationMinutes * 60000);
     }
 
-    let rules = [];
+    const requestedDayOfWeek = panamaDate.getDay();
+    let rules: any[] = [];
     if (calendarId) {
       rules = await prisma.availabilityRule.findMany({
         where: {
