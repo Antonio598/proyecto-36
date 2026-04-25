@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight,
   MessageCircle,
@@ -12,8 +13,6 @@ import {
   ChevronDown,
   Star,
   Shield,
-  BarChart2,
-  Phone,
 } from 'lucide-react';
 
 export const metadata = {
@@ -120,9 +119,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-base italic shadow-md shadow-blue-500/30">
-                G
-              </div>
+              <Image src="/galenus-logo.png" alt="Galenus AI" width={40} height={40} className="rounded-xl shadow-md shadow-blue-500/20" />
               <span className="font-black text-gray-900 tracking-tight text-lg">
                 Galenus <span className="text-blue-600">AI</span>
               </span>
@@ -150,40 +147,68 @@ export default function LandingPage() {
       </header>
 
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-20 pb-28">
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 pt-20 pb-0">
+        {/* Background glow orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-32 w-96 h-96 bg-blue-200/40 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-200/40 rounded-full blur-3xl" />
+          <div className="absolute -top-40 -right-32 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-indigo-500/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl" />
         </div>
+
         <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 text-xs font-semibold px-4 py-1.5 rounded-full mb-6 border border-blue-200">
+          <div className="inline-flex items-center gap-2 bg-white/10 text-blue-300 text-xs font-semibold px-4 py-1.5 rounded-full mb-6 border border-white/10 backdrop-blur-sm">
             <Zap className="w-3.5 h-3.5" />
             Agente de IA para el entorno médico
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight leading-[1.1]">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-white">
             Contrata tu agente de IA y organiza la atención de tu{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
               práctica médica
             </span>{' '}
             en una sola plataforma
           </h1>
 
-          <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-6 text-lg sm:text-xl text-blue-100/70 max-w-2xl mx-auto leading-relaxed">
             Galenus ayuda a clínicas, consultorios médicos y especialistas a automatizar la atención
             y el agendamiento de pacientes.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href={WA_LINK} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-base font-bold px-8 py-4 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/30 hover:scale-105 duration-200">
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-base font-bold px-8 py-4 rounded-2xl hover:from-blue-400 hover:to-indigo-400 transition-all shadow-2xl shadow-blue-500/30 hover:scale-105 duration-200">
               Hablar con un asesor
               <ArrowRight className="w-5 h-5" />
             </a>
-            <a href="#agente" className="inline-flex items-center gap-2 text-base font-semibold text-gray-600 hover:text-blue-600 px-6 py-4 rounded-2xl hover:bg-white/60 transition-all">
+            <a href="#agente" className="inline-flex items-center gap-2 text-base font-semibold text-blue-200/80 hover:text-white px-6 py-4 rounded-2xl hover:bg-white/5 transition-all">
               Conocer más <ChevronDown className="w-4 h-4" />
             </a>
           </div>
+
+          {/* Banner image — hero visual */}
+          <div className="mt-14 relative mx-auto max-w-3xl">
+            {/* Glow behind the image */}
+            <div className="absolute inset-x-10 -top-4 h-16 bg-blue-500/30 blur-2xl rounded-full" />
+            <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+              <Image
+                src="/galenus-banner.png"
+                alt="Galenus AI — IA Inteligencia Médica"
+                width={960}
+                height={320}
+                className="w-full h-auto object-cover"
+                priority
+              />
+              {/* Subtle bottom fade so it blends into next section */}
+              <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-slate-900/80 to-transparent" />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom curve transition */}
+        <div className="relative h-16 mt-0">
+          <svg viewBox="0 0 1440 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute bottom-0 w-full" preserveAspectRatio="none">
+            <path d="M0 64L1440 64L1440 0C1200 56 240 56 0 0L0 64Z" fill="white"/>
+          </svg>
         </div>
       </section>
 
@@ -496,9 +521,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-sm italic">
-                G
-              </div>
+              <Image src="/galenus-logo.png" alt="Galenus AI" width={32} height={32} className="rounded-lg" />
               <span className="font-black text-gray-900 tracking-tight">
                 Galenus <span className="text-blue-600">AI</span>
               </span>
