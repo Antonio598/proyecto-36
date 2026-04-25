@@ -120,24 +120,23 @@ export async function POST(request: Request) {
       end = new Date(start.getTime() + finalDurationMinutes * 60000);
     }
 
-    // 1. Fetch AvailabilityRules to enforce the Sede's schedule
-    // First try subaccount-level rules, then fall back to calendar-level rules
-    const requestedDayOfWeek = panamaDate.getDay();
-    let rules = await prisma.availabilityRule.findMany({
-       where: {
-          subaccountId: subaccountId || undefined,
-          calendarId: null,
-          dayOfWeek: requestedDayOfWeek
-       }
-    });
-
-    // Fallback: check calendar-level rules if no subaccount-level rules exist
-    if (rules.length === 0 && calendarId) {
+    let rules = [];
+    if (calendarId) {
       rules = await prisma.availabilityRule.findMany({
         where: {
           calendarId,
           dayOfWeek: requestedDayOfWeek
         }
+      });
+    }
+
+    if (rules.length === 0) {
+      rules = await prisma.availabilityRule.findMany({
+         where: {
+            subaccountId: subaccountId || undefined,
+            calendarId: null,
+            dayOfWeek: requestedDayOfWeek
+         }
       });
     }
 

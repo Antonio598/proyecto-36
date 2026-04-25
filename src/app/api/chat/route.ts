@@ -16,8 +16,14 @@ export async function POST(req: Request) {
     );
   }
 
-  // useChat v6 sends UIMessages (with `parts`); streamText needs ModelMessages (with `content`)
-  const coreMessages = await convertToModelMessages(messages);
+  // Convert messages to support both 'content' (old format) and 'parts' (new format)
+  const coreMessages = messages.map((m: any) => {
+    let content = m.content;
+    if (!content && m.parts) {
+      content = m.parts.map((p: any) => p.text).join('');
+    }
+    return { role: m.role, content };
+  });
 
   const result = streamText({
     model: openai('gpt-4o'),

@@ -36,6 +36,7 @@ export async function GET(request: Request) {
 
     let rules: any[] = [];
     let activeCalendarId = calendarId;
+    let fallbackSubaccountId = searchParams.get('subaccountId') || service.subaccountId;
 
     // If no specific calendar is requested, find the first calendar that offers this service
     if (!activeCalendarId) {
@@ -44,6 +45,7 @@ export async function GET(request: Request) {
       });
       if (config) {
         activeCalendarId = config.calendarId;
+        fallbackSubaccountId = fallbackSubaccountId || config.subaccountId;
       }
     }
 
@@ -52,6 +54,16 @@ export async function GET(request: Request) {
          where: {
            dayOfWeek,
            calendarId: activeCalendarId,
+         }
+       });
+    }
+
+    if (rules.length === 0 && fallbackSubaccountId) {
+       rules = await prisma.availabilityRule.findMany({
+         where: {
+           dayOfWeek,
+           calendarId: null,
+           subaccountId: fallbackSubaccountId,
          }
        });
     }

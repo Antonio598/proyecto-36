@@ -43,12 +43,18 @@ export async function PUT(
       const panamaDate = toZonedTime(start, PANAMA_TZ);
 
       // Availability check
-      const rules = await prisma.availabilityRule.findMany({
-         where: {
-            subaccountId: currentAppt.subaccountId,
-            dayOfWeek: panamaDate.getDay()
-         }
-      });
+      let rules: any[] = [];
+      if (currentAppt.calendarId) {
+        rules = await prisma.availabilityRule.findMany({
+           where: { calendarId: currentAppt.calendarId, dayOfWeek: panamaDate.getDay() }
+        });
+      }
+      
+      if (rules.length === 0) {
+        rules = await prisma.availabilityRule.findMany({
+           where: { subaccountId: currentAppt.subaccountId, calendarId: null, dayOfWeek: panamaDate.getDay() }
+        });
+      }
 
       if (rules.length === 0 && !currentAppt.isBlocker) {
          return NextResponse.json({ error: 'La clínica está cerrada en este día, no hay horarios disponibles.' }, { status: 400 });

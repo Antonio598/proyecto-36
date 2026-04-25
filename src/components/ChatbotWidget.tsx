@@ -1,7 +1,6 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Bot, X, Send, User, ChevronDown, Stethoscope } from 'lucide-react';
 import { useSede } from '@/context/SedeContext';
@@ -15,22 +14,13 @@ export default function ChatbotWidget() {
   const { selectedSede } = useSede();
   const accountId = getAccountId();
 
-  // Ref always holds the latest context values — updated synchronously before each render
-  const bodyRef = useRef({ subaccountId: selectedSede, accountId });
-  useEffect(() => {
-    bodyRef.current = { subaccountId: selectedSede, accountId };
-  }, [selectedSede, accountId]);
-
-  // Transport created once; body is a lazy function so it reads fresh values on every request
-  const transport = useMemo(
-    () => new DefaultChatTransport({
-      api: '/api/chat',
-      body: () => bodyRef.current,
-    }),
-    [] // eslint-disable-line react-hooks/exhaustive-deps
-  );
-
-  const { messages, sendMessage, status } = useChat({ transport });
+  const { messages, append, status } = useChat({ 
+    api: '/api/chat',
+    body: {
+      subaccountId: selectedSede,
+      accountId
+    }
+  });
 
   const isLoading = status === 'streaming' || status === 'submitted';
 
@@ -45,7 +35,7 @@ export default function ChatbotWidget() {
     if (!inputValue.trim() || isLoading) return;
     const text = inputValue;
     setInputValue('');
-    await sendMessage({ text });
+    await append({ role: 'user', content: text });
   };
 
   const getMessageText = (m: any): string => {
