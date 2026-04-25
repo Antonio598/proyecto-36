@@ -46,6 +46,12 @@ export async function GET(request: Request) {
       if (config) {
         activeCalendarId = config.calendarId;
         fallbackSubaccountId = fallbackSubaccountId || config.subaccountId;
+      } else if (fallbackSubaccountId) {
+        // Fallback: If service has no specific configuration, just use the first calendar in the sede
+        const firstCal = await prisma.calendar.findFirst({
+           where: { subaccountId: fallbackSubaccountId }
+        });
+        if (firstCal) activeCalendarId = firstCal.id;
       }
     }
 

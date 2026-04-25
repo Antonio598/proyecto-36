@@ -61,18 +61,34 @@ export async function POST(request: Request) {
     let price = service.price;
     let finalSubaccountId = subaccountId || service.subaccountId;
     let finalDoctorId = doctorId || undefined;
+    let activeCalendarId = calendarId;
 
-    if (calendarId) {
-      const config = await prisma.serviceConfiguration.findUnique({
-        where: { serviceId_calendarId: { serviceId, calendarId } },
+    if (!activeCalendarId) {
+      const config = await prisma.serviceConfiguration.findFirst({
+        where: { serviceId: service.id }
       });
-      if (!config) {
-        return NextResponse.json({ success: false, error: 'Service configuration not found for the specified calendar' }, { status: 404 });
+      if (config) {
+        activeCalendarId = config.calendarId;
+        finalSubaccountId = finalSubaccountId || config.subaccountId;
+        finalDoctorId = finalDoctorId || config.doctorId;
+      } else if (finalSubaccountId) {
+        const firstCal = await prisma.calendar.findFirst({
+          where: { subaccountId: finalSubaccountId }
+        });
+        if (firstCal) activeCalendarId = firstCal.id;
       }
-      duration = config.durationMinutes;
-      price = config.price;
-      finalSubaccountId = finalSubaccountId || config.subaccountId;
-      finalDoctorId = finalDoctorId || config.doctorId;
+    }
+
+    if (activeCalendarId) {
+      const config = await prisma.serviceConfiguration.findUnique({
+        where: { serviceId_calendarId: { serviceId, calendarId: activeCalendarId } },
+      });
+      if (config) {
+        duration = config.durationMinutes;
+        price = config.price;
+        finalSubaccountId = finalSubaccountId || config.subaccountId;
+        finalDoctorId = finalDoctorId || config.doctorId;
+      }
     }
 
     const end = new Date(start.getTime() + duration * 60000);
@@ -82,9 +98,9 @@ export async function POST(request: Request) {
     const panamaDate = toZonedTime(start, 'America/Panama');
     const requestedDayOfWeek = panamaDate.getDay();
     let rulesWhere: any = { dayOfWeek: requestedDayOfWeek };
-    if (calendarId) {
+    if (activeCalendarId) {
       rulesWhere.OR = [
-        { calendarId: calendarId },
+        { calendarId: activeCalendarId },
         { subaccountId: finalSubaccountId, calendarId: null }
       ];
     } else {
@@ -97,8 +113,8 @@ export async function POST(request: Request) {
     });
 
     let rule = null;
-    if (calendarId) {
-      rule = rules.find(r => r.calendarId === calendarId) || rules.find(r => r.subaccountId === finalSubaccountId);
+    if (activeCalendarId) {
+      rule = rules.find(r => r.calendarId === activeCalendarId) || rules.find(r => r.subaccountId === finalSubaccountId);
     } else {
       rule = rules[0];
     }
