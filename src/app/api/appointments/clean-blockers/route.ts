@@ -10,18 +10,24 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { subaccountId } = body;
+    const { subaccountId, calendarId } = body;
 
     if (!subaccountId) {
       return NextResponse.json({ error: 'subaccountId es requerido' }, { status: 400 });
     }
 
-    // Eliminamos solo los bloqueos antiguos (calendarId nulo) para limpiar el calendario de residuos
+    // Eliminamos los bloqueos manuales fantasmas (calendarId null)
+    // Y también los bloqueos manuales asignados directamente a este calendario si calendarId viene en la request.
     const deleted = await prisma.appointment.deleteMany({
       where: {
         subaccountId,
-        calendarId: null,
-        isBlocker: true
+        isBlocker: true,
+        OR: calendarId ? [
+          { calendarId: null },
+          { calendarId }
+        ] : [
+          { calendarId: null }
+        ]
       }
     });
 

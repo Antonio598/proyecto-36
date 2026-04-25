@@ -401,14 +401,17 @@ export default function CalendarPage() {
   };
 
   const handleCleanBlockers = async () => {
-    if (!selectedSede) return;
-    if (!confirm('¿Deseas eliminar automáticamente todos los "Bloqueos Fantasmas" antiguos de esta sede? Esto liberará tu agenda.')) return;
+    if (!selectedSede || !selectedCalendarId) {
+       alert('Selecciona un calendario primero.');
+       return;
+    }
+    if (!confirm('¿Deseas eliminar automáticamente TODOS los bloqueos manuales (incluyendo los fantasmas y los de este calendario) de tu agenda? Esto dejará tu calendario completamente limpio basándose solo en tu Horario Semanal.')) return;
     
     setIsSubmitting(true);
     try {
       const res = await apiFetch('/api/appointments/clean-blockers', {
         method: 'POST',
-        body: JSON.stringify({ subaccountId: selectedSede })
+        body: JSON.stringify({ subaccountId: selectedSede, calendarId: selectedCalendarId })
       });
       if (!res.ok) throw new Error('Error al limpiar bloqueos');
       await fetchAppointments();
