@@ -400,6 +400,26 @@ export default function CalendarPage() {
     }
   };
 
+  const handleCleanBlockers = async () => {
+    if (!selectedSede) return;
+    if (!confirm('¿Deseas eliminar automáticamente todos los "Bloqueos Fantasmas" antiguos de esta sede? Esto liberará tu agenda.')) return;
+    
+    setIsSubmitting(true);
+    try {
+      const res = await apiFetch('/api/appointments/clean-blockers', {
+        method: 'POST',
+        body: JSON.stringify({ subaccountId: selectedSede })
+      });
+      if (!res.ok) throw new Error('Error al limpiar bloqueos');
+      await fetchAppointments();
+      alert('Bloqueos limpiados correctamente.');
+    } catch (err: any) {
+       alert(err.message);
+    } finally {
+       setIsSubmitting(false);
+    }
+  };
+
   const eventStyleGetter = (event: any) => {
     const baseColor = event.color || '#3b82f6';
     const isCancelled = event.status === 'CANCELLED';
@@ -493,6 +513,14 @@ export default function CalendarPage() {
             <p className="mt-2 text-blue-50/80 text-sm md:text-lg font-medium max-w-lg leading-relaxed">
               Administra las citas y bloqueos de tus especialistas de forma centralizada.
             </p>
+            <button 
+              onClick={handleCleanBlockers}
+              disabled={isSubmitting}
+              className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/40 border border-red-400/30 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
+            >
+              <Ban className="w-4 h-4" />
+              {isSubmitting ? 'Procediendo...' : 'Limpiar Bloqueos Fantasmas (Antiguos)'}
+            </button>
           </div>
           
           <div className="flex flex-col gap-2 w-full lg:max-w-[360px]" ref={calendarRef}>
