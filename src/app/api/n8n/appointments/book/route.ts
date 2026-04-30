@@ -132,16 +132,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: `El horario solicitado está fuera de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
     }
 
-    // 3. Overlap Check
+    // 3. Overlap Check — uses activeCalendarId (resolved), not raw calendarId
     let overlapWhere: any = {
       status: { notIn: ['CANCELLED'] },
       OR: [{ startTime: { lt: end }, endTime: { gt: start } }],
     };
-    if (calendarId) {
+    if (activeCalendarId) {
       overlapWhere.AND = [
         {
           OR: [
-            { calendarId: calendarId },
+            { calendarId: activeCalendarId },
             { subaccountId: finalSubaccountId, calendarId: null, isBlocker: true }
           ]
         }
@@ -155,14 +155,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Time slot is already booked.' }, { status: 409 });
     }
 
-    // 4. Create Appointment
+    // 4. Create Appointment — save with activeCalendarId so future overlap checks find it
     const appointment = await prisma.appointment.create({
       data: {
         patientId: patient.id,
         serviceId: service.id,
         subaccountId: finalSubaccountId,
         doctorId: finalDoctorId,
-        calendarId: calendarId,
+        calendarId: activeCalendarId || null,
         startTime: start,
         endTime: end,
         notes: notes || null,
