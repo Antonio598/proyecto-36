@@ -203,7 +203,7 @@ export async function POST(request: Request) {
             {
               OR: [
                 { calendarId: calendarId },
-                { subaccountId: subaccountId || undefined, calendarId: null, isBlocker: true }
+                { subaccountId: subaccountId || undefined, isBlocker: true },
               ]
             }
           ];
