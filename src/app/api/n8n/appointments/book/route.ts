@@ -1,11 +1,13 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { fromZonedTime } from 'date-fns-tz';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
 import { sendAppointmentEmail } from '@/lib/mail';
 import { es } from 'date-fns/locale/es';
 import { format } from 'date-fns';
+
+const PANAMA_TZ = 'America/Panama';
 
 export async function POST(request: Request) {
   try {
@@ -180,9 +182,9 @@ export async function POST(request: Request) {
 
     // --- Enviar correos de notificación ---
     try {
-      const dateStr = format(appointment.startTime, "EEEE d 'de' MMMM", { locale: es });
-      const startStr = format(appointment.startTime, "HH:mm");
-      const endStr = format(appointment.endTime, "HH:mm");
+      const dateStr  = formatInTimeZone(appointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
+      const startStr = formatInTimeZone(appointment.startTime, PANAMA_TZ, 'HH:mm');
+      const endStr   = formatInTimeZone(appointment.endTime,   PANAMA_TZ, 'HH:mm');
 
       // 1. Enviar al Paciente si tiene correo
       const patientEmail = email || patient.email;

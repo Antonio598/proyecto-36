@@ -4,8 +4,11 @@ import prisma from '@/lib/prisma';
 import { getAccountIdFromRequest } from '@/lib/serverAuth';
 
 import { parseISO, format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { sendAppointmentEmail } from '@/lib/mail';
 import { es } from 'date-fns/locale/es';
+
+const PANAMA_TZ = 'America/Panama';
 export async function GET(request: Request) {
   try {
     const accountId = getAccountIdFromRequest(request);
@@ -278,9 +281,9 @@ export async function POST(request: Request) {
         }
 
         if (fullPatient && fullService) {
-          const dateStr = format(mainAppointment.startTime, "EEEE d 'de' MMMM", { locale: es });
-          const startStr = format(mainAppointment.startTime, "HH:mm");
-          const endStr = format(mainAppointment.endTime, "HH:mm");
+          const dateStr  = formatInTimeZone(mainAppointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
+          const startStr = formatInTimeZone(mainAppointment.startTime, PANAMA_TZ, 'HH:mm');
+          const endStr   = formatInTimeZone(mainAppointment.endTime,   PANAMA_TZ, 'HH:mm');
 
           // 1. Enviar al Paciente si tiene correo
           if (fullPatient.email) {

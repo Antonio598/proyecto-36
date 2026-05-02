@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAccountByApiKey, extractApiKey } from '@/lib/accountAuth';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
-import { format, addDays, addMinutes, isBefore, isAfter, isEqual } from 'date-fns';
+import { fromZonedTime, toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { format, addDays, addMinutes, isBefore, isAfter } from 'date-fns';
 
 const PANAMA_TZ = 'America/Panama';
 
@@ -16,159 +16,184 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const dateStr = searchParams.get('date');
+    const dateStr    = searchParams.get('date');
     const subaccountId = searchParams.get('subaccountId');
-    const doctorId = searchParams.get('doctorId');
+    const doctorId   = searchParams.get('doctorId');
     const calendarId = searchParams.get('calendarId');
-    const serviceId = searchParams.get('serviceId');
+    const serviceId  = searchParams.get('serviceId');
     const durationParam = searchParams.get('duration');
 
+    const nowInPanama = toZonedTime(new Date(), PANAMA_TZ);
+    const todayStr    = format(nowInPanama, 'yyyy-MM-dd');
+
+    let daysToGenerate: string[] = [];
     let startDateUTC: Date;
     let endDateUTC: Date;
-    let daysToGenerateInPanama: string[] = [];
-
-    const nowInPanama = toZonedTime(new Date(), PANAMA_TZ);
-    const todayStr = format(nowInPanama, 'yyyy-MM-dd');
 
     if (dateStr) {
       if (isNaN(new Date(dateStr).getTime())) {
         return NextResponse.json({ success: false, error: 'Invalid date format (use YYYY-MM-DD)' }, { status: 400 });
       }
       startDateUTC = fromZonedTime(`${dateStr}T00:00:00`, PANAMA_TZ);
-      endDateUTC = fromZonedTime(`${dateStr}T23:59:59`, PANAMA_TZ);
-      daysToGenerateInPanama.push(dateStr);
+      endDateUTC   = fromZonedTime(`${dateStr}T23:59:59`, PANAMA_TZ);
+      daysToGenerate.push(dateStr);
     } else {
       startDateUTC = fromZonedTime(`${todayStr}T00:00:00`, PANAMA_TZ);
-      
       const futureDate = addDays(nowInPanama, 30);
-      const futureDateStr = format(futureDate, 'yyyy-MM-dd');
-      endDateUTC = fromZonedTime(`${futureDateStr}T23:59:59`, PANAMA_TZ);
-
+      endDateUTC = fromZonedTime(`${format(futureDate, 'yyyy-MM-dd')}T23:59:59`, PANAMA_TZ);
       for (let i = 0; i <= 30; i++) {
-        daysToGenerateInPanama.push(format(addDays(nowInPanama, i), 'yyyy-MM-dd'));
+        daysToGenerate.push(format(addDays(nowInPanama, i), 'yyyy-MM-dd'));
       }
     }
 
-    // --- Get Duration ---
-    let slotDuration = durationParam ? parseInt(durationParam) : 60; // Increased default to 60 min
+    // --- Slot duration ---
+    let slotDuration = durationParam ? parseInt(durationParam) : 60;
     if (serviceId) {
-      const service = await prisma.service.findUnique({ where: { id: serviceId } });
-      if (service) {
-        slotDuration = service.durationMinutes;
+      let svcConfig = null;
+      if (calendarId) {
+        svcConfig = await prisma.serviceConfiguration.findUnique({
+          where: { serviceId_calendarId: { serviceId, calendarId } },
+          select: { durationMinutes: true }
+        });
+      }
+      if (svcConfig) {
+        slotDuration = svcConfig.durationMinutes;
+      } else {
+        const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { durationMinutes: true } });
+        if (svc) slotDuration = svc.durationMinutes;
       }
     }
 
-    // --- Fetch Appointments (Blockers) ---
-    // Change: Find any appointment that OVERLAPS with the requested range
-    let whereClause: any = {
-      status: { notIn: ['CANCELLED'] },
-      startTime: { lt: endDateUTC },
-      endTime: { gt: startDateUTC },
-      subaccount: { accountId: account.id },
-    };
-
+    // --- Resolve subaccountId from calendarId ---
     let targetSubaccountId = subaccountId;
-
     if (calendarId) {
-      whereClause.calendarId = calendarId;
-      // Fetch calendar to get its subaccountId for strict rule filtering
-      const cal = await prisma.calendar.findUnique({ 
+      const cal = await prisma.calendar.findUnique({
         where: { id: calendarId },
         select: { subaccountId: true }
       });
       if (cal) targetSubaccountId = cal.subaccountId;
-    } else {
-      if (subaccountId) whereClause.subaccountId = subaccountId;
-      if (doctorId) whereClause.doctorId = doctorId;
     }
 
-    const appointmentsData = await prisma.appointment.findMany({
-      where: whereClause,
-      select: { startTime: true, endTime: true },
-      orderBy: { startTime: 'asc' },
-    });
+    // --- Fetch existing appointments + blockers ---
+    // When calendarId is provided: load that calendar's appointments PLUS any
+    // subaccount-level blockers (which block all calendars in the sede).
+    const timeRange = { startTime: { lt: endDateUTC }, endTime: { gt: startDateUTC } };
 
-    // --- Fetch Availability Rules ---
-    // Scope rules by account to prevent leakage
-    const rulesWhere: any = {
-      OR: [
-        { calendar: { subaccount: { accountId: account.id } } },
-        { subaccount: { accountId: account.id } }
-      ]
-    };
+    let appointmentsData: { startTime: Date; endTime: Date }[] = [];
 
+    if (calendarId) {
+      const [calAppts, sedeBlockers] = await Promise.all([
+        // All appointments (regular + blockers) for this specific calendar
+        prisma.appointment.findMany({
+          where: {
+            ...timeRange,
+            status: { notIn: ['CANCELLED'] },
+            calendarId,
+            subaccount: { accountId: account.id },
+          },
+          select: { startTime: true, endTime: true },
+        }),
+        // Subaccount-level blockers (created without a specific calendar)
+        targetSubaccountId
+          ? prisma.appointment.findMany({
+              where: {
+                ...timeRange,
+                status: { notIn: ['CANCELLED'] },
+                subaccountId: targetSubaccountId,
+                calendarId: null,
+                isBlocker: true,
+              },
+              select: { startTime: true, endTime: true },
+            })
+          : Promise.resolve([]),
+      ]);
+      appointmentsData = [...calAppts, ...sedeBlockers];
+    } else {
+      const where: any = {
+        ...timeRange,
+        status: { notIn: ['CANCELLED'] },
+        subaccount: { accountId: account.id },
+      };
+      if (targetSubaccountId) where.subaccountId = targetSubaccountId;
+      if (doctorId) where.doctorId = doctorId;
+      appointmentsData = await prisma.appointment.findMany({ where, select: { startTime: true, endTime: true } });
+    }
+
+    // --- Fetch availability rules ---
     const allRules = await prisma.availabilityRule.findMany({
-      where: rulesWhere,
+      where: {
+        OR: [
+          { calendar: { subaccount: { accountId: account.id } } },
+          { subaccount: { accountId: account.id } },
+        ]
+      },
       orderBy: { createdAt: 'desc' }
     });
 
-    const freeSlots = [];
+    const freeSlots: any[] = [];
     const nowUTC = new Date();
 
-    for (const dayStr of daysToGenerateInPanama) {
-      const isToday = dayStr === todayStr;
-      const dayDate = fromZonedTime(`${dayStr}T12:00:00`, PANAMA_TZ);
+    for (const dayStr of daysToGenerate) {
+      const isToday  = dayStr === todayStr;
+      const dayDate  = fromZonedTime(`${dayStr}T12:00:00`, PANAMA_TZ);
       const dayOfWeek = toZonedTime(dayDate, PANAMA_TZ).getDay();
-
       const dayStartUTC = fromZonedTime(`${dayStr}T00:00:00`, PANAMA_TZ);
-      const dayEndUTC = fromZonedTime(`${dayStr}T23:59:59`, PANAMA_TZ);
+      const dayEndUTC   = fromZonedTime(`${dayStr}T23:59:59`, PANAMA_TZ);
 
-      // Find best rules for day
-      let dayRules = [];
+      // Pick the right rules for this day
+      let dayRules: typeof allRules = [];
       if (calendarId) {
-        // 1. Precise calendar rule
         dayRules = allRules.filter(r => r.calendarId === calendarId && r.dayOfWeek === dayOfWeek);
-        // 2. Fallback to its specific subaccount rule
         if (dayRules.length === 0 && targetSubaccountId) {
           dayRules = allRules.filter(r => r.subaccountId === targetSubaccountId && !r.calendarId && r.dayOfWeek === dayOfWeek);
         }
       } else if (targetSubaccountId) {
-        // Rules for this specific subaccount
         dayRules = allRules.filter(r => r.subaccountId === targetSubaccountId && r.dayOfWeek === dayOfWeek);
       } else {
-        // General account rules if no context provided (broad)
         dayRules = allRules.filter(r => r.dayOfWeek === dayOfWeek);
       }
 
-      // Filter appointments that overlap the 24h window of this specific day
-      const dayAppointments = appointmentsData.filter(appt => {
-        return (isBefore(appt.startTime, dayEndUTC) && isAfter(appt.endTime, dayStartUTC));
-      });
+      if (dayRules.length === 0) continue; // clinic closed this day
+
+      // Appointments that touch this day
+      const dayAppts = appointmentsData.filter(a =>
+        isBefore(a.startTime, dayEndUTC) && isAfter(a.endTime, dayStartUTC)
+      );
 
       for (const rule of dayRules) {
-        let currentPointer = fromZonedTime(`${dayStr}T${rule.startTime}:00`, PANAMA_TZ);
-        const workEndTime = fromZonedTime(`${dayStr}T${rule.endTime}:00`, PANAMA_TZ);
+        let pointer  = fromZonedTime(`${dayStr}T${rule.startTime}:00`, PANAMA_TZ);
+        const workEnd = fromZonedTime(`${dayStr}T${rule.endTime}:00`, PANAMA_TZ);
 
-        // Generate discrete slots
-        while (isBefore(currentPointer, workEndTime)) {
-          const slotEnd = addMinutes(currentPointer, slotDuration);
-          
-          if (isAfter(slotEnd, workEndTime)) break;
+        while (isBefore(pointer, workEnd)) {
+          const slotEnd = addMinutes(pointer, slotDuration);
 
-          // Check if slot is in the past
-          if (isToday && isBefore(currentPointer, nowUTC)) {
-            currentPointer = addMinutes(currentPointer, 30);
+          // Slot would go past closing time
+          if (isAfter(slotEnd, workEnd)) break;
+
+          // Skip past slots
+          if (isToday && !isAfter(pointer, nowUTC)) {
+            pointer = addMinutes(pointer, slotDuration);
             continue;
           }
 
-          // Check for overlaps with appointments
-          const isBusy = dayAppointments.some(appt => {
-            return (isBefore(currentPointer, appt.endTime) && isAfter(slotEnd, appt.startTime));
-          });
+          // Check for overlap with any appointment or blocker
+          const blocking = dayAppts.find(a =>
+            isBefore(pointer, a.endTime) && isAfter(slotEnd, a.startTime)
+          );
 
-          if (!isBusy) {
+          if (!blocking) {
             freeSlots.push({
-              startTime: currentPointer,
-              endTime: slotEnd,
-              startTimeLocal: format(toZonedTime(currentPointer, PANAMA_TZ), 'yyyy-MM-dd HH:mm:ss'),
-              endTimeLocal: format(toZonedTime(slotEnd, PANAMA_TZ), 'yyyy-MM-dd HH:mm:ss'),
-              type: 'available',
-              date: dayStr
+              date:           dayStr,
+              startTime:      pointer.toISOString(),
+              endTime:        slotEnd.toISOString(),
+              startTimeLocal: formatInTimeZone(pointer, PANAMA_TZ, 'yyyy-MM-dd HH:mm:ss'),
+              endTimeLocal:   formatInTimeZone(slotEnd,  PANAMA_TZ, 'yyyy-MM-dd HH:mm:ss'),
             });
-            const increment = Math.min(30, slotDuration);
-            currentPointer = addMinutes(currentPointer, increment);
+            // Advance by the full slot duration (no overlapping slots)
+            pointer = addMinutes(pointer, slotDuration);
           } else {
-            currentPointer = addMinutes(currentPointer, 15);
+            // Jump to the end of the blocking appointment to avoid useless iterations
+            pointer = blocking.endTime > pointer ? blocking.endTime : addMinutes(pointer, 15);
           }
         }
       }

@@ -3,7 +3,9 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { sendAppointmentEmail } from '@/lib/mail';
 import { es } from 'date-fns/locale/es';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+
+const PANAMA_TZ = 'America/Panama';
 
 export async function PUT(
   request: Request,
@@ -105,9 +107,9 @@ export async function PUT(
     // --- Enviar correos de notificación ---
     try {
       if (!appointment.isBlocker && (startTime || status === 'CONFIRMED')) {
-        const dateStr = format(appointment.startTime, "EEEE d 'de' MMMM", { locale: es });
-        const startStr = format(appointment.startTime, "HH:mm");
-        const endStr = format(appointment.endTime, "HH:mm");
+        const dateStr  = formatInTimeZone(appointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
+        const startStr = formatInTimeZone(appointment.startTime, PANAMA_TZ, 'HH:mm');
+        const endStr   = formatInTimeZone(appointment.endTime,   PANAMA_TZ, 'HH:mm');
 
         const isReschedule = !!startTime;
         const type = isReschedule ? 'RESCHEDULE' : 'BOOKING';
@@ -187,9 +189,9 @@ export async function DELETE(
 
       // --- Enviar correos de notificación ---
       try {
-        const dateStr = format(appointment.startTime, "EEEE d 'de' MMMM", { locale: es });
-        const startStr = format(appointment.startTime, "HH:mm");
-        const endStr = format(appointment.endTime, "HH:mm");
+        const dateStr  = formatInTimeZone(appointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
+        const startStr = formatInTimeZone(appointment.startTime, PANAMA_TZ, 'HH:mm');
+        const endStr   = formatInTimeZone(appointment.endTime,   PANAMA_TZ, 'HH:mm');
 
         // 1. Al Paciente
         if (appointment.patient?.email) {
