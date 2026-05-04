@@ -6,7 +6,8 @@ const db = prisma as any;
 
 export async function POST(req: Request) {
   try {
-    const { email, password, name, action } = await req.json();
+    const { email: rawEmail, password, name, action } = await req.json();
+    const email = rawEmail?.trim().toLowerCase();
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email y contraseña son requeridos.' }, { status: 400 });
