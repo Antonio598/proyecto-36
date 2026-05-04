@@ -43,7 +43,7 @@ export default function TerminosPage() {
 
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-3">4. Cuentas de usuario</h2>
-            <p>El usuario es responsable de mantener la confidencialidad de sus credenciales de acceso. Cualquier actividad realizada desde su cuenta es responsabilidad del titular. En caso de acceso no autorizado, debe notificar a Galenus AI de inmediato a través de <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a>.</p>
+            <p>El usuario es responsable de mantener la confidencialidad de sus credenciales de acceso. Cualquier actividad realizada desde su cuenta es responsabilidad del titular. En caso de acceso no autorizado, debe notificar a Galenus AI de inmediato a través de <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a> o al <a href="tel:+50769467117" className="text-blue-600 hover:underline">+507 6946-7117</a>.</p>
           </section>
 
           <section>
@@ -73,7 +73,7 @@ export default function TerminosPage() {
 
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-3">10. Contacto</h2>
-            <p>Para cualquier consulta relacionada con estos Términos y Condiciones, puede contactarnos a través de: <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a>.</p>
+            <p>Para cualquier consulta relacionada con estos Términos y Condiciones, puede contactarnos a través de: <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a> o al <a href="tel:+50769467117" className="text-blue-600 hover:underline">+507 6946-7117</a>.</p>
           </section>
 
         </div>

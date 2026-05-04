@@ -22,7 +22,7 @@ export default function PrivacidadPage() {
 
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-3">1. Responsable del tratamiento</h2>
-            <p>Galenus AI es el responsable del tratamiento de los datos personales recopilados a través de esta plataforma. Para cualquier consulta relacionada con el tratamiento de sus datos, puede contactarnos en: <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a>.</p>
+            <p>Galenus AI es el responsable del tratamiento de los datos personales recopilados a través de esta plataforma. Para cualquier consulta relacionada con el tratamiento de sus datos, puede contactarnos en: <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a> o al <a href="tel:+50769467117" className="text-blue-600 hover:underline">+507 6946-7117</a>.</p>
           </section>
 
           <section>
@@ -85,7 +85,7 @@ export default function PrivacidadPage() {
               <li><strong>Portabilidad:</strong> recibir sus datos en formato estructurado.</li>
               <li><strong>Limitación:</strong> solicitar la restricción del tratamiento.</li>
             </ul>
-            <p className="mt-3">Para ejercer estos derechos, contacte a: <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a>.</p>
+            <p className="mt-3">Para ejercer estos derechos, contacte a: <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a> o al <a href="tel:+50769467117" className="text-blue-600 hover:underline">+507 6946-7117</a>.</p>
           </section>
 
           <section>
@@ -112,7 +112,7 @@ export default function PrivacidadPage() {
 
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-3">11. Contacto</h2>
-            <p>Si tiene preguntas sobre esta política o sobre el tratamiento de sus datos, contáctenos en: <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a>.</p>
+            <p>Si tiene preguntas sobre esta política o sobre el tratamiento de sus datos, contáctenos en: <a href="mailto:galenus17@gmail.com" className="text-blue-600 hover:underline">galenus17@gmail.com</a> o al <a href="tel:+50769467117" className="text-blue-600 hover:underline">+507 6946-7117</a>.</p>
           </section>
 
         </div>
