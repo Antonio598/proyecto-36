@@ -64,26 +64,28 @@ export async function GET(request: Request) {
       }
     }
 
-    // --- Resolve subaccountId from calendarId ---
+    // --- Resolve subaccountId + doctorId from calendarId ---
     let targetSubaccountId = subaccountId;
+    let targetDoctorId = doctorId || null;
     if (calendarId) {
       const cal = await prisma.calendar.findUnique({
         where: { id: calendarId },
-        select: { subaccountId: true }
+        select: { subaccountId: true, doctorId: true }
       });
-      if (cal) targetSubaccountId = cal.subaccountId;
+      if (cal) {
+        targetSubaccountId = cal.subaccountId;
+        targetDoctorId = cal.doctorId;
+      }
     }
 
     // --- Fetch existing appointments + blockers ---
-    // When calendarId is provided: load that calendar's appointments PLUS any
-    // subaccount-level blockers (which block all calendars in the sede).
     const timeRange = { startTime: { lt: endDateUTC }, endTime: { gt: startDateUTC } };
 
     let appointmentsData: { startTime: Date; endTime: Date }[] = [];
 
     if (calendarId) {
-      const [calAppts, sedeBlockers] = await Promise.all([
-        // All appointments (regular + blockers) for this specific calendar
+      const [calAppts, doctorNullCalAppts, sedeBlockers] = await Promise.all([
+        // 1. All appointments in this specific calendar
         prisma.appointment.findMany({
           where: {
             ...timeRange,
@@ -93,7 +95,21 @@ export async function GET(request: Request) {
           },
           select: { startTime: true, endTime: true },
         }),
-        // Subaccount-level blockers (created without a specific calendar)
+        // 2. Appointments for the same doctor saved WITHOUT calendarId
+        //    (created before the calendarId-fix was deployed)
+        targetDoctorId
+          ? prisma.appointment.findMany({
+              where: {
+                ...timeRange,
+                status: { notIn: ['CANCELLED'] },
+                doctorId: targetDoctorId,
+                calendarId: null,
+                isBlocker: false,
+              },
+              select: { startTime: true, endTime: true },
+            })
+          : Promise.resolve([]),
+        // 3. Subaccount-level blockers (block all doctors in the sede)
         targetSubaccountId
           ? prisma.appointment.findMany({
               where: {
@@ -107,7 +123,7 @@ export async function GET(request: Request) {
             })
           : Promise.resolve([]),
       ]);
-      appointmentsData = [...calAppts, ...sedeBlockers];
+      appointmentsData = [...calAppts, ...doctorNullCalAppts, ...sedeBlockers];
     } else {
       const where: any = {
         ...timeRange,
