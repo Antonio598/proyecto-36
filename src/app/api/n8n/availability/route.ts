@@ -159,10 +159,9 @@ export async function GET(request: Request) {
       // Pick the right rules for this day
       let dayRules: typeof allRules = [];
       if (calendarId) {
+        // Only use rules specific to this calendar — no subaccount fallback.
+        // If no rules exist for this day, the doctor is simply closed that day.
         dayRules = allRules.filter(r => r.calendarId === calendarId && r.dayOfWeek === dayOfWeek);
-        if (dayRules.length === 0 && targetSubaccountId) {
-          dayRules = allRules.filter(r => r.subaccountId === targetSubaccountId && !r.calendarId && r.dayOfWeek === dayOfWeek);
-        }
       } else if (targetSubaccountId) {
         dayRules = allRules.filter(r => r.subaccountId === targetSubaccountId && r.dayOfWeek === dayOfWeek);
       } else {
