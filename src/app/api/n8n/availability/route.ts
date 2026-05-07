@@ -109,14 +109,13 @@ export async function GET(request: Request) {
               select: { startTime: true, endTime: true },
             })
           : Promise.resolve([]),
-        // 3. Subaccount-level blockers (block all doctors in the sede)
+        // 3. ALL subaccount-level blockers (with or without calendarId)
         targetSubaccountId
           ? prisma.appointment.findMany({
               where: {
                 ...timeRange,
                 status: { notIn: ['CANCELLED'] },
                 subaccountId: targetSubaccountId,
-                calendarId: null,
                 isBlocker: true,
               },
               select: { startTime: true, endTime: true },
@@ -149,6 +148,13 @@ export async function GET(request: Request) {
     const freeSlots: any[] = [];
     const nowUTC = new Date();
 
+    // If the calendar has its OWN rules (for any day), it manages its own schedule.
+    // In that case, days with no calendar rule = doctor closed that day (no subaccount fallback).
+    // If the calendar has NO rules at all, fall back to subaccount rules.
+    const calendarHasOwnRules = calendarId
+      ? allRules.some(r => r.calendarId === calendarId)
+      : false;
+
     for (const dayStr of daysToGenerate) {
       const isToday  = dayStr === todayStr;
       const dayDate  = fromZonedTime(`${dayStr}T12:00:00`, PANAMA_TZ);
@@ -159,9 +165,12 @@ export async function GET(request: Request) {
       // Pick the right rules for this day
       let dayRules: typeof allRules = [];
       if (calendarId) {
-        // Only use rules specific to this calendar — no subaccount fallback.
-        // If no rules exist for this day, the doctor is simply closed that day.
         dayRules = allRules.filter(r => r.calendarId === calendarId && r.dayOfWeek === dayOfWeek);
+        if (dayRules.length === 0 && !calendarHasOwnRules && targetSubaccountId) {
+          // Calendar has no rules at all → use subaccount schedule
+          dayRules = allRules.filter(r => r.subaccountId === targetSubaccountId && !r.calendarId && r.dayOfWeek === dayOfWeek);
+        }
+        // If calendarHasOwnRules=true but no rule for this day → doctor is closed (no fallback)
       } else if (targetSubaccountId) {
         dayRules = allRules.filter(r => r.subaccountId === targetSubaccountId && r.dayOfWeek === dayOfWeek);
       } else {
