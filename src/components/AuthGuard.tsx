@@ -18,7 +18,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const isSuperAdmin = session?.role === 'SUPERADMIN';
     const onSuperAdminPath = pathname.startsWith('/superadmin');
-    const PUBLIC_ROUTES = ['/', '/login'];
+    const PUBLIC_ROUTES = ['/', '/login', '/privacidad', '/terminos'];
 
     if (!session) {
       // Not logged in — allow through only on public routes
@@ -51,7 +51,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // On public pages (landing, login), always render
-  if (pathname === '/login' || pathname === '/') {
+  if (pathname === '/login' || pathname === '/' || pathname === '/privacidad' || pathname === '/terminos') {
     return <>{children}</>;
   }
 
