@@ -1,6 +1,8 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, convertToModelMessages } from 'ai';
+import { streamText } from 'ai';
 import { z } from 'zod';
+import { fromZonedTime, toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { addMinutes, isBefore, isAfter, format } from 'date-fns';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -165,16 +167,60 @@ export async function POST(req: Request) {
         }),
         execute: async ({ date, serviceId }) => {
           if (!subaccountId) return { error: 'ID de sede no disponible.' };
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          const PANAMA_TZ = 'America/Panama';
           try {
-            // Pasamos el subaccountId para que la API de disponibilidad filtre correctamente
-            const url = `${baseUrl}/api/availability?date=${date}&service_id=${serviceId}&subaccountId=${subaccountId}`;
-            const res = await fetch(url);
-            if (!res.ok) return { error: 'No se pudo obtener disponibilidad (API error)' };
-            const data = await res.json();
-            return { date, availableSlots: data.availableSlots };
+            // Slot duration from service
+            const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { durationMinutes: true } });
+            const slotDuration = svc?.durationMinutes || 60;
+
+            const dayStartUTC = fromZonedTime(`${date}T00:00:00`, PANAMA_TZ);
+            const dayEndUTC   = fromZonedTime(`${date}T23:59:59`, PANAMA_TZ);
+            const dayOfWeek   = toZonedTime(fromZonedTime(`${date}T12:00:00`, PANAMA_TZ), PANAMA_TZ).getDay();
+
+            // Rules for this subaccount
+            const rules = await prisma.availabilityRule.findMany({
+              where: { subaccountId, dayOfWeek }
+            });
+            if (rules.length === 0) return { date, availableSlots: [], message: 'La clínica está cerrada ese día.' };
+
+            // Existing appointments
+            const appts = await prisma.appointment.findMany({
+              where: {
+                subaccountId,
+                status: { notIn: ['CANCELLED'] },
+                startTime: { lt: dayEndUTC },
+                endTime:   { gt: dayStartUTC },
+              },
+              select: { startTime: true, endTime: true }
+            });
+
+            const nowUTC = new Date();
+            const todayStr = format(toZonedTime(nowUTC, PANAMA_TZ), 'yyyy-MM-dd');
+            const isToday = date === todayStr;
+            const slots: string[] = [];
+
+            for (const rule of rules) {
+              let pointer  = fromZonedTime(`${date}T${rule.startTime}:00`, PANAMA_TZ);
+              const workEnd = fromZonedTime(`${date}T${rule.endTime}:00`, PANAMA_TZ);
+
+              while (isBefore(pointer, workEnd)) {
+                const slotEnd = addMinutes(pointer, slotDuration);
+                if (isAfter(slotEnd, workEnd)) break;
+                if (isToday && !isAfter(pointer, nowUTC)) { pointer = addMinutes(pointer, slotDuration); continue; }
+
+                const blocking = appts.find(a => isBefore(pointer, a.endTime) && isAfter(slotEnd, a.startTime));
+                if (!blocking) {
+                  slots.push(formatInTimeZone(pointer, PANAMA_TZ, 'HH:mm'));
+                  pointer = addMinutes(pointer, slotDuration);
+                } else {
+                  pointer = blocking.endTime > pointer ? blocking.endTime : addMinutes(pointer, 15);
+                }
+              }
+            }
+
+            return { date, availableSlots: slots };
           } catch (e: any) {
-            return { error: 'Error de red al consultar disponibilidad.', details: e.message };
+            return { error: 'Error al consultar disponibilidad.', details: e.message };
           }
         },
       },
