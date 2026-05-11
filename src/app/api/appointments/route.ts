@@ -74,6 +74,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const accountId = getAccountIdFromRequest(request);
     const body = await request.json();
     const { patientId, serviceId, professionalId, startTime, endTime, notes, status, subaccountId, calendarId, doctorId, isBlocker, repeatCount, email } = body;
 
