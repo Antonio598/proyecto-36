@@ -1,61 +1,79 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, User, ChevronDown, Stethoscope } from 'lucide-react';
 import { useSede } from '@/context/SedeContext';
 import { getAccountId } from '@/lib/apiFetch';
 
+type Message = { role: 'user' | 'assistant'; text: string };
+
+const WELCOME: Message = {
+  role: 'assistant',
+  text: '¡Hola! Soy el asistente virtual de la clínica. ¿Te ayudo a agendar una cita o tienes alguna duda sobre nuestros servicios?',
+};
+
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { selectedSede } = useSede();
   const accountId = getAccountId();
 
-  const transport = useMemo(() => new DefaultChatTransport({
-    api: '/api/chat',
-    body: { subaccountId: selectedSede, accountId }
-  }), [selectedSede, accountId]);
-
-  const { messages, sendMessage, status } = useChat({ transport });
-
-  const isLoading = status === 'streaming' || status === 'submitted';
-
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-    const text = inputValue;
+    const text = inputValue.trim();
+    if (!text || isLoading) return;
+
     setInputValue('');
-    await sendMessage({ text });
-  };
+    const history: Message[] = [...messages, { role: 'user', text }];
+    setMessages(history);
+    setIsLoading(true);
 
-  const getMessageText = (m: any): string => {
-    if (m.parts && Array.isArray(m.parts)) {
-      const textParts = m.parts.filter((p: any) => p.type === 'text');
-      if (textParts.length > 0) return textParts.map((p: any) => p.text).join('');
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: history.map(m => ({ role: m.role, content: m.text })),
+          subaccountId: selectedSede,
+          accountId,
+        }),
+      });
+
+      if (!res.ok || !res.body) {
+        setMessages(prev => [...prev, { role: 'assistant', text: 'Hubo un error. Por favor intenta de nuevo.' }]);
+        return;
+      }
+
+      // Stream response chunk by chunk
+      setMessages(prev => [...prev, { role: 'assistant', text: '' }]);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let full = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        full += decoder.decode(value, { stream: true });
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: 'assistant', text: full };
+          return updated;
+        });
+      }
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', text: 'No se pudo conectar con el asistente.' }]);
+    } finally {
+      setIsLoading(false);
     }
-    if (typeof m.content === 'string' && m.content.length > 0) return m.content;
-    return '';
   };
-
-  const hasToolCall = (m: any): boolean => {
-    if (m.parts) return m.parts.some((p: any) => p.type === 'tool-invocation');
-    return false;
-  };
-
-  // Render welcome message separately since useChat doesn't support initialMessages in v6
-  const allMessages = messages.length === 0
-    ? [{ id: 'welcome', role: 'assistant', parts: [{ type: 'text', text: '¡Hola! Soy el asistente virtual de la clínica. 🏥 ¿Te ayudo a agendar una cita o tienes alguna duda sobre nuestros servicios?' }] }]
-    : messages;
 
   return (
     <>
@@ -64,7 +82,9 @@ export default function ChatbotWidget() {
         onClick={() => setIsOpen(!isOpen)}
         className={[
           'fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-2xl transition-all duration-300',
-          isOpen ? 'bg-red-500 hover:bg-red-600 scale-90' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-110 shadow-blue-500/50 hover:shadow-blue-500/80 animate-bounce cursor-pointer'
+          isOpen
+            ? 'bg-red-500 hover:bg-red-600 scale-90'
+            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-110 shadow-blue-500/50 animate-bounce cursor-pointer',
         ].join(' ')}
       >
         {isOpen ? <X className="w-7 h-7 text-white" /> : <Bot className="w-8 h-8 text-white" />}
@@ -74,7 +94,7 @@ export default function ChatbotWidget() {
       <div
         className={[
           'fixed bottom-24 right-6 z-50 w-[350px] sm:w-[400px] h-[600px] max-h-[80vh] flex flex-col bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl shadow-2xl transition-all duration-300 origin-bottom-right',
-          isOpen ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'
+          isOpen ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none',
         ].join(' ')}
       >
         {/* Cabecera */}
@@ -86,7 +106,7 @@ export default function ChatbotWidget() {
             <div>
               <h3 className="text-white font-bold text-sm tracking-wide">Asistente Inteligente</h3>
               <p className="text-blue-100 text-xs flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                 En línea
               </p>
             </div>
@@ -96,70 +116,45 @@ export default function ChatbotWidget() {
           </button>
         </div>
 
-        {/* Zona de Mensajes */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth bg-gray-50/50">
-          {allMessages.map((m: any) => {
-            const text = getMessageText(m);
-            const isToolOnly = !text && hasToolCall(m);
-
-            // Skip empty structural messages (step-start, etc.) that have no visible content
-            if (!text && !isToolOnly) return null;
-
-            return (
-              <div key={m.id} className={['flex', m.role === 'user' ? 'justify-end' : 'justify-start'].join(' ')}>
-                <div className={['flex gap-2 max-w-[85%]', m.role === 'user' ? 'flex-row-reverse' : 'flex-row'].join(' ')}>
-                  {/* Avatar */}
-                  <div className={[
-                    'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm',
-                    m.role === 'user' ? 'bg-indigo-100 border border-indigo-200' : 'bg-gradient-to-br from-blue-500 to-indigo-600 border border-blue-400'
-                  ].join(' ')}>
-                    {m.role === 'user' ? (
-                      <User className="w-4 h-4 text-indigo-700" />
-                    ) : (
-                      <Bot className="w-4 h-4 text-white" />
-                    )}
-                  </div>
-
-                  {/* Burbuja */}
-                  <div
-                    className={[
-                      'px-4 py-2.5 rounded-2xl text-[0.9rem] leading-relaxed shadow-sm',
-                      m.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
-                    ].join(' ')}
-                    style={{ whiteSpace: 'pre-wrap' }}
-                  >
-                    {text ? (
-                      text
-                    ) : isToolOnly ? (
-                      <div className="italic text-gray-400 text-xs flex items-center gap-2">
-                        <span className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></span>
-                        Consultando base de datos...
-                      </div>
-                    ) : (
-                      <span className="text-gray-300">...</span>
-                    )}
-                  </div>
+        {/* Mensajes */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+          {messages.map((m, i) => (
+            <div key={i} className={['flex', m.role === 'user' ? 'justify-end' : 'justify-start'].join(' ')}>
+              <div className={['flex gap-2 max-w-[85%]', m.role === 'user' ? 'flex-row-reverse' : 'flex-row'].join(' ')}>
+                <div className={[
+                  'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm',
+                  m.role === 'user'
+                    ? 'bg-indigo-100 border border-indigo-200'
+                    : 'bg-gradient-to-br from-blue-500 to-indigo-600 border border-blue-400',
+                ].join(' ')}>
+                  {m.role === 'user'
+                    ? <User className="w-4 h-4 text-indigo-700" />
+                    : <Bot className="w-4 h-4 text-white" />}
                 </div>
-              </div>
-            );
-          })}
-
-          {/* Indicador de "Escribiendo..." */}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="flex gap-2 items-center bg-white px-4 py-3 rounded-2xl rounded-tl-sm border border-gray-100 shadow-sm max-w-[85%]">
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></span>
-                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
-                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                <div
+                  className={[
+                    'px-4 py-2.5 rounded-2xl text-[0.9rem] leading-relaxed shadow-sm',
+                    m.role === 'user'
+                      ? 'bg-blue-600 text-white rounded-tr-sm'
+                      : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm',
+                  ].join(' ')}
+                  style={{ whiteSpace: 'pre-wrap' }}
+                >
+                  {m.text || (
+                    <span className="flex gap-1">
+                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" />
+                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-          )}
+          ))}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Formulario / Input */}
+        {/* Input */}
         <div className="p-3 bg-white border-t border-gray-100 rounded-b-2xl">
           <form
             onSubmit={handleSend}
@@ -169,7 +164,7 @@ export default function ChatbotWidget() {
               className="flex-1 bg-transparent border-none text-sm text-gray-700 focus:outline-none placeholder-gray-400"
               value={inputValue}
               placeholder="Escribe tu mensaje aquí..."
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={e => setInputValue(e.target.value)}
               disabled={isLoading}
             />
             <button
@@ -180,9 +175,7 @@ export default function ChatbotWidget() {
               <Send className="w-4 h-4" />
             </button>
           </form>
-          <div className="text-[10px] text-center text-gray-400 mt-2">
-            Desarrollado con OpenAI IntelliDocs
-          </div>
+          <p className="text-[10px] text-center text-gray-400 mt-2">Asistente IA · Galenus AI</p>
         </div>
       </div>
     </>

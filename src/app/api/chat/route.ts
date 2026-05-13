@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, convertToModelMessages } from 'ai';
+import { streamText } from 'ai';
 import { z } from 'zod';
 import { fromZonedTime, toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { addMinutes, isBefore, isAfter, format } from 'date-fns';
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages: await convertToModelMessages(messages),
+    messages,
     system: `Eres el Asistente de Recepción Virtual de la Clínica. Eres amable, profesional y altamente eficiente. 
     Tu trabajo es ayudar a los pacientes a agendar citas médicas, añadir servicios al catálogo, registrar médicos y responder sus dudas de forma inteligente.
     
@@ -283,5 +283,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toTextStreamResponse();
 }
