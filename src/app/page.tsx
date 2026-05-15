@@ -180,6 +180,11 @@ export default function LandingPage() {
               Hablar con un asesor
               <ArrowRight className="w-5 h-5" />
             </a>
+            <a href="https://wa.me/50769866587" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white text-base font-bold px-8 py-4 rounded-2xl hover:bg-white/20 transition-all backdrop-blur-sm hover:scale-105 duration-200">
+              <MessageCircle className="w-5 h-5 text-green-400" />
+              Prueba el agente IA
+            </a>
             <a href="#agente" className="inline-flex items-center gap-2 text-base font-semibold text-blue-200/80 hover:text-white px-6 py-4 rounded-2xl hover:bg-white/5 transition-all">
               Conocer más <ChevronDown className="w-4 h-4" />
             </a>
