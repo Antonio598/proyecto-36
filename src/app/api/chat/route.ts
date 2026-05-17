@@ -3,7 +3,11 @@ import { streamText } from 'ai';
 import { z } from 'zod';
 import { fromZonedTime, toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { addMinutes, isBefore, isAfter, format } from 'date-fns';
+import { es } from 'date-fns/locale/es';
 import prisma from '@/lib/prisma';
+import { sendAppointmentEmail } from '@/lib/mail';
+
+const PANAMA_TZ = 'America/Panama';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -29,13 +33,13 @@ export async function POST(req: Request) {
     - ID de Cuenta: ${accountId || 'No especificado'}
 
     REGLAS ESTRICTAS:
-    1. NUNCA inventes información. Usa getServices para conocer el catálogo real de servicios de esta sede.
-    2. Antes de agendar, usa searchPatient para ver si el paciente ya existe por su teléfono.
-    3. Si pide un turno, usa SIEMPRE checkAvailability para ver qué horas están libres para el servicio seleccionado.
-    4. NUNCA confirmes una cita sin haber usado bookAppointment exitosamente.
-    5. Solo puedes gestionar datos de la sede ${subaccountId} y la cuenta ${accountId}.
-    6. Sé corto y conciso. Estás en un widget pequeño de chat flotante. Usa un tono servicial.
-    7. Al crear un médico, SIEMPRE se le debe asignar un calendario por defecto (el sistema lo hace automáticamente si usas addDoctor).`,
+    1. NUNCA inventes información. Usa getServices para conocer los servicios reales de esta sede.
+    2. Usa getDoctors para obtener los médicos y su calendarId antes de agendar.
+    3. Usa checkAvailability (con calendarId del médico elegido) para verificar horarios libres.
+    4. Usa bookAppointment pasando SIEMPRE el calendarId y doctorId del médico elegido.
+    5. NUNCA confirmes una cita sin que bookAppointment retorne success:true.
+    6. Solo puedes gestionar datos de la sede ${subaccountId} y la cuenta ${accountId}.
+    7. Sé corto y conciso. Widget pequeño de chat. Tono servicial.`,
 
     tools: {
       getServices: {
@@ -56,15 +60,24 @@ export async function POST(req: Request) {
       },
 
       getDoctors: {
-        description: 'Obtiene la lista de médicos registrados en la sede actual.',
+        description: 'Obtiene los médicos de la sede con su calendarId. Usa ese calendarId al llamar checkAvailability y bookAppointment.',
         inputSchema: z.object({}),
         execute: async () => {
           if (!subaccountId) return { error: 'No hay una sede seleccionada.' };
           try {
-            return await prisma.doctor.findMany({
+            const doctors = await prisma.doctor.findMany({
               where: { subaccountId },
-              select: { id: true, name: true }
+              select: {
+                id: true,
+                name: true,
+                calendars: { select: { id: true, name: true }, take: 1 }
+              }
             });
+            return doctors.map(d => ({
+              id: d.id,
+              name: d.name,
+              calendarId: d.calendars[0]?.id ?? null,
+            }));
           } catch (e: any) {
             return { error: 'Error al obtener médicos', details: e.message };
           }
@@ -151,16 +164,15 @@ export async function POST(req: Request) {
       },
 
       checkAvailability: {
-        description: 'Consulta los horarios disponibles un día para un servicio y sede específicos.',
+        description: 'Consulta horarios libres para un día, servicio y médico (calendarId). Pasa el calendarId obtenido de getDoctors.',
         inputSchema: z.object({
           date: z.string().describe('Fecha en formato YYYY-MM-DD'),
-          serviceId: z.string().describe('ID del servicio seleccionado'),
+          serviceId: z.string().describe('ID del servicio'),
+          calendarId: z.string().optional().describe('calendarId del médico (de getDoctors)'),
         }),
-        execute: async ({ date, serviceId }) => {
+        execute: async ({ date, serviceId, calendarId }) => {
           if (!subaccountId) return { error: 'ID de sede no disponible.' };
-          const PANAMA_TZ = 'America/Panama';
           try {
-            // Slot duration from service
             const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { durationMinutes: true } });
             const slotDuration = svc?.durationMinutes || 60;
 
@@ -168,37 +180,42 @@ export async function POST(req: Request) {
             const dayEndUTC   = fromZonedTime(`${date}T23:59:59`, PANAMA_TZ);
             const dayOfWeek   = toZonedTime(fromZonedTime(`${date}T12:00:00`, PANAMA_TZ), PANAMA_TZ).getDay();
 
-            // Rules for this subaccount
-            const rules = await prisma.availabilityRule.findMany({
-              where: { subaccountId, dayOfWeek }
-            });
-            if (rules.length === 0) return { date, availableSlots: [], message: 'La clínica está cerrada ese día.' };
+            // Use calendar-specific rules, fall back to subaccount rules
+            let rules = calendarId
+              ? await prisma.availabilityRule.findMany({ where: { calendarId, dayOfWeek } })
+              : [];
+            if (rules.length === 0) {
+              rules = await prisma.availabilityRule.findMany({ where: { subaccountId, calendarId: null, dayOfWeek } });
+            }
+            if (rules.length === 0) return { date, availableSlots: [], message: 'El médico no tiene disponibilidad ese día.' };
 
-            // Existing appointments
-            const appts = await prisma.appointment.findMany({
-              where: {
-                subaccountId,
-                status: { notIn: ['CANCELLED'] },
-                startTime: { lt: dayEndUTC },
-                endTime:   { gt: dayStartUTC },
-              },
-              select: { startTime: true, endTime: true }
-            });
+            // Appointments blocking this calendar
+            const apptWhere: any = {
+              status: { notIn: ['CANCELLED'] },
+              startTime: { lt: dayEndUTC },
+              endTime:   { gt: dayStartUTC },
+            };
+            if (calendarId) {
+              apptWhere.OR = [
+                { calendarId },
+                { subaccountId, isBlocker: true },
+              ];
+            } else {
+              apptWhere.subaccountId = subaccountId;
+            }
+            const appts = await prisma.appointment.findMany({ where: apptWhere, select: { startTime: true, endTime: true } });
 
             const nowUTC = new Date();
-            const todayStr = format(toZonedTime(nowUTC, PANAMA_TZ), 'yyyy-MM-dd');
-            const isToday = date === todayStr;
+            const isToday = date === format(toZonedTime(nowUTC, PANAMA_TZ), 'yyyy-MM-dd');
             const slots: string[] = [];
 
             for (const rule of rules) {
               let pointer  = fromZonedTime(`${date}T${rule.startTime}:00`, PANAMA_TZ);
               const workEnd = fromZonedTime(`${date}T${rule.endTime}:00`, PANAMA_TZ);
-
               while (isBefore(pointer, workEnd)) {
                 const slotEnd = addMinutes(pointer, slotDuration);
                 if (isAfter(slotEnd, workEnd)) break;
                 if (isToday && !isAfter(pointer, nowUTC)) { pointer = addMinutes(pointer, slotDuration); continue; }
-
                 const blocking = appts.find(a => isBefore(pointer, a.endTime) && isAfter(slotEnd, a.startTime));
                 if (!blocking) {
                   slots.push(formatInTimeZone(pointer, PANAMA_TZ, 'HH:mm'));
@@ -208,7 +225,6 @@ export async function POST(req: Request) {
                 }
               }
             }
-
             return { date, availableSlots: slots };
           } catch (e: any) {
             return { error: 'Error al consultar disponibilidad.', details: e.message };
@@ -217,63 +233,118 @@ export async function POST(req: Request) {
       },
 
       bookAppointment: {
-        description: 'Agenda una nueva cita médica en la sede actual.',
+        description: 'Agenda una cita. Requiere calendarId y doctorId del médico (obtenidos de getDoctors) y un horario libre (de checkAvailability).',
         inputSchema: z.object({
           fullName: z.string().describe('Nombre completo del paciente.'),
           phone: z.string().describe('Teléfono de contacto.'),
+          email: z.string().optional().describe('Correo electrónico del paciente para enviarle confirmación.'),
           serviceId: z.string().describe('ID del servicio.'),
-          startTime: z.string().describe('Inicio de cita (ISO8601 local, ej: 2024-11-20T10:00:00). NO INCLUIR Z.'),
+          calendarId: z.string().describe('calendarId del médico (de getDoctors).'),
+          doctorId: z.string().describe('ID del médico (de getDoctors).'),
+          startTime: z.string().describe('Inicio de cita en formato local Panama: 2025-06-10T09:00:00 (sin Z).'),
           notes: z.string().optional().describe('Notas o motivo de consulta.'),
         }),
-        execute: async ({ fullName, phone, serviceId, startTime, notes }) => {
-          if (!subaccountId || !accountId) return { error: 'Contexto incompleto (sede o cuenta faltante).' };
+        execute: async ({ fullName, phone, email, serviceId, calendarId, doctorId, startTime, notes }) => {
+          if (!subaccountId || !accountId) return { error: 'Contexto incompleto.' };
           try {
-            const naiveLocalTime = startTime.substring(0, 19); 
-            const { fromZonedTime } = require('date-fns-tz');
-            const start = fromZonedTime(naiveLocalTime, 'America/Panama');
+            const start = fromZonedTime(startTime.substring(0, 19), PANAMA_TZ);
 
-            // 1. Asegurar Paciente (Scoped by Account)
-            let patient = await prisma.patient.findFirst({ 
-              where: { phone: phone.toString(), accountId } 
-            });
-
+            // 1. Upsert patient
+            let patient = await prisma.patient.findFirst({ where: { phone: phone.toString(), accountId } });
             if (!patient) {
               patient = await prisma.patient.create({
-                data: { fullName, phone: phone.toString(), accountId, notes: 'Creado por Asistente IA' }
+                data: { fullName, phone: phone.toString(), email: email || null, accountId, notes: 'Creado por Asistente IA' }
               });
+            } else if (email && !patient.email) {
+              patient = await prisma.patient.update({ where: { id: patient.id }, data: { email } });
             }
 
-            // 2. Obtener Servicio
+            // 2. Get service
             const service = await prisma.service.findUnique({ where: { id: serviceId } });
             if (!service) return { error: 'Servicio no encontrado.' };
 
-            // 3. Buscar Calendario/Médico disponible en esta sede
-            // Tomamos el primer calendario activo de la sede por simplicidad
-            const calendar = await prisma.calendar.findFirst({ 
-              where: { subaccountId },
+            // 3. Get calendar & doctor name
+            const calendar = await prisma.calendar.findUnique({
+              where: { id: calendarId },
               include: { doctor: true }
             });
+            if (!calendar) return { error: 'Calendario no encontrado. Usa getDoctors para obtener el calendarId correcto.' };
 
-            if (!calendar) return { error: 'No hay calendarios configurados en esta sede para agendar.' };
+            // Check slot not already taken
+            const conflict = await prisma.appointment.findFirst({
+              where: {
+                status: { notIn: ['CANCELLED'] },
+                startTime: { lt: new Date(start.getTime() + service.durationMinutes * 60000) },
+                endTime:   { gt: start },
+                OR: [{ calendarId }, { subaccountId, isBlocker: true }],
+              }
+            });
+            if (conflict) return { error: 'Ese horario ya está ocupado. Elige otro con checkAvailability.' };
 
             const end = new Date(start.getTime() + service.durationMinutes * 60000);
-            
+
             const appointment = await prisma.appointment.create({
               data: {
                 patientId: patient.id,
                 serviceId: service.id,
                 subaccountId,
-                calendarId: calendar.id,
-                doctorId: calendar.doctorId,
+                calendarId,
+                doctorId,
                 startTime: start,
                 endTime: end,
                 totalPrice: service.price,
                 status: 'CONFIRMED',
-                notes: notes || 'Agendado por Chatbot OpenAI'
+                notes: notes || 'Agendado por Asistente IA',
               }
             });
 
-            return { success: true, message: '¡Cita confirmada correctamente!', appointment };
+            // 4. Send confirmation emails
+            try {
+              const dateStr  = formatInTimeZone(start, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
+              const startStr = formatInTimeZone(start, PANAMA_TZ, 'HH:mm');
+              const endStr   = formatInTimeZone(end,   PANAMA_TZ, 'HH:mm');
+
+              const patientEmail = email || patient.email;
+              if (patientEmail) {
+                await sendAppointmentEmail({
+                  to: patientEmail,
+                  subject: 'Confirmación de tu Cita - Galenus AI',
+                  patientName: fullName,
+                  serviceName: service.name,
+                  date: dateStr,
+                  startTime: startStr,
+                  endTime: endStr,
+                  isOwner: false,
+                });
+              }
+
+              const account = await prisma.account.findUnique({
+                where: { id: accountId },
+                include: { users: { where: { role: 'ADMIN' } } }
+              });
+              for (const user of account?.users ?? []) {
+                if (user.email) {
+                  await sendAppointmentEmail({
+                    to: user.email,
+                    subject: 'Nueva Cita Agendada (Asistente IA)',
+                    patientName: fullName,
+                    serviceName: service.name,
+                    date: dateStr,
+                    startTime: startStr,
+                    endTime: endStr,
+                    isOwner: true,
+                  });
+                }
+              }
+            } catch (mailErr) {
+              console.error('Error enviando correos desde agente:', mailErr);
+            }
+
+            return {
+              success: true,
+              message: `¡Cita confirmada! ${formatInTimeZone(start, PANAMA_TZ, "EEEE d 'de' MMMM")} de ${formatInTimeZone(start, PANAMA_TZ, 'HH:mm')} a ${formatInTimeZone(end, PANAMA_TZ, 'HH:mm')} con Dr(a). ${calendar.doctor.name}.`,
+              appointmentId: appointment.id,
+            };
           } catch (error: any) {
             console.error('Booking error:', error);
             return { error: 'No se pudo agendar la cita.', details: error.message };
