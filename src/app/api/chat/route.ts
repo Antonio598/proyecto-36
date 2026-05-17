@@ -32,14 +32,19 @@ export async function POST(req: Request) {
     - ID de Sede Actual: ${subaccountId || 'No especificado (pide al usuario que seleccione su sede si es necesario, aunque debería venir automático)'}
     - ID de Cuenta: ${accountId || 'No especificado'}
 
-    REGLAS ESTRICTAS:
-    1. NUNCA inventes información. Usa getServices para conocer los servicios reales de esta sede.
-    2. Usa getDoctors para obtener los médicos y su calendarId antes de agendar.
-    3. Usa checkAvailability (con calendarId del médico elegido) para verificar horarios libres.
-    4. Usa bookAppointment pasando SIEMPRE el calendarId y doctorId del médico elegido.
-    5. NUNCA confirmes una cita sin que bookAppointment retorne success:true.
-    6. Solo puedes gestionar datos de la sede ${subaccountId} y la cuenta ${accountId}.
-    7. Sé corto y conciso. Widget pequeño de chat. Tono servicial.`,
+    CAPACIDADES:
+    - Buscar y editar pacientes (updatePatient)
+    - Ver, cancelar y reagendar citas (getPatientAppointments, cancelAppointment, rescheduleAppointment)
+    - Agendar nuevas citas (bookAppointment)
+    - Consultar servicios y médicos
+
+    REGLAS:
+    1. Usa searchPatient antes de editar o agendar para obtener el ID del paciente.
+    2. Usa getDoctors para obtener calendarId antes de agendar o reagendar.
+    3. Usa checkAvailability con el calendarId del médico para ver horarios libres.
+    4. NUNCA confirmes acciones sin que la tool retorne success:true.
+    5. Solo gestiona datos de la sede ${subaccountId} y cuenta ${accountId}.
+    6. Sé corto y conciso. Widget pequeño. Tono servicial.`,
 
     tools: {
       getServices: {
@@ -350,7 +355,164 @@ export async function POST(req: Request) {
             return { error: 'No se pudo agendar la cita.', details: error.message };
           }
         }
-      }
+      },
+
+      updatePatient: {
+        description: 'Edita los datos de un paciente existente (nombre, teléfono, email, cédula, edad, notas). Usa searchPatient primero para obtener el id.',
+        inputSchema: z.object({
+          patientId: z.string().describe('ID del paciente (de searchPatient).'),
+          fullName: z.string().optional(),
+          phone: z.string().optional(),
+          email: z.string().optional(),
+          cedula_pasaporte: z.string().optional(),
+          edad: z.number().optional(),
+          notes: z.string().optional(),
+        }),
+        execute: async ({ patientId, fullName, phone, email, cedula_pasaporte, edad, notes }) => {
+          try {
+            const data: any = {};
+            if (fullName !== undefined) data.fullName = fullName;
+            if (phone !== undefined) data.phone = phone;
+            if (email !== undefined) data.email = email;
+            if (cedula_pasaporte !== undefined) data.cedula_pasaporte = cedula_pasaporte;
+            if (edad !== undefined) data.edad = edad;
+            if (notes !== undefined) data.notes = notes;
+
+            if (Object.keys(data).length === 0) return { error: 'No se proporcionaron campos para actualizar.' };
+
+            const updated = await prisma.patient.update({
+              where: { id: patientId },
+              data,
+              select: { id: true, fullName: true, phone: true, email: true, cedula_pasaporte: true, edad: true, notes: true }
+            });
+            return { success: true, message: 'Paciente actualizado correctamente.', patient: updated };
+          } catch (e: any) {
+            return { error: 'Error al actualizar paciente.', details: e.message };
+          }
+        },
+      },
+
+      getPatientAppointments: {
+        description: 'Obtiene las citas activas (pendientes y confirmadas) de un paciente.',
+        inputSchema: z.object({
+          patientId: z.string().describe('ID del paciente (de searchPatient).'),
+        }),
+        execute: async ({ patientId }) => {
+          try {
+            const appts = await prisma.appointment.findMany({
+              where: {
+                patientId,
+                subaccountId,
+                status: { notIn: ['CANCELLED'] },
+              },
+              include: { service: { select: { name: true } }, doctor: { select: { name: true } } },
+              orderBy: { startTime: 'asc' },
+              take: 10,
+            });
+            return appts.map(a => ({
+              id: a.id,
+              status: a.status,
+              service: a.service?.name,
+              doctor: a.doctor?.name,
+              startTime: formatInTimeZone(a.startTime, PANAMA_TZ, "yyyy-MM-dd HH:mm"),
+              endTime:   formatInTimeZone(a.endTime,   PANAMA_TZ, "HH:mm"),
+              notes: a.notes,
+            }));
+          } catch (e: any) {
+            return { error: 'Error al obtener citas.', details: e.message };
+          }
+        },
+      },
+
+      cancelAppointment: {
+        description: 'Cancela una cita. Usa getPatientAppointments para obtener el appointmentId.',
+        inputSchema: z.object({
+          appointmentId: z.string().describe('ID de la cita a cancelar.'),
+        }),
+        execute: async ({ appointmentId }) => {
+          try {
+            const appt = await prisma.appointment.update({
+              where: { id: appointmentId },
+              data: { status: 'CANCELLED' },
+              include: {
+                patient: { select: { fullName: true, email: true } },
+                service: { select: { name: true } },
+              }
+            });
+
+            try {
+              const dateStr  = formatInTimeZone(appt.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
+              const startStr = formatInTimeZone(appt.startTime, PANAMA_TZ, 'HH:mm');
+              const endStr   = formatInTimeZone(appt.endTime,   PANAMA_TZ, 'HH:mm');
+              if (appt.patient?.email) {
+                await sendAppointmentEmail({ to: appt.patient.email, subject: 'Cita Cancelada - Galenus AI', patientName: appt.patient.fullName, serviceName: appt.service?.name || '', date: dateStr, startTime: startStr, endTime: endStr, isOwner: false, type: 'CANCEL' });
+              }
+              const account = await prisma.account.findUnique({ where: { id: accountId }, include: { users: { where: { role: 'ADMIN' } } } });
+              for (const u of account?.users ?? []) {
+                if (u.email) await sendAppointmentEmail({ to: u.email, subject: 'Cita Cancelada', patientName: appt.patient?.fullName || '', serviceName: appt.service?.name || '', date: dateStr, startTime: startStr, endTime: endStr, isOwner: true, type: 'CANCEL' });
+              }
+            } catch {}
+
+            return { success: true, message: 'Cita cancelada correctamente.' };
+          } catch (e: any) {
+            return { error: 'Error al cancelar cita.', details: e.message };
+          }
+        },
+      },
+
+      rescheduleAppointment: {
+        description: 'Reagenda una cita a un nuevo horario. Verifica disponibilidad con checkAvailability antes de llamar esta función.',
+        inputSchema: z.object({
+          appointmentId: z.string().describe('ID de la cita (de getPatientAppointments).'),
+          newStartTime: z.string().describe('Nuevo inicio en formato local Panama: 2025-06-10T09:00:00 (sin Z).'),
+        }),
+        execute: async ({ appointmentId, newStartTime }) => {
+          try {
+            const appt = await prisma.appointment.findUnique({
+              where: { id: appointmentId },
+              include: { service: true, patient: { select: { fullName: true, email: true } } }
+            });
+            if (!appt) return { error: 'Cita no encontrada.' };
+
+            const newStart = fromZonedTime(newStartTime.substring(0, 19), PANAMA_TZ);
+            const duration = appt.endTime.getTime() - appt.startTime.getTime();
+            const newEnd   = new Date(newStart.getTime() + duration);
+
+            const conflict = await prisma.appointment.findFirst({
+              where: {
+                id: { not: appointmentId },
+                status: { notIn: ['CANCELLED'] },
+                startTime: { lt: newEnd },
+                endTime:   { gt: newStart },
+                OR: [{ calendarId: appt.calendarId }, { subaccountId, isBlocker: true }],
+              }
+            });
+            if (conflict) return { error: 'Ese horario ya está ocupado.' };
+
+            const updated = await prisma.appointment.update({
+              where: { id: appointmentId },
+              data: { startTime: newStart, endTime: newEnd },
+            });
+
+            try {
+              const dateStr  = formatInTimeZone(newStart, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
+              const startStr = formatInTimeZone(newStart, PANAMA_TZ, 'HH:mm');
+              const endStr   = formatInTimeZone(newEnd,   PANAMA_TZ, 'HH:mm');
+              if (appt.patient?.email) {
+                await sendAppointmentEmail({ to: appt.patient.email, subject: 'Cita Reagendada - Galenus AI', patientName: appt.patient.fullName, serviceName: appt.service?.name || '', date: dateStr, startTime: startStr, endTime: endStr, isOwner: false, type: 'RESCHEDULE' });
+              }
+              const account = await prisma.account.findUnique({ where: { id: accountId }, include: { users: { where: { role: 'ADMIN' } } } });
+              for (const u of account?.users ?? []) {
+                if (u.email) await sendAppointmentEmail({ to: u.email, subject: 'Cita Reagendada', patientName: appt.patient?.fullName || '', serviceName: appt.service?.name || '', date: dateStr, startTime: startStr, endTime: endStr, isOwner: true, type: 'RESCHEDULE' });
+              }
+            } catch {}
+
+            return { success: true, message: `Cita reagendada para el ${formatInTimeZone(newStart, PANAMA_TZ, "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es })}.` };
+          } catch (e: any) {
+            return { error: 'Error al reagendar.', details: e.message };
+          }
+        },
+      },
     },
   });
 
