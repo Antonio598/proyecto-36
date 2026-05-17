@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { fromZonedTime, toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { addMinutes, isBefore, isAfter, format } from 'date-fns';
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages,
-    maxSteps: 15,
+    stopWhen: stepCountIs(15),
     system: `Eres el Asistente de Recepción Virtual de la Clínica. Eres amable, profesional y altamente eficiente.
 
     CONTEXTO:
