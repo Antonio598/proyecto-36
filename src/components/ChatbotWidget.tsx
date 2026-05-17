@@ -68,6 +68,15 @@ export default function ChatbotWidget() {
           return updated;
         });
       }
+
+      // If the stream ended with no text (model only called tools), show a fallback
+      if (!full.trim()) {
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: 'assistant', text: 'Ocurrió un problema procesando tu solicitud. Por favor intenta de nuevo.' };
+          return updated;
+        });
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', text: 'No se pudo conectar con el asistente.' }]);
     } finally {
