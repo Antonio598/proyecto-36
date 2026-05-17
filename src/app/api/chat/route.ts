@@ -10,7 +10,7 @@ import { sendAppointmentEmail } from '@/lib/mail';
 const PANAMA_TZ = 'America/Panama';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const { messages, subaccountId, accountId } = await req.json();
@@ -25,6 +25,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages,
+    maxSteps: 15,
     system: `Eres el Asistente de Recepción Virtual de la Clínica. Eres amable, profesional y altamente eficiente. 
     Tu trabajo es ayudar a los pacientes a agendar citas médicas, añadir servicios al catálogo, registrar médicos y responder sus dudas de forma inteligente.
     
