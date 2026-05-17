@@ -29,22 +29,30 @@ export async function POST(req: Request) {
     system: `Eres el Asistente de Recepción Virtual de la Clínica. Eres amable, profesional y altamente eficiente.
 
     CONTEXTO:
+    - Fecha y hora actual (Panamá): ${new Date().toLocaleString('es-PA', { timeZone: 'America/Panama', dateStyle: 'full', timeStyle: 'short' })}
+    - Fecha ISO hoy: ${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Panama' })}
     - Sede actual: ${subaccountId}
     - Cuenta: ${accountId}
 
     FLUJO OBLIGATORIO PARA AGENDAR:
     1. Recopila del usuario: nombre, teléfono, correo (opcional), servicio deseado y fecha preferida.
-    2. Cuando tengas todos esos datos, llama en este orden: searchPatient → getDoctors → checkAvailability → bookAppointment.
-    3. NO llames ninguna tool hasta tener al menos nombre, teléfono, servicio y fecha. Si falta algo, PREGUNTA al usuario primero y espera su respuesta.
+    2. Cuando tengas todos esos datos, llama en este orden:
+       a. searchPatient (con teléfono o nombre)
+       b. getServices → obtén el serviceId exacto del servicio solicitado
+       c. getDoctors → obtén el calendarId del médico adecuado
+       d. checkAvailability (SIEMPRE pasa el calendarId del médico, NUNCA lo omitas)
+       e. Muestra los horarios disponibles al usuario y espera que elija uno
+       f. bookAppointment con el horario elegido
+    3. NO llames ninguna tool hasta tener nombre, teléfono, servicio y fecha. Si falta algo, PREGUNTA al usuario primero.
 
     FLUJO PARA EDITAR/CANCELAR/REAGENDAR:
     1. Pide el nombre o teléfono del paciente.
     2. Llama searchPatient, luego la tool correspondiente.
 
     REGLAS CRÍTICAS:
-    - SIEMPRE genera una respuesta de texto visible al usuario después de cada acción o tool call. Nunca termines un turno sin texto.
+    - checkAvailability: el parámetro calendarId es OBLIGATORIO. Siempre pásalo desde getDoctors.
+    - SIEMPRE genera una respuesta de texto visible al usuario después de cada tool call.
     - Si una tool falla, informa al usuario con texto y detente.
-    - NUNCA encadenes más de 3 tools seguidas sin primero responder al usuario con texto.
     - Solo gestiona datos de sede ${subaccountId} y cuenta ${accountId}.
     - Respuestas cortas y directas. Widget pequeño.`,
 
@@ -174,10 +182,11 @@ export async function POST(req: Request) {
         description: 'Consulta horarios libres para un día, servicio y médico (calendarId). Pasa el calendarId obtenido de getDoctors.',
         inputSchema: z.object({
           date: z.string().describe('Fecha en formato YYYY-MM-DD'),
-          serviceId: z.string().describe('ID del servicio'),
-          calendarId: z.string().optional().describe('calendarId del médico (de getDoctors)'),
+          serviceId: z.string().describe('ID del servicio (de getServices)'),
+          calendarId: z.string().describe('calendarId del médico (de getDoctors). OBLIGATORIO.'),
         }),
         execute: async ({ date, serviceId, calendarId }) => {
+          console.log('[checkAvailability]', { date, serviceId, calendarId, subaccountId });
           if (!subaccountId) return { error: 'ID de sede no disponible.' };
           try {
             const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { durationMinutes: true } });
@@ -187,16 +196,11 @@ export async function POST(req: Request) {
             const dayEndUTC   = fromZonedTime(`${date}T23:59:59`, PANAMA_TZ);
             const dayOfWeek   = toZonedTime(fromZonedTime(`${date}T12:00:00`, PANAMA_TZ), PANAMA_TZ).getDay();
 
-            // Smart fallback: if the calendar has ANY own rules, treat missing-day as closed.
-            // Only fall back to subaccount schedule if the calendar has zero rules of its own.
-            let rules: { startTime: string; endTime: string }[] = [];
-            if (calendarId) {
-              const calendarHasOwnRules = await prisma.availabilityRule.count({ where: { calendarId } }) > 0;
-              rules = await prisma.availabilityRule.findMany({ where: { calendarId, dayOfWeek } });
-              if (rules.length === 0 && !calendarHasOwnRules) {
-                rules = await prisma.availabilityRule.findMany({ where: { subaccountId, calendarId: null, dayOfWeek } });
-              }
-            } else {
+            // Smart fallback: calendar with own rules → closed on missing days.
+            // Calendar with zero rules → inherit subaccount schedule.
+            const calendarHasOwnRules = await prisma.availabilityRule.count({ where: { calendarId } }) > 0;
+            let rules = await prisma.availabilityRule.findMany({ where: { calendarId, dayOfWeek } });
+            if (rules.length === 0 && !calendarHasOwnRules) {
               rules = await prisma.availabilityRule.findMany({ where: { subaccountId, calendarId: null, dayOfWeek } });
             }
             if (rules.length === 0) return { date, availableSlots: [], message: 'El médico no tiene disponibilidad ese día.' };
