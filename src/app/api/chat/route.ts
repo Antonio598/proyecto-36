@@ -187,11 +187,16 @@ export async function POST(req: Request) {
             const dayEndUTC   = fromZonedTime(`${date}T23:59:59`, PANAMA_TZ);
             const dayOfWeek   = toZonedTime(fromZonedTime(`${date}T12:00:00`, PANAMA_TZ), PANAMA_TZ).getDay();
 
-            // Use calendar-specific rules, fall back to subaccount rules
-            let rules = calendarId
-              ? await prisma.availabilityRule.findMany({ where: { calendarId, dayOfWeek } })
-              : [];
-            if (rules.length === 0) {
+            // Smart fallback: if the calendar has ANY own rules, treat missing-day as closed.
+            // Only fall back to subaccount schedule if the calendar has zero rules of its own.
+            let rules: { startTime: string; endTime: string }[] = [];
+            if (calendarId) {
+              const calendarHasOwnRules = await prisma.availabilityRule.count({ where: { calendarId } }) > 0;
+              rules = await prisma.availabilityRule.findMany({ where: { calendarId, dayOfWeek } });
+              if (rules.length === 0 && !calendarHasOwnRules) {
+                rules = await prisma.availabilityRule.findMany({ where: { subaccountId, calendarId: null, dayOfWeek } });
+              }
+            } else {
               rules = await prisma.availabilityRule.findMany({ where: { subaccountId, calendarId: null, dayOfWeek } });
             }
             if (rules.length === 0) return { date, availableSlots: [], message: 'El médico no tiene disponibilidad ese día.' };
