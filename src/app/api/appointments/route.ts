@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAccountIdFromRequest } from '@/lib/serverAuth';
 
-import { parseISO, format } from 'date-fns';
+import { format } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { sendAppointmentEmail } from '@/lib/mail';
 import { es } from 'date-fns/locale/es';
@@ -276,7 +276,7 @@ export async function POST(request: Request) {
         if (accountId) {
           const accountWithAdmins = await prisma.account.findUnique({
             where: { id: accountId },
-            include: { users: { where: { role: 'ADMIN' } } }
+            include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } }
           });
           adminEmails = accountWithAdmins?.users.map(u => u.email).filter(Boolean) as string[] || [];
         }

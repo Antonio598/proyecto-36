@@ -204,7 +204,7 @@ export async function POST(request: Request) {
       // 2. Enviar a los administradores de la cuenta
       const fullAccount = await prisma.account.findUnique({
         where: { id: account.id },
-        include: { users: { where: { role: 'ADMIN' } } }
+        include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } }
       });
       
       const adminEmails = fullAccount?.users.map(u => u.email).filter(Boolean) as string[] || [];

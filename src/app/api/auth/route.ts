@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       let user;
       try {
         const userName = name || email.split('@')[0];
-        const role = email.toLowerCase() === 'israelmayalara@gmail.com' ? 'ADMIN' : 'RECEPTIONIST';
+        const role = 'ADMIN'; // self-registered users are always the owner of their account
 
         // Auto-create an Account for this user (cada usuario registrado ES una cuenta del SaaS)
         const account = await db.account.create({
