@@ -79,8 +79,9 @@ export async function sendAppointmentEmail({
       </div>
     `;
 
+    const from = process.env.RESEND_FROM_EMAIL || 'Galenus AI <onboarding@resend.dev>';
     await resend.emails.send({
-      from: 'Galenus AI <onboarding@resend.dev>',
+      from,
       to,
       subject: subject || getTitle(),
       html
