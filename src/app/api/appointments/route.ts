@@ -258,9 +258,10 @@ export async function POST(request: Request) {
     try {
       if (mainAppointment && !isBlocker) {
         // Obtener detalles del paciente, servicio y administradores
-        let [fullPatient, fullService] = await Promise.all([
+        let [fullPatient, fullService, fullSubaccount] = await Promise.all([
           prisma.patient.findUnique({ where: { id: patientId } }),
-          prisma.service.findUnique({ where: { id: serviceId } })
+          prisma.service.findUnique({ where: { id: serviceId } }),
+          subaccountId ? prisma.subaccount.findUnique({ where: { id: subaccountId }, select: { name: true } }) : Promise.resolve(null),
         ]);
 
         // Si se proporciona un correo en la petición y el paciente no lo tenía, actualizarlo
@@ -287,12 +288,15 @@ export async function POST(request: Request) {
           const endStr   = formatInTimeZone(mainAppointment.endTime,   PANAMA_TZ, 'HH:mm');
 
           // 1. Enviar al Paciente si tiene correo
+          const sedeName = fullSubaccount?.name;
+
           if (fullPatient.email) {
             await sendAppointmentEmail({
               to: fullPatient.email,
               subject: 'Confirmación de tu Cita - Galenus AI',
               patientName: fullPatient.fullName,
               serviceName: fullService.name,
+              sedeName,
               date: dateStr,
               startTime: startStr,
               endTime: endStr,
@@ -307,6 +311,7 @@ export async function POST(request: Request) {
               subject: 'Nueva Cita Recibida',
               patientName: fullPatient.fullName,
               serviceName: fullService.name,
+              sedeName,
               date: dateStr,
               startTime: startStr,
               endTime: endStr,

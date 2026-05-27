@@ -175,13 +175,15 @@ export async function POST(request: Request) {
         status: 'CONFIRMED',
       },
       include: {
-        patient: { select: { fullName: true, phone: true } },
-        service: { select: { name: true } },
+        patient:    { select: { fullName: true, phone: true } },
+        service:    { select: { name: true } },
+        subaccount: { select: { name: true } },
       },
     });
 
     // --- Enviar correos de notificación ---
     try {
+      const sedeName = appointment.subaccount?.name;
       const dateStr  = formatInTimeZone(appointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
       const startStr = formatInTimeZone(appointment.startTime, PANAMA_TZ, 'HH:mm');
       const endStr   = formatInTimeZone(appointment.endTime,   PANAMA_TZ, 'HH:mm');
@@ -194,6 +196,7 @@ export async function POST(request: Request) {
           subject: 'Confirmación de tu Cita - Galenus AI',
           patientName: patient.fullName,
           serviceName: appointment.service?.name || 'Servicio',
+          sedeName,
           date: dateStr,
           startTime: startStr,
           endTime: endStr,
@@ -206,14 +209,15 @@ export async function POST(request: Request) {
         where: { id: account.id },
         include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } }
       });
-      
+
       const adminEmails = fullAccount?.users.map(u => u.email).filter(Boolean) as string[] || [];
       for (const adminEmail of adminEmails) {
         await sendAppointmentEmail({
           to: adminEmail,
-          subject: 'Nueva Cita Recibida (n8n)',
+          subject: 'Nueva Cita Recibida',
           patientName: patient.fullName,
           serviceName: appointment.service?.name || 'Servicio',
+          sedeName,
           date: dateStr,
           startTime: startStr,
           endTime: endStr,

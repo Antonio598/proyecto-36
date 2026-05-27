@@ -316,6 +316,8 @@ export async function POST(req: Request) {
 
             // 4. Send confirmation emails
             try {
+              const sede = await prisma.subaccount.findUnique({ where: { id: subaccountId }, select: { name: true } });
+              const sedeName = sede?.name;
               const dateStr  = formatInTimeZone(start, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
               const startStr = formatInTimeZone(start, PANAMA_TZ, 'HH:mm');
               const endStr   = formatInTimeZone(end,   PANAMA_TZ, 'HH:mm');
@@ -327,6 +329,7 @@ export async function POST(req: Request) {
                   subject: 'Confirmación de tu Cita - Galenus AI',
                   patientName: fullName,
                   serviceName: service.name,
+                  sedeName,
                   date: dateStr,
                   startTime: startStr,
                   endTime: endStr,
@@ -345,6 +348,7 @@ export async function POST(req: Request) {
                     subject: 'Nueva Cita Agendada (Asistente IA)',
                     patientName: fullName,
                     serviceName: service.name,
+                    sedeName,
                     date: dateStr,
                     startTime: startStr,
                     endTime: endStr,
@@ -448,19 +452,21 @@ export async function POST(req: Request) {
               include: {
                 patient: { select: { fullName: true, email: true } },
                 service: { select: { name: true } },
+                subaccount: { select: { name: true } },
               }
             });
 
             try {
+              const sedeName = appt.subaccount?.name;
               const dateStr  = formatInTimeZone(appt.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
               const startStr = formatInTimeZone(appt.startTime, PANAMA_TZ, 'HH:mm');
               const endStr   = formatInTimeZone(appt.endTime,   PANAMA_TZ, 'HH:mm');
               if (appt.patient?.email) {
-                await sendAppointmentEmail({ to: appt.patient.email, subject: 'Cita Cancelada - Galenus AI', patientName: appt.patient.fullName, serviceName: appt.service?.name || '', date: dateStr, startTime: startStr, endTime: endStr, isOwner: false, type: 'CANCEL' });
+                await sendAppointmentEmail({ to: appt.patient.email, subject: 'Cita Cancelada - Galenus AI', patientName: appt.patient.fullName, serviceName: appt.service?.name || '', sedeName, date: dateStr, startTime: startStr, endTime: endStr, isOwner: false, type: 'CANCEL' });
               }
               const account = await prisma.account.findUnique({ where: { id: accountId }, include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } } });
               for (const u of account?.users ?? []) {
-                if (u.email) await sendAppointmentEmail({ to: u.email, subject: 'Cita Cancelada', patientName: appt.patient?.fullName || '', serviceName: appt.service?.name || '', date: dateStr, startTime: startStr, endTime: endStr, isOwner: true, type: 'CANCEL' });
+                if (u.email) await sendAppointmentEmail({ to: u.email, subject: 'Cita Cancelada', patientName: appt.patient?.fullName || '', serviceName: appt.service?.name || '', sedeName, date: dateStr, startTime: startStr, endTime: endStr, isOwner: true, type: 'CANCEL' });
               }
             } catch {}
 
@@ -481,7 +487,7 @@ export async function POST(req: Request) {
           try {
             const appt = await prisma.appointment.findUnique({
               where: { id: appointmentId },
-              include: { service: true, patient: { select: { fullName: true, email: true } } }
+              include: { service: true, patient: { select: { fullName: true, email: true } }, subaccount: { select: { name: true } } }
             });
             if (!appt) return { error: 'Cita no encontrada.' };
 
@@ -506,15 +512,16 @@ export async function POST(req: Request) {
             });
 
             try {
+              const sedeName = appt.subaccount?.name;
               const dateStr  = formatInTimeZone(newStart, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
               const startStr = formatInTimeZone(newStart, PANAMA_TZ, 'HH:mm');
               const endStr   = formatInTimeZone(newEnd,   PANAMA_TZ, 'HH:mm');
               if (appt.patient?.email) {
-                await sendAppointmentEmail({ to: appt.patient.email, subject: 'Cita Reagendada - Galenus AI', patientName: appt.patient.fullName, serviceName: appt.service?.name || '', date: dateStr, startTime: startStr, endTime: endStr, isOwner: false, type: 'RESCHEDULE' });
+                await sendAppointmentEmail({ to: appt.patient.email, subject: 'Cita Reagendada - Galenus AI', patientName: appt.patient.fullName, serviceName: appt.service?.name || '', sedeName, date: dateStr, startTime: startStr, endTime: endStr, isOwner: false, type: 'RESCHEDULE' });
               }
               const account = await prisma.account.findUnique({ where: { id: accountId }, include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } } });
               for (const u of account?.users ?? []) {
-                if (u.email) await sendAppointmentEmail({ to: u.email, subject: 'Cita Reagendada', patientName: appt.patient?.fullName || '', serviceName: appt.service?.name || '', date: dateStr, startTime: startStr, endTime: endStr, isOwner: true, type: 'RESCHEDULE' });
+                if (u.email) await sendAppointmentEmail({ to: u.email, subject: 'Cita Reagendada', patientName: appt.patient?.fullName || '', serviceName: appt.service?.name || '', sedeName, date: dateStr, startTime: startStr, endTime: endStr, isOwner: true, type: 'RESCHEDULE' });
               }
             } catch {}
 

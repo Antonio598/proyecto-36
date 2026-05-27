@@ -1,7 +1,5 @@
 import prisma from '@/lib/prisma';
 
-const WEBHOOK_URL = 'https://n8n-n8n.nqi4z7.easypanel.host/webhook/9c94c728-d62c-4717-86eb-8f9bab9a5d3a';
-
 const REMINDER_WINDOWS = [
   { reminderNumber: 1, msBeforeAppointment: 3 * 24 * 60 * 60 * 1000, toleranceMs: 30 * 60 * 1000 },
   { reminderNumber: 2, msBeforeAppointment: 24 * 60 * 60 * 1000,      toleranceMs: 30 * 60 * 1000 },
@@ -9,6 +7,12 @@ const REMINDER_WINDOWS = [
 ];
 
 export async function processReminders(forceMode = false) {
+  const webhookUrl = process.env.REMINDER_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn('[reminders] REMINDER_WEBHOOK_URL no configurada. Recordatorios desactivados.');
+    return { sent: 0, skipped: 0, errors: [] };
+  }
+
   const now = Date.now();
   let sent = 0;
   let skipped = 0;
@@ -64,21 +68,21 @@ export async function processReminders(forceMode = false) {
         phone:          appt.patient.phone,
         email:          appt.patient.email ?? null,
         serviceName:    appt.service?.name ?? null,
+        sedeName:       appt.subaccount?.name ?? null,
         startTime:      appt.startTime.toISOString(),
         endTime:        appt.endTime.toISOString(),
-        subaccountName: appt.subaccount?.name ?? null,
         doctorName:     appt.doctor?.name ?? null,
       };
 
       try {
-        const res = await fetch(WEBHOOK_URL, {
+        const res = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
-          errors.push(`appt ${appt.id} reminder ${window.reminderNumber}: webhook ${res.status}`);
+          errors.push(`appt ${appt.id} reminder ${window.reminderNumber}: webhook HTTP ${res.status}`);
           continue;
         }
 

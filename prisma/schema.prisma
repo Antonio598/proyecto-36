@@ -117,6 +117,17 @@ model Appointment {
   totalPrice     Float?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+  reminders      ReminderLog[]
+}
+
+model ReminderLog {
+  id              String      @id @default(uuid())
+  appointmentId   String
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  reminderNumber  Int
+  sentAt          DateTime    @default(now())
+
+  @@unique([appointmentId, reminderNumber])
 }
 
 model Subaccount {
