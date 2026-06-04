@@ -258,10 +258,11 @@ export async function POST(request: Request) {
     try {
       if (mainAppointment && !isBlocker) {
         // Obtener detalles del paciente, servicio y administradores
-        let [fullPatient, fullService, fullSubaccount] = await Promise.all([
+        let [fullPatient, fullService, fullSubaccount, fullDoctor] = await Promise.all([
           prisma.patient.findUnique({ where: { id: patientId } }),
           prisma.service.findUnique({ where: { id: serviceId } }),
           subaccountId ? prisma.subaccount.findUnique({ where: { id: subaccountId }, select: { name: true } }) : Promise.resolve(null),
+          doctorId ? prisma.doctor.findUnique({ where: { id: doctorId }, select: { name: true } }) : Promise.resolve(null),
         ]);
 
         // Si se proporciona un correo en la petición y el paciente no lo tenía, actualizarlo
@@ -289,6 +290,7 @@ export async function POST(request: Request) {
 
           // 1. Enviar al Paciente si tiene correo
           const sedeName = fullSubaccount?.name;
+          const doctorName = fullDoctor?.name;
 
           if (fullPatient.email) {
             await sendAppointmentEmail({
@@ -297,6 +299,7 @@ export async function POST(request: Request) {
               patientName: fullPatient.fullName,
               serviceName: fullService.name,
               sedeName,
+              doctorName,
               date: dateStr,
               startTime: startStr,
               endTime: endStr,
@@ -312,6 +315,7 @@ export async function POST(request: Request) {
               patientName: fullPatient.fullName,
               serviceName: fullService.name,
               sedeName,
+              doctorName,
               date: dateStr,
               startTime: startStr,
               endTime: endStr,

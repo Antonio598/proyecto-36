@@ -21,6 +21,7 @@ export async function sendAppointmentEmail({
   patientName,
   serviceName,
   sedeName,
+  doctorName,
   date,
   startTime,
   endTime,
@@ -32,6 +33,7 @@ export async function sendAppointmentEmail({
   patientName: string;
   serviceName: string;
   sedeName?: string;
+  doctorName?: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -76,6 +78,7 @@ export async function sendAppointmentEmail({
         ${isOwner ? `<p style="margin: 8px 0;"><strong>👤 Paciente:</strong> ${patientName}</p>` : ''}
         <p style="margin: 8px 0;"><strong>💉 Servicio:</strong> ${serviceName}</p>
         ${sedeName ? `<p style="margin: 8px 0;"><strong>🏥 Sede:</strong> ${sedeName}</p>` : ''}
+        ${doctorName ? `<p style="margin: 8px 0;"><strong>👨‍⚕️ Doctor:</strong> ${doctorName}</p>` : ''}
         <p style="margin: 8px 0;"><strong>📅 Fecha:</strong> ${date}</p>
         <p style="margin: 8px 0;"><strong>⏰ Horario:</strong> ${startTime} - ${endTime}</p>
       </div>

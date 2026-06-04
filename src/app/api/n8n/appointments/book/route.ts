@@ -178,12 +178,14 @@ export async function POST(request: Request) {
         patient:    { select: { fullName: true, phone: true } },
         service:    { select: { name: true } },
         subaccount: { select: { name: true } },
+        doctor:     { select: { name: true } },
       },
     });
 
     // --- Enviar correos de notificación ---
     try {
-      const sedeName = appointment.subaccount?.name;
+      const sedeName   = appointment.subaccount?.name;
+      const doctorName = (appointment as any).doctor?.name as string | undefined;
       const dateStr  = formatInTimeZone(appointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
       const startStr = formatInTimeZone(appointment.startTime, PANAMA_TZ, 'HH:mm');
       const endStr   = formatInTimeZone(appointment.endTime,   PANAMA_TZ, 'HH:mm');
@@ -197,6 +199,7 @@ export async function POST(request: Request) {
           patientName: patient.fullName,
           serviceName: appointment.service?.name || 'Servicio',
           sedeName,
+          doctorName,
           date: dateStr,
           startTime: startStr,
           endTime: endStr,
@@ -218,6 +221,7 @@ export async function POST(request: Request) {
           patientName: patient.fullName,
           serviceName: appointment.service?.name || 'Servicio',
           sedeName,
+          doctorName,
           date: dateStr,
           startTime: startStr,
           endTime: endStr,
