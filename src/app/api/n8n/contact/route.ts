@@ -31,21 +31,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Invalid contactedAt date format.' }, { status: 400 });
     }
 
-    // Deactivate previous active logs for this patient
-    await (prisma as any).contactLog.updateMany({
-      where: { patientId: patient.id, isActive: true },
-      data: { isActive: false },
+    // Find existing log for this patient — if it exists, just update contactedAt.
+    // followUp*SentAt fields are preserved so the cycle never restarts.
+    const existing = await (prisma as any).contactLog.findFirst({
+      where: { patientId: patient.id, accountId: account.id },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Create new active log
-    await (prisma as any).contactLog.create({
-      data: {
-        patientId: patient.id,
-        accountId: account.id,
-        contactedAt: contactTime,
-        isActive: true,
-      },
-    });
+    if (existing) {
+      await (prisma as any).contactLog.update({
+        where: { id: existing.id },
+        data: { contactedAt: contactTime, isActive: true },
+      });
+    } else {
+      await (prisma as any).contactLog.create({
+        data: {
+          patientId: patient.id,
+          accountId: account.id,
+          contactedAt: contactTime,
+          isActive: true,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, patientName: patient.fullName, contactedAt: contactTime.toISOString() }, { status: 201 });
   } catch (error) {

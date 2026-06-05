@@ -261,9 +261,67 @@ x-api-key: TU_API_KEY
             </div>
           </div>
 
+          {/* ── SEGUIMIENTO DE CONTACTO ── */}
+          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-4 flex items-center gap-2 mt-8">
+            <Webhook className="w-5 h-5 text-gray-500" /> 4. Seguimiento de Contacto
+          </h3>
+
+          <div className="space-y-6 mb-8">
+            <div className="bg-purple-50/40 p-4 rounded-lg border border-purple-100">
+              <h4 className="font-medium text-purple-800 flex items-center gap-2 mb-2">
+                <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">POST</span>
+                /api/n8n/contact
+              </h4>
+              <p className="text-sm text-gray-600 mb-3">
+                Registra la última hora de contacto de un paciente. Si el paciente no agenda una cita,
+                el sistema enviará seguimientos automáticos al webhook de n8n en <strong>3 ventanas de tiempo</strong>.
+                Los seguimientos son únicos por paciente — si el contacto se refresca, el ciclo <em>no</em> se reinicia
+                pero se cancela el envío de los seguimientos pendientes.
+              </p>
+
+              <div className="bg-purple-50 border border-purple-200 rounded-md p-3 mb-3 text-sm text-purple-800">
+                <strong>Reglas de seguimiento automático:</strong>
+                <ul className="mt-1 ml-4 list-disc space-y-0.5 text-purple-700">
+                  <li><strong>Seguimiento #1</strong> — 1 hora después del contacto (sin cita activa)</li>
+                  <li><strong>Seguimiento #2</strong> — 6 horas después (solo si #1 fue enviado y no hubo nuevo contacto)</li>
+                  <li><strong>Seguimiento #3</strong> — 24 horas después (solo si #2 fue enviado y no hubo nuevo contacto)</li>
+                </ul>
+              </div>
+
+              <pre className="bg-gray-900 text-gray-100 p-3 rounded-md text-sm overflow-x-auto">
+{`// Headers:
+x-api-key: TU_API_KEY
+Content-Type: application/json
+
+// Body:
+{
+  "phone": "5551234567",           // requerido — identifica al paciente
+  "contactedAt": "2025-06-05T10:30:00"  // opcional — default: ahora
+}
+
+// Respuesta exitosa (201):
+{
+  "success": true,
+  "patientName": "Juan Pérez",
+  "contactedAt": "2025-06-05T10:30:00.000Z"
+}
+
+// Payload que recibe tu webhook de n8n en cada seguimiento:
+{
+  "followUpNumber": 1,             // 1, 2 ó 3
+  "contactLogId": "uuid...",
+  "patientName": "Juan Pérez",
+  "phone": "5551234567",
+  "email": "juan@email.com",       // null si no tiene
+  "contactedAt": "2025-06-05T10:30:00.000Z"
+}`}
+              </pre>
+            </div>
+          </div>
+
           {/* ── ERRORES COMUNES ── */}
           <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-4 flex items-center gap-2 mt-8">
-            <Code className="w-5 h-5 text-gray-500" /> 3. Errores comunes
+            <Code className="w-5 h-5 text-gray-500" /> 5. Errores comunes
           </h3>
           <div className="bg-gray-50 rounded-lg border border-gray-100 p-4">
             <table className="w-full text-sm">

@@ -22,6 +22,7 @@ type ContactLogRow = {
 export async function processFollowUps() {
   const now = new Date();
 
+  // Only active logs where the patient has no upcoming confirmed/pending appointment
   const contacts: ContactLogRow[] = await (prisma as any).contactLog.findMany({
     where: {
       isActive: true,
@@ -46,13 +47,28 @@ export async function processFollowUps() {
   for (const contact of contacts) {
     const elapsed = now.getTime() - contact.contactedAt.getTime();
 
+    // Follow-up 1: 1h after contact, never sent before
     if (!contact.followUp1SentAt && elapsed >= MS_1H) {
       const ok = await sendFollowUp(contact, 1, now);
       ok ? sent++ : errors++;
-    } else if (contact.followUp1SentAt && !contact.followUp2SentAt && elapsed >= MS_6H) {
+
+    // Follow-up 2: 6h after contact, #1 already sent, contact NOT refreshed after #1
+    } else if (
+      contact.followUp1SentAt &&
+      !contact.followUp2SentAt &&
+      elapsed >= MS_6H &&
+      contact.contactedAt <= contact.followUp1SentAt
+    ) {
       const ok = await sendFollowUp(contact, 2, now);
       ok ? sent++ : errors++;
-    } else if (contact.followUp2SentAt && !contact.followUp3SentAt && elapsed >= MS_24H) {
+
+    // Follow-up 3: 24h after contact, #2 already sent, contact NOT refreshed after #2
+    } else if (
+      contact.followUp2SentAt &&
+      !contact.followUp3SentAt &&
+      elapsed >= MS_24H &&
+      contact.contactedAt <= contact.followUp2SentAt
+    ) {
       const ok = await sendFollowUp(contact, 3, now);
       ok ? sent++ : errors++;
     }
@@ -84,7 +100,7 @@ async function sendFollowUp(contact: ContactLogRow, followUpNumber: 1 | 2 | 3, n
       return false;
     }
 
-    const field = `followUp${followUpNumber}SentAt` as keyof Pick<ContactLogRow, 'followUp1SentAt' | 'followUp2SentAt' | 'followUp3SentAt'>;
+    const field = `followUp${followUpNumber}SentAt`;
     await (prisma as any).contactLog.update({
       where: { id: contact.id },
       data: { [field]: now },
