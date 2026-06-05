@@ -16,7 +16,7 @@ type ContactLogRow = {
   followUp2SentAt: Date | null;
   followUp3SentAt: Date | null;
   createdAt: Date;
-  patient: { fullName: string; phone: string; email: string | null };
+  patient: { id: string; fullName: string; phone: string; email: string | null; cedula_pasaporte: string | null; edad: number | null; notes: string | null };
 };
 
 export async function processFollowUps() {
@@ -37,7 +37,7 @@ export async function processFollowUps() {
       },
     },
     include: {
-      patient: { select: { fullName: true, phone: true, email: true } },
+      patient: { select: { id: true, fullName: true, phone: true, email: true, cedula_pasaporte: true, edad: true, notes: true } },
     },
   });
 
@@ -81,11 +81,15 @@ export async function processFollowUps() {
 async function sendFollowUp(contact: ContactLogRow, followUpNumber: 1 | 2 | 3, now: Date): Promise<boolean> {
   const payload = {
     followUpNumber,
-    contactLogId: contact.id,
-    patientName:  contact.patient.fullName,
-    phone:        contact.patient.phone,
-    email:        contact.patient.email ?? null,
-    contactedAt:  contact.contactedAt.toISOString(),
+    contactLogId:      contact.id,
+    contactedAt:       contact.contactedAt.toISOString(),
+    patientId:         contact.patient.id,
+    patientName:       contact.patient.fullName,
+    phone:             contact.patient.phone,
+    email:             contact.patient.email ?? null,
+    cedula_pasaporte:  contact.patient.cedula_pasaporte ?? null,
+    edad:              contact.patient.edad ?? null,
+    notes:             contact.patient.notes ?? null,
   };
 
   try {
