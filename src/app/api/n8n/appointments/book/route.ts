@@ -182,55 +182,55 @@ export async function POST(request: Request) {
       },
     });
 
-    // --- Enviar correos de notificación ---
-    try {
-      const sedeName   = appointment.subaccount?.name;
-      const doctorName = (appointment as any).doctor?.name as string | undefined;
-      const dateStr  = formatInTimeZone(appointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
-      const startStr = formatInTimeZone(appointment.startTime, PANAMA_TZ, 'HH:mm');
-      const endStr   = formatInTimeZone(appointment.endTime,   PANAMA_TZ, 'HH:mm');
+    // --- Enviar correos de notificación (fire-and-forget para no bloquear la respuesta) ---
+    (async () => {
+      try {
+        const sedeName   = appointment.subaccount?.name;
+        const doctorName = (appointment as any).doctor?.name as string | undefined;
+        const dateStr  = formatInTimeZone(appointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
+        const startStr = formatInTimeZone(appointment.startTime, PANAMA_TZ, 'HH:mm');
+        const endStr   = formatInTimeZone(appointment.endTime,   PANAMA_TZ, 'HH:mm');
 
-      // 1. Enviar al Paciente si tiene correo
-      const patientEmail = email || patient.email;
-      if (patientEmail) {
-        await sendAppointmentEmail({
-          to: patientEmail,
-          subject: 'Confirmación de tu Cita - Galenus AI',
-          patientName: patient.fullName,
-          serviceName: appointment.service?.name || 'Servicio',
-          sedeName,
-          doctorName,
-          date: dateStr,
-          startTime: startStr,
-          endTime: endStr,
-          isOwner: false
+        const patientEmail = email || patient.email;
+        if (patientEmail) {
+          await sendAppointmentEmail({
+            to: patientEmail,
+            subject: 'Confirmación de tu Cita - Galenus AI',
+            patientName: patient.fullName,
+            serviceName: appointment.service?.name || 'Servicio',
+            sedeName,
+            doctorName,
+            date: dateStr,
+            startTime: startStr,
+            endTime: endStr,
+            isOwner: false
+          });
+        }
+
+        const fullAccount = await prisma.account.findUnique({
+          where: { id: account.id },
+          include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } }
         });
-      }
 
-      // 2. Enviar a los administradores de la cuenta
-      const fullAccount = await prisma.account.findUnique({
-        where: { id: account.id },
-        include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } }
-      });
-
-      const adminEmails = fullAccount?.users.map(u => u.email).filter(Boolean) as string[] || [];
-      for (const adminEmail of adminEmails) {
-        await sendAppointmentEmail({
-          to: adminEmail,
-          subject: 'Nueva Cita Recibida',
-          patientName: patient.fullName,
-          serviceName: appointment.service?.name || 'Servicio',
-          sedeName,
-          doctorName,
-          date: dateStr,
-          startTime: startStr,
-          endTime: endStr,
-          isOwner: true
-        });
+        const adminEmails = fullAccount?.users.map(u => u.email).filter(Boolean) as string[] || [];
+        for (const adminEmail of adminEmails) {
+          await sendAppointmentEmail({
+            to: adminEmail,
+            subject: 'Nueva Cita Recibida',
+            patientName: patient.fullName,
+            serviceName: appointment.service?.name || 'Servicio',
+            sedeName,
+            doctorName,
+            date: dateStr,
+            startTime: startStr,
+            endTime: endStr,
+            isOwner: true
+          });
+        }
+      } catch (mailError) {
+        console.error('[mail] Error in email notification flow (n8n):', mailError);
       }
-    } catch (mailError) {
-      console.error('Error in email notification flow (n8n):', mailError);
-    }
+    })();
 
     return NextResponse.json({ success: true, data: appointment }, { status: 201 });
   } catch (error) {

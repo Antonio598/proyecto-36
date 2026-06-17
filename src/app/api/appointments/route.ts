@@ -254,79 +254,71 @@ export async function POST(request: Request) {
         }
     }
 
-    // --- Enviar correos de notificación ---
-    try {
-      if (mainAppointment && !isBlocker) {
-        // Obtener detalles del paciente, servicio y administradores
-        let [fullPatient, fullService, fullSubaccount, fullDoctor] = await Promise.all([
-          prisma.patient.findUnique({ where: { id: patientId } }),
-          prisma.service.findUnique({ where: { id: serviceId } }),
-          subaccountId ? prisma.subaccount.findUnique({ where: { id: subaccountId }, select: { name: true } }) : Promise.resolve(null),
-          doctorId ? prisma.doctor.findUnique({ where: { id: doctorId }, select: { name: true } }) : Promise.resolve(null),
-        ]);
+    // --- Enviar correos de notificación (fire-and-forget para no bloquear la respuesta) ---
+    if (mainAppointment && !isBlocker) {
+      (async () => {
+        try {
+          let [fullPatient, fullService, fullSubaccount, fullDoctor] = await Promise.all([
+            prisma.patient.findUnique({ where: { id: patientId } }),
+            prisma.service.findUnique({ where: { id: serviceId } }),
+            subaccountId ? prisma.subaccount.findUnique({ where: { id: subaccountId }, select: { name: true } }) : Promise.resolve(null),
+            doctorId ? prisma.doctor.findUnique({ where: { id: doctorId }, select: { name: true } }) : Promise.resolve(null),
+          ]);
 
-        // Si se proporciona un correo en la petición y el paciente no lo tenía, actualizarlo
-        if (fullPatient && email && fullPatient.email !== email) {
-          fullPatient = await prisma.patient.update({
-            where: { id: patientId },
-            data: { email }
-          });
-        }
-
-        // Buscar admins directamente por accountId (no depende de que haya subaccountId)
-        let adminEmails: string[] = [];
-        if (accountId) {
-          const accountWithAdmins = await prisma.account.findUnique({
-            where: { id: accountId },
-            include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } }
-          });
-          adminEmails = accountWithAdmins?.users.map(u => u.email).filter(Boolean) as string[] || [];
-        }
-
-        if (fullPatient && fullService) {
-          const dateStr  = formatInTimeZone(mainAppointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
-          const startStr = formatInTimeZone(mainAppointment.startTime, PANAMA_TZ, 'HH:mm');
-          const endStr   = formatInTimeZone(mainAppointment.endTime,   PANAMA_TZ, 'HH:mm');
-
-          // 1. Enviar al Paciente si tiene correo
-          const sedeName = fullSubaccount?.name;
-          const doctorName = fullDoctor?.name;
-
-          if (fullPatient.email) {
-            await sendAppointmentEmail({
-              to: fullPatient.email,
-              subject: 'Confirmación de tu Cita - Galenus AI',
-              patientName: fullPatient.fullName,
-              serviceName: fullService.name,
-              sedeName,
-              doctorName,
-              date: dateStr,
-              startTime: startStr,
-              endTime: endStr,
-              isOwner: false
-            });
+          if (fullPatient && email && fullPatient.email !== email) {
+            fullPatient = await prisma.patient.update({ where: { id: patientId }, data: { email } });
           }
 
-          // 2. Enviar a los administradores de la cuenta
-          for (const email of adminEmails) {
-            await sendAppointmentEmail({
-              to: email,
-              subject: 'Nueva Cita Recibida',
-              patientName: fullPatient.fullName,
-              serviceName: fullService.name,
-              sedeName,
-              doctorName,
-              date: dateStr,
-              startTime: startStr,
-              endTime: endStr,
-              isOwner: true
+          let adminEmails: string[] = [];
+          if (accountId) {
+            const accountWithAdmins = await prisma.account.findUnique({
+              where: { id: accountId },
+              include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } }
             });
+            adminEmails = accountWithAdmins?.users.map(u => u.email).filter(Boolean) as string[] || [];
           }
+
+          if (fullPatient && fullService) {
+            const dateStr  = formatInTimeZone(mainAppointment.startTime, PANAMA_TZ, "EEEE d 'de' MMMM", { locale: es });
+            const startStr = formatInTimeZone(mainAppointment.startTime, PANAMA_TZ, 'HH:mm');
+            const endStr   = formatInTimeZone(mainAppointment.endTime,   PANAMA_TZ, 'HH:mm');
+            const sedeName   = fullSubaccount?.name;
+            const doctorName = fullDoctor?.name;
+
+            if (fullPatient.email) {
+              await sendAppointmentEmail({
+                to: fullPatient.email,
+                subject: 'Confirmación de tu Cita - Galenus AI',
+                patientName: fullPatient.fullName,
+                serviceName: fullService.name,
+                sedeName,
+                doctorName,
+                date: dateStr,
+                startTime: startStr,
+                endTime: endStr,
+                isOwner: false
+              });
+            }
+
+            for (const adminEmail of adminEmails) {
+              await sendAppointmentEmail({
+                to: adminEmail,
+                subject: 'Nueva Cita Recibida',
+                patientName: fullPatient.fullName,
+                serviceName: fullService.name,
+                sedeName,
+                doctorName,
+                date: dateStr,
+                startTime: startStr,
+                endTime: endStr,
+                isOwner: true
+              });
+            }
+          }
+        } catch (mailError) {
+          console.error('[mail] Error in email notification flow:', mailError);
         }
-      }
-    } catch (mailError) {
-      console.error('Error in email notification flow:', mailError);
-      // No bloqueamos la respuesta aunque falle el correo
+      })();
     }
 
     // Return the primary appointment created (i=0) or success message
