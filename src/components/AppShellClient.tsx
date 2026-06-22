@@ -15,9 +15,10 @@ export default function AppShellClient({ children }: { children: React.ReactNode
   const isSuperAdmin = pathname.startsWith('/superadmin');
   const isLandingPage = pathname === '/';
   const isPublicPage = pathname === '/privacidad' || pathname === '/terminos';
+  const isDirectorioPage = pathname.startsWith('/directorio');
 
-  // Landing, login, super admin and public legal pages render without sidebar/chatbot
-  if (isLoginPage || isSuperAdmin || isLandingPage || isPublicPage) {
+  // Landing, login, super admin, legal pages, and directorio render without sidebar/chatbot
+  if (isLoginPage || isSuperAdmin || isLandingPage || isPublicPage || isDirectorioPage) {
     return <>{children}</>;
   }
 

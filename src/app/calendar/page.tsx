@@ -81,6 +81,7 @@ export default function CalendarPage() {
   const [apptStatus, setApptStatus] = useState('PENDING');
   const [apptPaymentStatus, setApptPaymentStatus] = useState('PENDING');
   const [isPatchingStatus, setIsPatchingStatus] = useState(false);
+  const [isCreatingConsult, setIsCreatingConsult] = useState(false);
   const [patchSuccess, setPatchSuccess] = useState(false);
 
   useEffect(() => {
@@ -302,7 +303,7 @@ export default function CalendarPage() {
 
   const handleCreateConsultation = async () => {
     if (!selectedEvent?.patient) return;
-    setIsPatchingStatus(true);
+    setIsCreatingConsult(true);
     setError('');
     try {
       const res = await apiFetch('/api/consultations', {
@@ -322,7 +323,7 @@ export default function CalendarPage() {
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setIsPatchingStatus(false);
+      setIsCreatingConsult(false);
     }
   };
 
@@ -881,7 +882,7 @@ export default function CalendarPage() {
               </h3>
               <button onClick={() => setIsDetailModalOpen(false)} className="rounded-full p-2 text-gray-400 hover:bg-gray-200"><X className="h-5 w-5" /></button>
             </div>
-            <div className="px-6 py-6 space-y-6">
+            <div className="px-6 py-5 space-y-5 max-h-[calc(100vh-160px)] overflow-y-auto">
               {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 font-bold border border-red-200">{error}</div>}
               
               {!isBlockMode && (
@@ -1024,10 +1025,10 @@ export default function CalendarPage() {
                       <button
                         type="button"
                         onClick={handleCreateConsultation}
-                        disabled={isPatchingStatus}
+                        disabled={isCreatingConsult}
                         className="flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-colors border border-emerald-100 disabled:opacity-50"
                       >
-                        <Stethoscope className="w-4 h-4" /> Crear Consulta
+                        {isCreatingConsult ? <span className="w-4 h-4 border-2 border-emerald-700/40 border-t-emerald-700 rounded-full animate-spin" /> : <Stethoscope className="w-4 h-4" />} Crear Consulta
                       </button>
                     </div>
                   )}

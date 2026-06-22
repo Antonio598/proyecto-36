@@ -147,6 +147,7 @@ model ReminderLog {
 model Subaccount {
   id                String                 @id @default(uuid())
   name              String
+  videoUrl          String?
   doctors           Doctor[]
   services          Service[]
   calendars         Calendar[]

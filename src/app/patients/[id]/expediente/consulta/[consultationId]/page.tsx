@@ -8,7 +8,7 @@ import {
   Plus, Trash2, Eye, Download, Loader2, Check, AlertCircle,
   Stethoscope, Video
 } from 'lucide-react';
-import { apiFetch } from '@/lib/apiFetch';
+import { apiFetch, getAccountId } from '@/lib/apiFetch';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 
@@ -104,10 +104,9 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
       fd.append('subaccountId', consultation.subaccountId);
       fd.append('consultationRecordId', consultationId);
       fd.append('fileType', file.type.startsWith('image/') ? 'image' : 'document');
-      const session = JSON.parse(localStorage.getItem('galenus_session') || '{}');
       const res = await fetch('/api/medical-files/upload', {
         method: 'POST',
-        headers: { 'x-account-id': session.accountId || '' },
+        headers: { 'x-account-id': getAccountId() || '' },
         body: fd,
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Error al subir');
@@ -228,7 +227,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
               <div>
                 <label className="text-xs font-black text-gray-500 uppercase tracking-wide">Doctor</label>
                 <select value={form.doctorId} onChange={e => setForm(p => ({ ...p, doctorId: e.target.value }))}
-                  className="w-full mt-1 text-sm font-bold border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-300 outline-none">
+                  className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-300 outline-none">
                   <option value="">Sin asignar</option>
                   {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
@@ -239,21 +238,42 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
               </div>
             </div>
 
+            <datalist id="dx-list">
+              {['Hipertensión arterial','Diabetes mellitus tipo 2','Insuficiencia venosa crónica','Várices de miembros inferiores',
+                'Trombosis venosa profunda (TVP)','Arteriopatía periférica','Enfermedad coronaria','Pie diabético',
+                'Aneurisma aórtico abdominal','Embolia pulmonar','Hiperlipidemia','Edema de miembros inferiores',
+                'Claudicación intermitente','Úlcera venosa','Síndrome metabólico','Insuficiencia cardíaca',
+                'Fibrilación auricular','Estenosis arterial','Linfedema','Síndrome de piernas inquietas',
+                'Celulitis','Tromboflebitis superficial','Raynaud','Acrocianosis'].map(d => (
+                <option key={d} value={d} />
+              ))}
+            </datalist>
+
             {[
-              { key: 'chiefComplaint', label: 'Motivo de consulta', ph: '¿Por qué viene el paciente?' },
-              { key: 'diagnosis', label: 'Diagnóstico', ph: 'Diagnóstico clínico...' },
-              { key: 'observations', label: 'Observaciones', ph: 'Hallazgos relevantes, signos vitales, notas...' },
-              { key: 'treatmentPlan', label: 'Plan de tratamiento', ph: 'Indicaciones, seguimiento, referencias...' },
+              { key: 'chiefComplaint', label: 'Motivo de consulta', ph: '¿Por qué viene el paciente?', multiline: true },
+              { key: 'diagnosis', label: 'Diagnóstico', ph: 'Escribe o selecciona un diagnóstico...', multiline: false },
+              { key: 'observations', label: 'Observaciones', ph: 'Hallazgos relevantes, signos vitales, notas...', multiline: true },
+              { key: 'treatmentPlan', label: 'Plan de tratamiento', ph: 'Indicaciones, seguimiento, referencias...', multiline: true },
             ].map(field => (
               <div key={field.key}>
                 <label className="text-xs font-black text-gray-500 uppercase tracking-wide">{field.label}</label>
-                <textarea
-                  value={(form as any)[field.key]}
-                  onChange={e => setForm(p => ({ ...p, [field.key]: e.target.value }))}
-                  placeholder={field.ph}
-                  rows={3}
-                  className="w-full mt-1 text-sm font-bold border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-300 outline-none resize-none"
-                />
+                {field.multiline ? (
+                  <textarea
+                    value={(form as any)[field.key]}
+                    onChange={e => setForm(p => ({ ...p, [field.key]: e.target.value }))}
+                    placeholder={field.ph}
+                    rows={3}
+                    className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-300 outline-none resize-none"
+                  />
+                ) : (
+                  <input
+                    list="dx-list"
+                    value={(form as any)[field.key]}
+                    onChange={e => setForm(p => ({ ...p, [field.key]: e.target.value }))}
+                    placeholder={field.ph}
+                    className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus:bg-white focus:border-blue-300 outline-none"
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -300,7 +320,7 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                 <div>
                   <label className="text-xs font-black text-gray-500 uppercase tracking-wide">Médico</label>
                   <select value={newRx.doctorId} onChange={e => setNewRx(p => ({ ...p, doctorId: e.target.value }))}
-                    className="w-full mt-1 text-xs font-bold border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+                    className="w-full mt-1 text-xs font-bold text-gray-900 border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
                     <option value="">Sin asignar</option>
                     {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
@@ -310,11 +330,11 @@ export default function ConsultationDetailPage({ params }: { params: Promise<{ i
                   {newRx.medications.map((med, i) => (
                     <div key={i} className="grid grid-cols-2 gap-1 mb-2 bg-white border border-gray-100 rounded-lg p-2">
                       <input placeholder="Medicamento*" value={med.name} onChange={e => { const m = [...newRx.medications]; m[i].name = e.target.value; setNewRx(p => ({ ...p, medications: m })); }}
-                        className="col-span-2 text-xs font-bold outline-none border-b border-gray-100 pb-1" />
+                        className="col-span-2 text-xs font-bold text-gray-900 outline-none border-b border-gray-100 pb-1" />
                       <input placeholder="Dosis" value={med.dose} onChange={e => { const m = [...newRx.medications]; m[i].dose = e.target.value; setNewRx(p => ({ ...p, medications: m })); }}
-                        className="text-xs font-bold outline-none" />
+                        className="text-xs font-bold text-gray-900 outline-none" />
                       <input placeholder="Frecuencia" value={med.frequency} onChange={e => { const m = [...newRx.medications]; m[i].frequency = e.target.value; setNewRx(p => ({ ...p, medications: m })); }}
-                        className="text-xs font-bold outline-none" />
+                        className="text-xs font-bold text-gray-900 outline-none" />
                     </div>
                   ))}
                   <button onClick={() => setNewRx(p => ({ ...p, medications: [...p.medications, { name: '', dose: '', frequency: '', duration: '', notes: '' }] }))}

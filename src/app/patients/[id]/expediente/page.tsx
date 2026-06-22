@@ -8,7 +8,7 @@ import {
   Plus, Trash2, Download, Eye, AlertCircle, Loader2, X, Check,
   Droplets, Activity, Scissors, Users, Tablets, ClipboardList
 } from 'lucide-react';
-import { apiFetch } from '@/lib/apiFetch';
+import { apiFetch, getAccountId } from '@/lib/apiFetch';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 
@@ -173,10 +173,9 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
       fd.append('subaccountId', subaccountId);
       fd.append('fileType', file.type.startsWith('image/') ? 'image' : 'document');
 
-      const session = JSON.parse(localStorage.getItem('galenus_session') || '{}');
       const res = await fetch('/api/medical-files/upload', {
         method: 'POST',
-        headers: { 'x-account-id': session.accountId || '' },
+        headers: { 'x-account-id': getAccountId() || '' },
         body: fd,
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Error al subir');
@@ -413,13 +412,22 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
                     <label className="text-xs font-black text-gray-500 uppercase tracking-wide">Motivo de consulta</label>
                     <textarea value={newConsult.chiefComplaint} onChange={e => setNewConsult(p => ({ ...p, chiefComplaint: e.target.value }))}
                       rows={2} placeholder="¿Por qué viene el paciente hoy?"
-                      className="w-full mt-1 text-sm font-bold border border-gray-200 rounded-xl px-3 py-2 bg-white resize-none" />
+                      className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white resize-none" />
                   </div>
                   <div>
                     <label className="text-xs font-black text-gray-500 uppercase tracking-wide">Diagnóstico inicial</label>
-                    <textarea value={newConsult.diagnosis} onChange={e => setNewConsult(p => ({ ...p, diagnosis: e.target.value }))}
-                      rows={2} placeholder="Diagnóstico..."
-                      className="w-full mt-1 text-sm font-bold border border-gray-200 rounded-xl px-3 py-2 bg-white resize-none" />
+                    <datalist id="dx-list-exp">
+                      {['Hipertensión arterial','Diabetes mellitus tipo 2','Insuficiencia venosa crónica','Várices de miembros inferiores',
+                        'Trombosis venosa profunda (TVP)','Arteriopatía periférica','Enfermedad coronaria','Pie diabético',
+                        'Aneurisma aórtico abdominal','Embolia pulmonar','Hiperlipidemia','Edema de miembros inferiores',
+                        'Claudicación intermitente','Úlcera venosa','Síndrome metabólico','Insuficiencia cardíaca',
+                        'Fibrilación auricular','Estenosis arterial','Linfedema','Tromboflebitis superficial'].map(d => (
+                        <option key={d} value={d} />
+                      ))}
+                    </datalist>
+                    <input list="dx-list-exp" value={newConsult.diagnosis} onChange={e => setNewConsult(p => ({ ...p, diagnosis: e.target.value }))}
+                      placeholder="Escribe o selecciona un diagnóstico..."
+                      className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white" />
                   </div>
                   <div className="flex gap-2">
                     <button onClick={createConsultation} disabled={saving} className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 disabled:opacity-60">
@@ -527,7 +535,7 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
                     <div>
                       <label className="text-xs font-black text-gray-500 uppercase tracking-wide">Doctor</label>
                       <select value={newRx.doctorId} onChange={e => setNewRx(p => ({ ...p, doctorId: e.target.value }))}
-                        className="w-full mt-1 text-sm font-bold border border-gray-200 rounded-xl px-3 py-2 bg-white">
+                        className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white">
                         <option value="">Sin asignar</option>
                         {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                       </select>
@@ -535,7 +543,7 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
                     <div>
                       <label className="text-xs font-black text-gray-500 uppercase tracking-wide">Vincular a consulta</label>
                       <select value={newRx.consultationRecordId} onChange={e => setNewRx(p => ({ ...p, consultationRecordId: e.target.value }))}
-                        className="w-full mt-1 text-sm font-bold border border-gray-200 rounded-xl px-3 py-2 bg-white">
+                        className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white">
                         <option value="">Sin consulta</option>
                         {consultations.map(c => (
                           <option key={c.id} value={c.id}>{format(new Date(c.visitDate), "d MMM yyyy", { locale: es })} — {c.chiefComplaint || c.diagnosis || 'Consulta'}</option>
@@ -550,13 +558,13 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
                       {newRx.medications.map((med, i) => (
                         <div key={i} className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-white border border-gray-200 rounded-xl p-3">
                           <input placeholder="Medicamento*" value={med.name} onChange={e => { const m = [...newRx.medications]; m[i].name = e.target.value; setNewRx(p => ({ ...p, medications: m })); }}
-                            className="text-sm font-bold border-0 outline-none col-span-2" />
+                            className="text-sm font-bold text-gray-900 border-0 outline-none col-span-2" />
                           <input placeholder="Dosis" value={med.dose} onChange={e => { const m = [...newRx.medications]; m[i].dose = e.target.value; setNewRx(p => ({ ...p, medications: m })); }}
-                            className="text-sm font-bold border-0 outline-none" />
+                            className="text-sm font-bold text-gray-900 border-0 outline-none" />
                           <input placeholder="Frecuencia" value={med.frequency} onChange={e => { const m = [...newRx.medications]; m[i].frequency = e.target.value; setNewRx(p => ({ ...p, medications: m })); }}
-                            className="text-sm font-bold border-0 outline-none" />
+                            className="text-sm font-bold text-gray-900 border-0 outline-none" />
                           <input placeholder="Duración" value={med.duration} onChange={e => { const m = [...newRx.medications]; m[i].duration = e.target.value; setNewRx(p => ({ ...p, medications: m })); }}
-                            className="text-sm font-bold border-0 outline-none col-span-2" />
+                            className="text-sm font-bold text-gray-900 border-0 outline-none col-span-2" />
                           <div className="col-span-2 flex justify-end">
                             {newRx.medications.length > 1 && (
                               <button onClick={() => setNewRx(p => ({ ...p, medications: p.medications.filter((_, idx) => idx !== i) }))} className="text-red-400 hover:text-red-600">
@@ -577,7 +585,7 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
                     <label className="text-xs font-black text-gray-500 uppercase tracking-wide">Notas adicionales</label>
                     <textarea value={newRx.notes} onChange={e => setNewRx(p => ({ ...p, notes: e.target.value }))}
                       rows={2} placeholder="Instrucciones especiales..."
-                      className="w-full mt-1 text-sm font-bold border border-gray-200 rounded-xl px-3 py-2 bg-white resize-none" />
+                      className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white resize-none" />
                   </div>
 
                   <div className="flex gap-2">

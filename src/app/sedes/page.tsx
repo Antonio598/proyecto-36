@@ -1,16 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Building, Edit2, Trash2, X, AlertCircle } from 'lucide-react';
+import { Plus, Building, Trash2, X, Video, ExternalLink } from 'lucide-react';
 import { apiFetch } from '@/lib/apiFetch';
 
 interface Subaccount {
   id: string;
   name: string;
-  _count?: {
-    doctors: number;
-    services: number;
-  };
+  videoUrl?: string | null;
+  _count?: { doctors: number; services: number; };
 }
 
 export default function SedesPage() {
@@ -18,7 +16,7 @@ export default function SedesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSede, setEditingSede] = useState<Subaccount | null>(null);
-  const [formData, setFormData] = useState({ name: '' });
+  const [formData, setFormData] = useState({ name: '', videoUrl: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -86,8 +84,8 @@ export default function SedesPage() {
             Administra las diferentes ubicaciones u hospitales.
           </p>
         </div>
-        <button 
-          onClick={() => { setEditingSede(null); setFormData({ name: '' }); setIsModalOpen(true); }}
+        <button
+          onClick={() => { setEditingSede(null); setFormData({ name: '', videoUrl: '' }); setIsModalOpen(true); }}
           className="mt-4 sm:mt-0 flex items-center gap-1.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 rounded-lg cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Nueva Sede
@@ -110,8 +108,15 @@ export default function SedesPage() {
             ) : subaccounts.length > 0 ? (
               subaccounts.map((sede) => (
                 <tr key={sede.id} className="hover:bg-gray-50/50">
-                  <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-bold text-black sm:pl-6 flex items-center gap-2">
-                    {sede.name}
+                  <td className="py-4 pl-4 pr-3 text-sm font-bold text-black sm:pl-6">
+                    <div>{sede.name}</div>
+                    {sede.videoUrl && (
+                      <a href={sede.videoUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-500 hover:text-blue-700 mt-0.5">
+                        <Video className="w-3 h-3" /> Sala de video
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-600 font-medium">
                     {sede._count?.doctors || 0}
@@ -121,7 +126,7 @@ export default function SedesPage() {
                   </td>
                   <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-bold sm:pr-6">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => { setEditingSede(sede); setFormData({ name: sede.name }); setIsModalOpen(true); }} className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md cursor-pointer">Editar</button>
+                      <button onClick={() => { setEditingSede(sede); setFormData({ name: sede.name, videoUrl: sede.videoUrl || '' }); setIsModalOpen(true); }} className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md cursor-pointer">Editar</button>
                       <button onClick={() => deleteSede(sede.id)} className="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded-md cursor-pointer">Borrar</button>
                     </div>
                   </td>
@@ -145,7 +150,14 @@ export default function SedesPage() {
               {error && <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</div>}
               <div>
                 <label className="block text-sm font-bold mb-1 text-gray-900">Nombre *</label>
-                <input required type="text" className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 bg-white" value={formData.name} onChange={e => setFormData({name: e.target.value})} />
+                <input required type="text" className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-gray-900 bg-white" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-1 text-gray-900 flex items-center gap-1.5">
+                  <Video className="w-4 h-4 text-blue-600" /> URL de Videoconferencia
+                </label>
+                <input type="url" placeholder="https://meet.google.com/... o https://daily.co/..." className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-gray-900 bg-white" value={formData.videoUrl} onChange={e => setFormData(p => ({ ...p, videoUrl: e.target.value }))} />
+                <p className="text-xs text-gray-400 font-medium mt-1">Enlace para consultas virtuales de esta sede</p>
               </div>
               <div className="flex justify-end gap-2 pt-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded-md">Cancelar</button>

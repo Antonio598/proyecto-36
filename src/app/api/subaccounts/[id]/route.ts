@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAccountIdFromRequest } from '@/lib/serverAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,13 +9,17 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const accountId = getAccountIdFromRequest(request);
     const { id } = await params;
     const body = await request.json();
-    const { name } = body;
+    const { name, videoUrl } = body;
 
     const subaccount = await prisma.subaccount.update({
-      where: { id },
-      data: { name },
+      where: { id, ...(accountId ? { accountId } : {}) },
+      data: {
+        ...(name ? { name } : {}),
+        ...(videoUrl !== undefined ? { videoUrl: videoUrl || null } : {}),
+      },
     });
 
     return NextResponse.json(subaccount);
