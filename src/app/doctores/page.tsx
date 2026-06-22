@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Stethoscope, Edit2, Trash2, X } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Stethoscope, Edit2, Trash2, X, User } from 'lucide-react';
 import { useSede } from '@/context/SedeContext';
 import { apiFetch } from '@/lib/apiFetch';
 
@@ -97,6 +98,7 @@ export default function DoctoresPage() {
                   <td className="py-4 pl-4 text-sm font-bold text-gray-900">{doc.name}</td>
                   <td className="px-3 py-4 text-sm text-center text-gray-900 font-medium">{doc._count?.calendars || 0}</td>
                   <td className="py-4 pr-4 text-right">
+                    <Link href={`/doctores/${doc.id}/perfil`} className="text-indigo-600 mr-2 font-bold bg-indigo-50 px-3 py-1 rounded hover:bg-indigo-100 transition-colors inline-block">Perfil</Link>
                     <button onClick={() => { setEditingDoctor(doc); setFormData({ name: doc.name }); setIsModalOpen(true); }} className="text-blue-600 mr-2 font-bold bg-blue-50 px-3 py-1 rounded">Editar</button>
                     <button onClick={() => deleteDoctor(doc.id)} className="text-red-600 font-bold bg-red-50 px-3 py-1 rounded">Borrar</button>
                   </td>

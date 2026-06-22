@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale/es';
-import { X, Calendar as CalendarIcon, Clock, User, Stethoscope, Edit2, Trash2, Info, Ban, ChevronDown, Check, Mail, Fingerprint } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, User, Stethoscope, Edit2, Trash2, Info, Ban, ChevronDown, Check, Mail, Fingerprint, ClipboardList, CreditCard, CheckCircle2 } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSede } from '@/context/SedeContext';
 import { apiFetch } from '@/lib/apiFetch';
@@ -17,6 +19,7 @@ const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales
 
 export default function CalendarPage() {
   const { selectedSede } = useSede();
+  const router = useRouter();
   const [view, setView] = useState<any>(Views.WEEK);
   const [date, setDate] = useState(new Date());
 
@@ -73,6 +76,12 @@ export default function CalendarPage() {
   const [isCreatingPatient, setIsCreatingPatient] = useState(false);
   const [newPatientForm, setNewPatientForm] = useState({ fullName: '', phone: '', email: '' });
   const [isCreatingPatientSubmitting, setIsCreatingPatientSubmitting] = useState(false);
+
+  // Status patch state (detail modal)
+  const [apptStatus, setApptStatus] = useState('PENDING');
+  const [apptPaymentStatus, setApptPaymentStatus] = useState('PENDING');
+  const [isPatchingStatus, setIsPatchingStatus] = useState(false);
+  const [patchSuccess, setPatchSuccess] = useState(false);
 
   useEffect(() => {
     if (!selectedSede) return;
@@ -132,6 +141,7 @@ export default function CalendarPage() {
             service: appt.service,
             notes: appt.notes,
             status: appt.status,
+            paymentStatus: appt.paymentStatus || 'PENDING',
             isBlocker: appt.isBlocker
           };
         });
@@ -262,8 +272,58 @@ export default function CalendarPage() {
       notes: event.notes || '',
       status: event.status || 'CONFIRMED'
     });
+    setApptStatus(event.status || 'PENDING');
+    setApptPaymentStatus(event.paymentStatus || 'PENDING');
+    setPatchSuccess(false);
     setIsDetailModalOpen(true);
     setError('');
+  };
+
+  const handlePatchStatus = async () => {
+    if (!selectedEvent) return;
+    setIsPatchingStatus(true);
+    setPatchSuccess(false);
+    setError('');
+    try {
+      const res = await apiFetch(`/api/appointments/${selectedEvent.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: apptStatus, paymentStatus: apptPaymentStatus })
+      });
+      if (!res.ok) throw new Error('Error al actualizar el estado');
+      await fetchAppointments();
+      setPatchSuccess(true);
+      setTimeout(() => setPatchSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsPatchingStatus(false);
+    }
+  };
+
+  const handleCreateConsultation = async () => {
+    if (!selectedEvent?.patient) return;
+    setIsPatchingStatus(true);
+    setError('');
+    try {
+      const res = await apiFetch('/api/consultations', {
+        method: 'POST',
+        body: JSON.stringify({
+          patientId: selectedEvent.patient.id,
+          subaccountId: selectedSede,
+          appointmentId: selectedEvent.id,
+          visitDate: new Date().toISOString(),
+          isVirtual: false
+        })
+      });
+      if (!res.ok) throw new Error('Error al crear consulta');
+      const consultation = await res.json();
+      setIsDetailModalOpen(false);
+      router.push(`/patients/${selectedEvent.patient.id}/expediente/consulta/${consultation.id}`);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsPatchingStatus(false);
+    }
   };
 
   const handleQuickBlock = () => {
@@ -469,9 +529,20 @@ export default function CalendarPage() {
       };
     }
 
+    const statusColors: Record<string, string> = {
+      WAITING: '#f59e0b',
+      IN_CONSULTATION: '#8b5cf6',
+      ATTENDED: '#10b981',
+      NO_SHOW: '#ef4444',
+      CANCELLED: '#94a3b8',
+      PENDING: '#f97316',
+      CONFIRMED: baseColor,
+    };
+    const eventColor = isCancelled ? '#94a3b8' : (statusColors[event.status] || baseColor);
+
     return {
       style: {
-        background: isCancelled ? '#94a3b8' : `linear-gradient(135deg, ${baseColor}, ${baseColor}dd)`,
+        background: `linear-gradient(135deg, ${eventColor}, ${eventColor}dd)`,
         borderRadius: '8px',
         color: 'white',
         border: 'none',
@@ -875,10 +946,95 @@ export default function CalendarPage() {
               )}
 
               {!isBlockMode && (
-                <div><span className={`px-3 py-1 rounded-full text-xs font-bold ${selectedEvent.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{selectedEvent.status === 'CONFIRMED' ? 'Cita Confirmada' : 'Cita Cancelada'}</span></div>
+                <>
+                  {/* Status selector */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-500 uppercase tracking-wider">Estado de la Cita</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'PENDING', label: 'Pendiente', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+                        { value: 'CONFIRMED', label: 'Confirmada', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+                        { value: 'WAITING', label: 'En Espera', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+                        { value: 'IN_CONSULTATION', label: 'En Consulta', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+                        { value: 'ATTENDED', label: 'Atendida', color: 'bg-green-100 text-green-700 border-green-200' },
+                        { value: 'NO_SHOW', label: 'No Asistió', color: 'bg-red-100 text-red-700 border-red-200' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setApptStatus(opt.value)}
+                          className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${apptStatus === opt.value ? opt.color + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Payment status selector */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5" /> Estado de Pago
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'PENDING', label: 'Pendiente', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+                        { value: 'PAID', label: 'Pagada', color: 'bg-green-100 text-green-700 border-green-200' },
+                        { value: 'WAIVED', label: 'Eximida', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+                        { value: 'REFUNDED', label: 'Reembolsada', color: 'bg-red-100 text-red-700 border-red-200' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setApptPaymentStatus(opt.value)}
+                          className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${apptPaymentStatus === opt.value ? opt.color + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Save status button */}
+                  <button
+                    type="button"
+                    onClick={handlePatchStatus}
+                    disabled={isPatchingStatus}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${patchSuccess ? 'bg-green-100 text-green-700' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} disabled:opacity-50`}
+                  >
+                    {isPatchingStatus ? (
+                      <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                    ) : patchSuccess ? (
+                      <><CheckCircle2 className="w-4 h-4" /> Estado guardado</>
+                    ) : (
+                      'Guardar Estado'
+                    )}
+                  </button>
+
+                  {/* EHR + Consulta quick actions */}
+                  {selectedEvent.patient && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/patients/${selectedEvent.patient.id}/expediente`}
+                        className="flex items-center justify-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-colors border border-blue-100"
+                        onClick={() => setIsDetailModalOpen(false)}
+                      >
+                        <ClipboardList className="w-4 h-4" /> Expediente
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleCreateConsultation}
+                        disabled={isPatchingStatus}
+                        className="flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-colors border border-emerald-100 disabled:opacity-50"
+                      >
+                        <Stethoscope className="w-4 h-4" /> Crear Consulta
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
-              <div className="mt-8 flex justify-between gap-3 pt-6 border-t border-gray-100">
+              <div className="mt-4 flex justify-between gap-3 pt-4 border-t border-gray-100">
                 <button onClick={cancelAppointment} disabled={isSubmitting || selectedEvent.status === 'CANCELLED'} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50 transition-colors">
                   <Trash2 className="w-4 h-4" /> {isBlockMode ? 'Eliminar Bloqueo' : 'Cancelar Cita'}
                 </button>

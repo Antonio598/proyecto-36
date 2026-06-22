@@ -7,6 +7,82 @@ import { formatInTimeZone } from 'date-fns-tz';
 
 const PANAMA_TZ = 'America/Panama';
 
+// PATCH — only update status/paymentStatus (used by calendar modal)
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const { status, paymentStatus } = body;
+
+    const appt = await prisma.appointment.findUnique({ where: { id } });
+    if (!appt) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    // Use raw SQL to bypass enum type restrictions for new status values
+    const setParts: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (status) {
+      setParts.push(`"status" = $${idx++}::"AppointmentStatus"`);
+      values.push(status);
+    }
+    if (paymentStatus !== undefined) {
+      setParts.push(`"paymentStatus" = $${idx++}`);
+      values.push(paymentStatus);
+      if (paymentStatus === 'PAID') {
+        setParts.push(`"paidAt" = NOW()`);
+      }
+    }
+
+    if (setParts.length === 0) return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
+
+    values.push(id);
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Appointment" SET ${setParts.join(', ')}, "updatedAt" = NOW() WHERE id = $${idx}`,
+      ...values
+    );
+
+    // Auto-create or update Transaction when status = ATTENDED or paymentStatus = PAID
+    if ((status === 'ATTENDED' || paymentStatus === 'PAID') && appt.patientId && appt.totalPrice && appt.subaccountId) {
+      try {
+        const subaccount = await prisma.subaccount.findUnique({ where: { id: appt.subaccountId }, select: { accountId: true } });
+        if (subaccount?.accountId) {
+          const existingTx = await prisma.transaction.findUnique({ where: { appointmentId: id } });
+          if (existingTx) {
+            await prisma.transaction.update({
+              where: { appointmentId: id },
+              data: { status: paymentStatus === 'PAID' ? 'PAID' : existingTx.status }
+            });
+          } else {
+            await prisma.transaction.create({
+              data: {
+                accountId: subaccount.accountId,
+                subaccountId: appt.subaccountId,
+                appointmentId: id,
+                amount: appt.totalPrice,
+                type: 'APPOINTMENT',
+                status: paymentStatus === 'PAID' ? 'PAID' : 'PENDING',
+              }
+            });
+          }
+        }
+      } catch (txError) {
+        console.error('[transactions] Error upserting transaction:', txError);
+      }
+    }
+
+    const updated = await prisma.appointment.findUnique({
+      where: { id },
+      include: { patient: true, service: true }
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Error patching appointment:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

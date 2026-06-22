@@ -2,11 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSede } from '@/context/SedeContext';
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Users, 
-  Package, 
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Package,
   Settings,
   BookOpen,
   Building,
@@ -14,7 +14,8 @@ import {
   Clock,
   ChevronDown,
   Check,
-  X
+  X,
+  DollarSign
 } from 'lucide-react';
 
 const navigation = [
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Servicios', href: '/services', icon: Package },
   { name: 'Sedes', href: '/sedes', icon: Building },
   { name: 'Médicos', href: '/doctores', icon: Stethoscope },
+  { name: 'Finanzas', href: '/finanzas', icon: DollarSign },
   { name: 'Config Calendarios', href: '/calendarios', icon: Clock },
   { name: 'Doc API (n8n)', href: '/api-docs', icon: BookOpen },
 ];

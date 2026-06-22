@@ -10,11 +10,20 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, subaccountId } = body;
+    const { name, subaccountId, specialty, bio, phone, email, photoUrl, location, socialLinks, insurances, isPublic } = body;
 
     const dataToUpdate: any = {};
-    if (name) dataToUpdate.name = name;
-    if (subaccountId) dataToUpdate.subaccountId = subaccountId;
+    if (name !== undefined) dataToUpdate.name = name;
+    if (subaccountId !== undefined) dataToUpdate.subaccountId = subaccountId;
+    if (specialty !== undefined) dataToUpdate.specialty = specialty;
+    if (bio !== undefined) dataToUpdate.bio = bio;
+    if (phone !== undefined) dataToUpdate.phone = phone;
+    if (email !== undefined) dataToUpdate.email = email;
+    if (photoUrl !== undefined) dataToUpdate.photoUrl = photoUrl;
+    if (location !== undefined) dataToUpdate.location = location;
+    if (socialLinks !== undefined) dataToUpdate.socialLinks = socialLinks;
+    if (insurances !== undefined) dataToUpdate.insurances = insurances;
+    if (isPublic !== undefined) dataToUpdate.isPublic = isPublic;
 
     const doctor = await prisma.doctor.update({
       where: { id },

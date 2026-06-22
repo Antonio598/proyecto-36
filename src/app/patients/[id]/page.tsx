@@ -2,17 +2,18 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  ArrowLeft, 
-  User, 
-  Phone, 
-  Mail, 
-  Calendar as CalendarIcon, 
-  Stethoscope, 
-  Clock, 
+import {
+  ArrowLeft,
+  User,
+  Phone,
+  Mail,
+  Calendar as CalendarIcon,
+  Stethoscope,
+  Clock,
   FileText,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  ClipboardList
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -210,6 +211,14 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ id: s
                 <p className="text-sm font-bold text-amber-900 leading-relaxed">{patient.notes}</p>
               </div>
             )}
+
+            <Link
+              href={`/patients/${id}/expediente`}
+              className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <ClipboardList className="w-5 h-5" />
+              Expediente Clínico
+            </Link>
           </div>
         </div>
 
