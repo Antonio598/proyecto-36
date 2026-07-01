@@ -43,18 +43,29 @@ export async function POST(request: Request) {
         where: { id: existing.id },
         data: { contactedAt: contactTime, isActive: true },
       });
-    } else {
-      await (prisma as any).contactLog.create({
-        data: {
-          patientId: patient.id,
-          accountId: account.id,
-          contactedAt: contactTime,
-          isActive: true,
-        },
+      return NextResponse.json({
+        success: true,
+        alreadySaved: true,
+        patientName: patient.fullName,
+        contactedAt: contactTime.toISOString(),
       });
     }
 
-    return NextResponse.json({ success: true, patientName: patient.fullName, contactedAt: contactTime.toISOString() }, { status: 201 });
+    await (prisma as any).contactLog.create({
+      data: {
+        patientId: patient.id,
+        accountId: account.id,
+        contactedAt: contactTime,
+        isActive: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      alreadySaved: false,
+      patientName: patient.fullName,
+      contactedAt: contactTime.toISOString(),
+    }, { status: 201 });
   } catch (error) {
     console.error('Error in n8n/contact:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
