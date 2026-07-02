@@ -39,15 +39,22 @@ export async function POST(request: Request) {
     });
 
     if (existing) {
-      await (prisma as any).contactLog.update({
-        where: { id: existing.id },
-        data: { contactedAt: contactTime, isActive: true },
-      });
+      // Only update contactedAt if the follow-up cycle hasn't started yet.
+      // Once followUp1SentAt is set, updating contactedAt would break the chain
+      // (followUp2/3 guards require contactedAt <= followUpNSentAt).
+      if (!existing.followUp1SentAt) {
+        await (prisma as any).contactLog.update({
+          where: { id: existing.id },
+          data: { contactedAt: contactTime, isActive: true },
+        });
+      }
       return NextResponse.json({
         success: true,
         alreadySaved: true,
         patientName: patient.fullName,
-        contactedAt: contactTime.toISOString(),
+        contactedAt: existing.followUp1SentAt
+          ? existing.contactedAt.toISOString()
+          : contactTime.toISOString(),
       });
     }
 
