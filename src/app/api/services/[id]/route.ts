@@ -11,16 +11,26 @@ export async function PUT(
     const body = await request.json();
     const { name, durationMinutes, price, colorCode, isActive } = body;
 
+    const parsedPrice = price !== undefined ? parseFloat(price) : undefined;
+
     const service = await prisma.service.update({
       where: { id },
       data: {
         ...(name && { name }),
         ...(durationMinutes !== undefined && { durationMinutes: parseInt(durationMinutes, 10) }),
-        ...(price !== undefined && { price: parseFloat(price) }),
+        ...(parsedPrice !== undefined && { price: parsedPrice }),
         ...(colorCode && { colorCode }),
         ...(isActive !== undefined && { isActive }),
       },
     });
+
+    // Sync price to all ServiceConfiguration records for this service
+    if (parsedPrice !== undefined) {
+      await prisma.serviceConfiguration.updateMany({
+        where: { serviceId: id },
+        data: { price: parsedPrice },
+      });
+    }
 
     return NextResponse.json(service);
   } catch (error) {
