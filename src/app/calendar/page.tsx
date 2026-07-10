@@ -836,7 +836,16 @@ export default function CalendarPage() {
                  )}
               </div>
 
-              {!isBlockMode && (
+              {!isBlockMode && selectedEvent && (
+                /* Editing — show patient/service as read-only so required selects
+                   never block form submission when the service is inactive or missing */
+                <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-blue-900 space-y-1">
+                  <p><span className="font-bold">Paciente:</span> {selectedEvent.patient?.fullName || '—'}</p>
+                  <p><span className="font-bold">Servicio:</span> {selectedEvent.service?.name || '—'}</p>
+                </div>
+              )}
+
+              {!isBlockMode && !selectedEvent && (
                 <>
                   <div>
                     <div className="flex items-center justify-between mb-1">
