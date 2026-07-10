@@ -151,23 +151,24 @@ export async function PUT(
          }
       }
 
-      // Basic Overlap validation check (excluding current appointment)
-      const overlappingAppt = await prisma.appointment.findFirst({
-        where: {
-          id: { not: id },
-          status: { notIn: ['CANCELLED'] },
-          OR: [
-            {
-              startTime: { lt: end },
-              endTime: { gt: start },
-            }
-          ]
-        }
-      });
+      // Overlap check — scope to the same calendar (or subaccount if no calendar)
+      // to avoid false conflicts between different doctors' schedules.
+      const overlapWhere: any = {
+        id: { not: id },
+        status: { notIn: ['CANCELLED'] },
+        OR: [{ startTime: { lt: end }, endTime: { gt: start } }],
+      };
+      if (currentAppt.calendarId) {
+        overlapWhere.calendarId = currentAppt.calendarId;
+      } else if (currentAppt.subaccountId) {
+        overlapWhere.subaccountId = currentAppt.subaccountId;
+      }
+
+      const overlappingAppt = await prisma.appointment.findFirst({ where: overlapWhere });
 
       if (overlappingAppt && !currentAppt.isBlocker) {
         return NextResponse.json(
-          { error: 'Reprogramming time slot is already booked.' },
+          { error: 'El horario seleccionado ya está ocupado en este calendario.' },
           { status: 409 }
         );
       }

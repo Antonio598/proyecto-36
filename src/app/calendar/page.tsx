@@ -391,7 +391,9 @@ export default function CalendarPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Error al guardar cita (posible empalme de horarios)');
+        const msg = data.error || 'Error al guardar cita (posible empalme de horarios)';
+        alert(`Error: ${msg}`);
+        throw new Error(msg);
       }
 
       const savedAppt = await res.json();
