@@ -90,6 +90,9 @@ export default function CalendariosPage() {
              return { ...s, active: false };
            });
            setSchedules(updatedSchedules);
+        } else {
+           // Rules were explicitly cleared — show all days as inactive
+           setSchedules(defaultSchedules.map(s => ({ ...s, active: false })));
         }
       }
     } catch(err) { console.error('Error fetching rules', err); }
