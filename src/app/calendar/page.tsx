@@ -171,12 +171,8 @@ export default function CalendarPage() {
   }, [selectedSede, selectedCalendarId]);
 
   useEffect(() => {
-    if (availabilityRules.length === 0) {
-       setBackgroundBlocks([]);
-       return;
-    }
-    
-    // Generate grey blocks for +/- 30 days around the current view date
+    // Generate grey blocks for +/- 30 days around the current view date.
+    // If there are no rules at all, every day is fully blocked (clinic closed).
     const { addDays, startOfDay, endOfDay } = require('date-fns');
     const blocks: any[] = [];
     const generateStart = addDays(date, -30);
