@@ -116,7 +116,7 @@ export default function CalendarPage() {
   const fetchAppointments = async () => {
     if (!selectedSede) return;
     try {
-      let url = `/api/appointments?subaccountId=${selectedSede}`;
+      let url = `/api/appointments?subaccountId=${selectedSede}&_t=${Date.now()}`;
       if (selectedCalendarId) {
         url += `&calendarId=${selectedCalendarId}`;
       }
@@ -394,7 +394,24 @@ export default function CalendarPage() {
         throw new Error(data.error || 'Error al guardar cita (posible empalme de horarios)');
       }
 
-      await fetchAppointments();
+      const savedAppt = await res.json();
+
+      // For edits: immediately patch the event in local state so the calendar
+      // reflects the new time without waiting for the background refetch.
+      if (isEditing && savedAppt?.startTime && selectedEvent) {
+        const { formatInTimeZone } = require('date-fns-tz');
+        const PANAMA_TZ = 'America/Panama';
+        const naiveStart = formatInTimeZone(new Date(savedAppt.startTime), PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
+        const naiveEnd   = formatInTimeZone(new Date(savedAppt.endTime),   PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
+        setEvents(prev => prev.map(ev =>
+          ev.id === selectedEvent.id
+            ? { ...ev, start: new Date(naiveStart), end: new Date(naiveEnd), notes: savedAppt.notes, status: savedAppt.status }
+            : ev
+        ));
+      }
+
+      // Background refetch to stay in sync with the server
+      fetchAppointments();
       setIsModalOpen(false);
       setIsDetailModalOpen(false);
       setForm({ patientId: '', serviceId: '', notes: '', status: 'CONFIRMED' });
