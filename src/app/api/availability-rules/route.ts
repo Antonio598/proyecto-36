@@ -36,25 +36,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'subaccountId, calendarId, and rules array are required' }, { status: 400 });
     }
 
-    // Delete existing rules for this calendar
-    await prisma.availabilityRule.deleteMany({
-      where: { calendarId }
-    });
+    const dataToInsert = rules.map((r: any) => ({
+      subaccountId,
+      calendarId,
+      dayOfWeek: Number(r.dayOfWeek),
+      startTime: r.startTime,
+      endTime: r.endTime
+    }));
 
-    // Create new rules
-    if (rules.length > 0) {
-      const dataToInsert = rules.map((r: any) => ({
-        subaccountId,
-        calendarId,
-        dayOfWeek: Number(r.dayOfWeek),
-        startTime: r.startTime,
-        endTime: r.endTime
-      }));
-
-      await prisma.availabilityRule.createMany({
-        data: dataToInsert
-      });
-    }
+    // Atomic: delete + recreate in a single transaction so rules are never left empty
+    await prisma.$transaction([
+      prisma.availabilityRule.deleteMany({ where: { calendarId } }),
+      ...(dataToInsert.length > 0
+        ? [prisma.availabilityRule.createMany({ data: dataToInsert })]
+        : []),
+    ]);
 
     return NextResponse.json({ success: true, message: 'Rules updated successfully' });
   } catch (error: any) {

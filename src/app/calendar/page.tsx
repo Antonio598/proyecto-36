@@ -235,21 +235,25 @@ export default function CalendarPage() {
     const dayOfWeek = slotInfo.start.getDay();
     const rule = availabilityRules.find(r => r.dayOfWeek === dayOfWeek);
     
-    if (!rule) {
+    // Only block if rules are configured AND this day has no rule (truly closed).
+    // If no rules are configured yet, let the backend validate instead of blocking.
+    if (!rule && availabilityRules.length > 0) {
       alert('La sede está cerrada este día. Revisa Configurar Horarios Semanales en Calendarios.');
       return;
     }
-    
-    const [startH, startM] = rule.startTime.split(':').map(Number);
-    const [endH, endM] = rule.endTime.split(':').map(Number);
-    const ruleStart = new Date(slotInfo.start);
-    ruleStart.setHours(startH, startM, 0, 0);
-    const ruleEnd = new Date(slotInfo.start);
-    ruleEnd.setHours(endH, endM, 0, 0);
-    
-    if (slotInfo.start < ruleStart || slotInfo.end > ruleEnd) {
-      alert(`Horario fuera de rango. El horario de atención hoy es de ${rule.startTime} a ${rule.endTime}.`);
-      return;
+
+    if (rule) {
+      const [startH, startM] = rule.startTime.split(':').map(Number);
+      const [endH, endM] = rule.endTime.split(':').map(Number);
+      const ruleStart = new Date(slotInfo.start);
+      ruleStart.setHours(startH, startM, 0, 0);
+      const ruleEnd = new Date(slotInfo.start);
+      ruleEnd.setHours(endH, endM, 0, 0);
+
+      if (slotInfo.start < ruleStart || slotInfo.end > ruleEnd) {
+        alert(`Horario fuera de rango. El horario de atención hoy es de ${rule.startTime} a ${rule.endTime}.`);
+        return;
+      }
     }
 
     setSelectedSlot(slotInfo);
@@ -377,7 +381,7 @@ export default function CalendarPage() {
         }
       }
 
-      if (!isEditing && selectedSlot) {
+      if (selectedSlot) {
         payload.startTime = format(selectedSlot.start, "yyyy-MM-dd'T'HH:mm:ss");
         if (isBlockMode) {
           payload.endTime = format(selectedSlot.end, "yyyy-MM-dd'T'HH:mm:ss");
