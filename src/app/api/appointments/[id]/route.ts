@@ -90,7 +90,10 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, startTime, notes } = body;
+    const { startTime, notes } = body;
+    // status is intentionally excluded — use PATCH /api/appointments/[id] for status changes.
+    // Sending status via PUT would fail if the value is an enum value added via raw SQL
+    // (e.g. ATTENDED, ABSENT) that is not present in the Prisma-generated enum type.
 
     // Identify current appointment to calculate its endTime if startTime changes
     const currentAppt = await prisma.appointment.findUnique({
@@ -103,7 +106,6 @@ export async function PUT(
     }
 
     let updatedData: any = {
-      ...(status && { status }),
       ...(notes !== undefined && { notes }),
     };
 
