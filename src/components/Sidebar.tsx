@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useSede } from '@/context/SedeContext';
 import {
   LayoutDashboard, Calendar, Users, Package, Settings, BookOpen,
-  Building, Stethoscope, Clock, ChevronDown, Check, X, DollarSign
+  Building, Stethoscope, Clock, ChevronDown, Check, X, DollarSign, Video
 } from 'lucide-react';
 
 const navigation = [
@@ -14,6 +14,7 @@ const navigation = [
   { name: 'Servicios', href: '/services', icon: Package },
   { name: 'Sedes', href: '/sedes', icon: Building },
   { name: 'Médicos', href: '/doctores', icon: Stethoscope },
+  { name: 'Teleconsulta', href: '/reuniones', icon: Video },
   { name: 'Finanzas', href: '/finanzas', icon: DollarSign },
   { name: 'Config Calendarios', href: '/calendarios', icon: Clock },
   { name: 'Doc API (n8n)', href: '/api-docs', icon: BookOpen },
