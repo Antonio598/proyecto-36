@@ -14,7 +14,7 @@ export default function DoctorPublicPage({ params }: { params: Promise<{ doctorI
   const [error, setError]   = useState('');
 
   useEffect(() => {
-    fetch(`/api/directory/${doctorId}`)
+    fetch(`/api/directory/${doctorId}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : Promise.reject('No encontrado'))
       .then(setDoctor)
       .catch(e => setError(String(e)))

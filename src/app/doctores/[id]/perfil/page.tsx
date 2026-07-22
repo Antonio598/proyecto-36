@@ -54,37 +54,36 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
   });
   const [newInsurance, setNewInsurance] = useState('');
 
-  useEffect(() => {
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch doctor via /api/doctors and filter by id
-        const res = await apiFetch('/api/doctors');
-        if (!res.ok) throw new Error('Error al cargar médico');
-        const list: any[] = await res.json();
-        const d = list.find((x: any) => x.id === id);
-        if (!d) throw new Error('Médico no encontrado');
-        setDoctor(d);
-        setForm({
-          name: d.name || '',
-          specialty: d.specialty || '',
-          bio: d.bio || '',
-          phone: d.phone || '',
-          email: d.email || '',
-          photoUrl: d.photoUrl || '',
-          location: d.location || '',
-          isPublic: d.isPublic || false,
-          socialLinks: (d.socialLinks as Record<string, string>) || {},
-          insurances: (d.insurances as string[]) || [],
-        });
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, [id]);
+  const loadDoctor = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await apiFetch('/api/doctors');
+      if (!res.ok) throw new Error('Error al cargar médico');
+      const list: any[] = await res.json();
+      const d = list.find((x: any) => x.id === id);
+      if (!d) throw new Error('Médico no encontrado');
+      setDoctor(d);
+      setForm({
+        name: d.name || '',
+        specialty: d.specialty || '',
+        bio: d.bio || '',
+        phone: d.phone || '',
+        email: d.email || '',
+        photoUrl: d.photoUrl || '',
+        location: d.location || '',
+        isPublic: d.isPublic || false,
+        socialLinks: (d.socialLinks as Record<string, string>) || {},
+        insurances: (d.insurances as string[]) || [],
+      });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { loadDoctor(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -106,7 +105,25 @@ export default function DoctorProfilePage({ params }: { params: Promise<{ id: st
           insurances: form.insurances,
         }),
       });
-      if (!res.ok) throw new Error('Error al guardar el perfil');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || 'Error al guardar el perfil');
+      }
+      const updated = await res.json();
+      // Sync form with what the server actually saved
+      setDoctor(updated);
+      setForm({
+        name: updated.name || '',
+        specialty: updated.specialty || '',
+        bio: updated.bio || '',
+        phone: updated.phone || '',
+        email: updated.email || '',
+        photoUrl: updated.photoUrl || '',
+        location: updated.location || '',
+        isPublic: updated.isPublic || false,
+        socialLinks: (updated.socialLinks as Record<string, string>) || {},
+        insurances: (updated.insurances as string[]) || [],
+      });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
