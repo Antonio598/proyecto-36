@@ -13,15 +13,16 @@ export async function PUT(
     if (!accountId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { patientId, notes, amount, paymentStatus, status, endedAt } = body;
+    const { patientId, doctorId, notes, amount, paymentStatus, status, endedAt } = body;
 
     const data: any = {};
-    if (patientId !== undefined) data.patientId = patientId || null;
-    if (notes     !== undefined) data.notes = notes;
-    if (amount    !== undefined) data.amount = amount !== '' ? parseFloat(amount) : null;
+    if (patientId  !== undefined) data.patientId = patientId || null;
+    if (doctorId   !== undefined) data.doctorId  = doctorId  || null;
+    if (notes      !== undefined) data.notes = notes;
+    if (amount     !== undefined) data.amount = amount !== '' ? parseFloat(amount) : null;
     if (paymentStatus !== undefined) data.paymentStatus = paymentStatus;
-    if (status    !== undefined) data.status = status;
-    if (endedAt   !== undefined) data.endedAt = endedAt ? new Date(endedAt) : null;
+    if (status     !== undefined) data.status = status;
+    if (endedAt    !== undefined) data.endedAt = endedAt ? new Date(endedAt) : null;
     if (status === 'CLOSED' && !endedAt) data.endedAt = new Date();
 
     const session = await (prisma as any).videoSession.update({
@@ -29,6 +30,7 @@ export async function PUT(
       data,
       include: {
         patient: { select: { id: true, fullName: true, phone: true } },
+        doctor:  { select: { id: true, name: true } },
         consultation: { select: { id: true } },
       },
     });

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, ChevronRight, FileText, Stethoscope, Pill, Upload,
   Plus, Trash2, Download, Eye, AlertCircle, Loader2, X, Check,
-  Droplets, Activity, Scissors, Users, Tablets, ClipboardList
+  Droplets, Activity, Scissors, Users, Tablets, ClipboardList, Video
 } from 'lucide-react';
 import { apiFetch, getAccountId } from '@/lib/apiFetch';
 import { format } from 'date-fns';
@@ -40,6 +40,12 @@ interface MedicalFile {
   description?: string; uploadedAt: string;
 }
 interface Doctor { id: string; name: string; }
+interface VideoSession {
+  id: string; roomUrl: string; roomName: string; status: string;
+  startedAt: string; endedAt: string | null;
+  notes: string | null; amount: number | null; paymentStatus: string;
+  doctor: { id: string; name: string } | null;
+}
 
 export default function ExpedientePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: patientId } = use(params);
@@ -70,6 +76,9 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
 
   // Recetas
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+
+  // Teleconsultas
+  const [videoSessions, setVideoSessions] = useState<VideoSession[]>([]);
   const [showNewRx, setShowNewRx] = useState(false);
   const [newRx, setNewRx] = useState({
     doctorId: '', notes: '', consultationRecordId: '',
@@ -98,12 +107,13 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
         setSubaccountId(sid);
 
         if (sid) {
-          const [bgRes, consultRes, filesRes, rxRes, docRes] = await Promise.all([
+          const [bgRes, consultRes, filesRes, rxRes, docRes, vsRes] = await Promise.all([
             apiFetch(`/api/patients/${patientId}/background?subaccountId=${sid}`),
             apiFetch(`/api/consultations?patientId=${patientId}`),
             apiFetch(`/api/medical-files?patientId=${patientId}`),
             apiFetch(`/api/prescriptions?patientId=${patientId}`),
             apiFetch(`/api/doctors?subaccountId=${sid}`),
+            apiFetch(`/api/video-sessions?patientId=${patientId}`),
           ]);
           const bg = await bgRes.json();
           if (bg) setBackground(bg);
@@ -111,6 +121,7 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
           setFiles(await filesRes.json());
           setPrescriptions(await rxRes.json());
           setDoctors(await docRes.json());
+          if (vsRes.ok) setVideoSessions(await vsRes.json());
         }
       } catch (e: any) {
         setError(e.message);
@@ -302,6 +313,9 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
           <span className="bg-white/20 px-3 py-1 rounded-full">{consultations.length} consultas</span>
           <span className="bg-white/20 px-3 py-1 rounded-full">{prescriptions.length} recetas</span>
           <span className="bg-white/20 px-3 py-1 rounded-full">{files.length} archivos</span>
+          {videoSessions.length > 0 && (
+            <span className="bg-white/20 px-3 py-1 rounded-full">{videoSessions.length} teleconsultas</span>
+          )}
         </div>
       </div>
 
@@ -464,6 +478,45 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── TELECONSULTAS (dentro de la pestaña consultas) ── */}
+          {activeTab === 'consultas' && videoSessions.length > 0 && (
+            <div className="space-y-4 mt-6 pt-6 border-t border-gray-100">
+              <h4 className="font-black text-gray-700 text-sm flex items-center gap-2">
+                <Video className="w-4 h-4 text-blue-500" />
+                Teleconsultas vinculadas
+                <span className="font-medium text-gray-400 text-xs">({videoSessions.length})</span>
+              </h4>
+              <div className="space-y-2">
+                {videoSessions.map(vs => (
+                  <div key={vs.id} className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${vs.status === 'OPEN' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-gray-800">
+                        {format(new Date(vs.startedAt), "d 'de' MMMM yyyy · HH:mm", { locale: es })}
+                        {vs.endedAt && ` → ${format(new Date(vs.endedAt), 'HH:mm')}`}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {vs.doctor && <span className="text-xs font-bold text-gray-500">Dr. {vs.doctor.name}</span>}
+                        {vs.notes && <span className="text-xs text-gray-400">· {vs.notes.slice(0, 60)}{vs.notes.length > 60 ? '…' : ''}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {vs.amount != null && (
+                        <span className={`text-xs font-black px-2 py-0.5 rounded-full ${vs.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                          ${vs.amount}
+                        </span>
+                      )}
+                      <a href={vs.roomUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 px-2 py-1 rounded-lg hover:bg-blue-100 transition-colors">
+                        <Video className="w-3 h-3" /> Sala
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

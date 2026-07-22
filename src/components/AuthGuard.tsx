@@ -19,7 +19,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const isSuperAdmin = session?.role === 'SUPERADMIN';
     const onSuperAdminPath = pathname.startsWith('/superadmin');
     const PUBLIC_ROUTES = ['/', '/login', '/privacidad', '/terminos'];
-    const isPublicPath = PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/directorio');
+    const isPublicPath = PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/directorio') || pathname.startsWith('/agendareunion');
 
     if (!session) {
       // Not logged in — allow through only on public routes
@@ -52,7 +52,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // On public pages, always render
-  if (pathname === '/login' || pathname === '/' || pathname === '/privacidad' || pathname === '/terminos' || pathname.startsWith('/directorio')) {
+  if (pathname === '/login' || pathname === '/' || pathname === '/privacidad' || pathname === '/terminos' || pathname.startsWith('/directorio') || pathname.startsWith('/agendareunion')) {
     return <>{children}</>;
   }
 

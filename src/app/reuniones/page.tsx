@@ -27,13 +27,15 @@ interface Appointment {
 }
 
 interface Patient { id: string; fullName: string; phone: string | null; }
+interface Doctor  { id: string; name: string; }
 
 interface VideoSession {
   id: string; roomUrl: string; roomName: string; status: string;
   startedAt: string; endedAt: string | null;
   notes: string | null; amount: number | null; paymentStatus: string;
-  appointmentId: string | null; patientId: string | null;
+  appointmentId: string | null; patientId: string | null; doctorId: string | null;
   patient: Patient | null;
+  doctor: Doctor | null;
   consultation: { id: string } | null;
 }
 
@@ -157,15 +159,17 @@ function AdHocCard({ onJoin }: { onJoin: (roomName: string) => void }) {
 
 // ─── Session Card ─────────────────────────────────────────────────────────────
 function SessionCard({
-  session, patients, onUpdate, onDelete,
+  session, patients, doctors, onUpdate, onDelete,
 }: {
   session: VideoSession;
   patients: Patient[];
+  doctors: Doctor[];
   onUpdate: (id: string, data: Partial<VideoSession>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
   const [form, setForm] = useState({
     patientId: session.patientId || '',
+    doctorId:  session.doctorId  || '',
     notes: session.notes || '',
     amount: session.amount != null ? String(session.amount) : '',
     paymentStatus: session.paymentStatus,
@@ -178,6 +182,7 @@ function SessionCard({
     setSaving(true);
     await onUpdate(session.id, {
       patientId: form.patientId || undefined,
+      doctorId:  form.doctorId  || undefined,
       notes: form.notes,
       amount: form.amount ? parseFloat(form.amount) : undefined,
       paymentStatus: form.paymentStatus,
@@ -250,6 +255,19 @@ function SessionCard({
               ))}
             </select>
           )}
+        </div>
+
+        {/* Doctor */}
+        <div>
+          <label className="text-xs font-black text-gray-500 uppercase tracking-wider block mb-1">Médico</label>
+          <select
+            value={form.doctorId}
+            onChange={e => setForm(f => ({ ...f, doctorId: e.target.value }))}
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          >
+            <option value="">Sin asignar</option>
+            {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
         </div>
 
         {/* Notes */}
@@ -339,6 +357,7 @@ export default function ReunionesPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [sessions, setSessions]         = useState<VideoSession[]>([]);
   const [patients, setPatients]         = useState<Patient[]>([]);
+  const [doctors, setDoctors]           = useState<Doctor[]>([]);
   const [isLoadingAppts, setIsLoadingAppts] = useState(true);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [selectedDate, setSelectedDate] = useState(getPanamaToday());
@@ -376,11 +395,18 @@ export default function ReunionesPage() {
     if (res.ok) setPatients(await res.json());
   }, [selectedSede]);
 
+  const fetchDoctors = useCallback(async () => {
+    if (!selectedSede) return;
+    const res = await apiFetch(`/api/doctors?subaccountId=${selectedSede}`);
+    if (res.ok) setDoctors(await res.json());
+  }, [selectedSede]);
+
   useEffect(() => {
     fetchAppointments();
     fetchSessions();
     fetchPatients();
-  }, [fetchAppointments, fetchSessions, fetchPatients]);
+    fetchDoctors();
+  }, [fetchAppointments, fetchSessions, fetchPatients, fetchDoctors]);
 
   const handleJoin = async (roomName: string, appointmentId?: string, patientId?: string) => {
     if (!selectedSede || dbMissing) return;
@@ -522,7 +548,7 @@ export default function ReunionesPage() {
         ) : (
           <div className="space-y-4">
             {sessions.map(s => (
-              <SessionCard key={s.id} session={s} patients={patients}
+              <SessionCard key={s.id} session={s} patients={patients} doctors={doctors}
                 onUpdate={updateSession} onDelete={deleteSession} />
             ))}
           </div>

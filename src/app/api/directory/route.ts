@@ -5,15 +5,17 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const specialty = searchParams.get('specialty');
-    const name = searchParams.get('name');
-    const insurance = searchParams.get('insurance');
+    const specialty  = searchParams.get('specialty');
+    const name       = searchParams.get('name');
+    const insurance  = searchParams.get('insurance');
+    const accountId  = searchParams.get('accountId');
 
     const doctors = await prisma.doctor.findMany({
       where: {
         isPublic: true,
         ...(specialty ? { specialty: { contains: specialty, mode: 'insensitive' } } : {}),
-        ...(name ? { name: { contains: name, mode: 'insensitive' } } : {}),
+        ...(name      ? { name: { contains: name, mode: 'insensitive' } } : {}),
+        ...(accountId ? { subaccount: { accountId } } : {}),
       },
       select: {
         id: true,

@@ -15,8 +15,11 @@ export async function GET(request: Request) {
     const subaccountId = searchParams.get('subaccountId');
     const date = searchParams.get('date'); // YYYY-MM-DD in Panama TZ
 
+    const patientId   = searchParams.get('patientId');
+
     const where: any = { accountId };
     if (subaccountId) where.subaccountId = subaccountId;
+    if (patientId)    where.patientId    = patientId;
 
     if (date) {
       // Filter sessions that started on this Panama date
@@ -33,6 +36,7 @@ export async function GET(request: Request) {
       where,
       include: {
         patient: { select: { id: true, fullName: true, phone: true } },
+        doctor:  { select: { id: true, name: true } },
         consultation: { select: { id: true } },
       },
       orderBy: { startedAt: 'desc' },
@@ -51,7 +55,7 @@ export async function POST(request: Request) {
     if (!accountId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { subaccountId, roomUrl, roomName, appointmentId, patientId } = body;
+    const { subaccountId, roomUrl, roomName, appointmentId, patientId, doctorId } = body;
 
     if (!roomUrl || !roomName) {
       return NextResponse.json({ error: 'roomUrl and roomName are required' }, { status: 400 });
@@ -65,10 +69,12 @@ export async function POST(request: Request) {
         roomName,
         appointmentId: appointmentId || null,
         patientId: patientId || null,
+        doctorId: doctorId || null,
         status: 'OPEN',
       },
       include: {
         patient: { select: { id: true, fullName: true, phone: true } },
+        doctor:  { select: { id: true, name: true } },
       },
     });
 
