@@ -12,11 +12,6 @@ export async function GET(request: Request) {
     const doctors = await prisma.doctor.findMany({
       where: {
         isPublic: true,
-        subaccount: {
-          account: {
-            has_directory: true,
-          }
-        },
         ...(specialty ? { specialty: { contains: specialty, mode: 'insensitive' } } : {}),
         ...(name ? { name: { contains: name, mode: 'insensitive' } } : {}),
       },

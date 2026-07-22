@@ -10,7 +10,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ doct
       where: {
         id: doctorId,
         isPublic: true,
-        subaccount: { account: { has_directory: true } },
       },
       select: {
         id: true,

@@ -28,8 +28,16 @@ export async function PUT(
     const doctor = await prisma.doctor.update({
       where: { id },
       data: dataToUpdate,
-      include: { subaccount: true }
+      include: { subaccount: { include: { account: true } } }
     });
+
+    // If the doctor is being made public, ensure the account has the directory enabled
+    if (isPublic === true && doctor.subaccount?.account) {
+      await prisma.account.update({
+        where: { id: doctor.subaccount.account.id },
+        data: { has_directory: true },
+      });
+    }
 
     return NextResponse.json(doctor);
   } catch (error) {
