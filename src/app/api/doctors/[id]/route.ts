@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,9 @@ export async function PUT(
         data: { has_directory: true },
       });
     }
+
+    // Bust the router cache for the public profile so changes are visible immediately
+    revalidatePath(`/directorio/${id}`);
 
     return NextResponse.json(doctor);
   } catch (error) {

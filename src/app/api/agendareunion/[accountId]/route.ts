@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { sendTeleconsultaRequestEmail } from '@/lib/mail';
 
 export async function POST(
   request: Request,
@@ -53,6 +54,30 @@ export async function POST(
         doctor: { select: { id: true, name: true } },
       },
     });
+
+    // Send email notification to account admins (fire-and-forget)
+    ;(async () => {
+      try {
+        const accountWithAdmins = await prisma.account.findUnique({
+          where: { id: accountId },
+          include: { users: { where: { role: { in: ['ADMIN', 'RECEPTIONIST'] } } } },
+        });
+        const adminEmails = accountWithAdmins?.users.map(u => u.email).filter(Boolean) ?? [];
+        for (const email of adminEmails) {
+          await sendTeleconsultaRequestEmail({
+            to: email,
+            patientName,
+            patientPhone,
+            doctorName: session.doctor?.name,
+            reason:        body.reason,
+            preferredDate: body.preferredDate,
+            preferredTime: body.preferredTime,
+          });
+        }
+      } catch (mailErr) {
+        console.error('[agendareunion mail]', mailErr);
+      }
+    })();
 
     return NextResponse.json(session, { status: 201 });
   } catch (error: any) {

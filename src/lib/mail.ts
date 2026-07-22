@@ -103,3 +103,62 @@ export async function sendAppointmentEmail({
     console.error(`[mail] Error enviando correo ${type} a ${to}:`, error);
   }
 }
+
+export async function sendTeleconsultaRequestEmail({
+  to,
+  patientName,
+  patientPhone,
+  doctorName,
+  reason,
+  preferredDate,
+  preferredTime,
+}: {
+  to: string;
+  patientName: string;
+  patientPhone: string;
+  doctorName?: string;
+  reason?: string;
+  preferredDate?: string;
+  preferredTime?: string;
+}) {
+  const transport = createTransport();
+  if (!transport) return;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #c7d2fe; border-radius: 12px; background-color: #f5f3ff;">
+      <h1 style="color: #4338ca; font-size: 22px; font-weight: 800; margin-bottom: 8px;">📹 Nueva Solicitud de Teleconsulta</h1>
+      <p style="color: #475569; font-size: 15px; margin-bottom: 20px;">
+        Un paciente ha solicitado una teleconsulta a través del directorio. Puedes verla y aceptarla en tu panel.
+      </p>
+
+      <div style="background-color: white; padding: 20px; border-radius: 8px; border: 1px solid #c7d2fe;">
+        <p style="margin: 8px 0;"><strong>👤 Paciente:</strong> ${patientName}</p>
+        <p style="margin: 8px 0;"><strong>📞 Teléfono:</strong> ${patientPhone}</p>
+        ${doctorName   ? `<p style="margin: 8px 0;"><strong>👨‍⚕️ Médico solicitado:</strong> ${doctorName}</p>` : ''}
+        ${reason       ? `<p style="margin: 8px 0;"><strong>💬 Motivo:</strong> ${reason}</p>` : ''}
+        ${preferredDate ? `<p style="margin: 8px 0;"><strong>📅 Fecha preferida:</strong> ${preferredDate}${preferredTime ? ` a las ${preferredTime}` : ''}</p>` : ''}
+      </div>
+
+      <p style="color: #4338ca; font-size: 14px; margin-top: 20px;">
+        Ingresa a tu panel de <strong>Teleconsulta → Solicitudes pendientes</strong> para aceptar o rechazar esta solicitud.
+      </p>
+
+      <p style="color: #94a3b8; font-size: 12px; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+        Este es un mensaje automático de Galenus AI.
+      </p>
+    </div>
+  `;
+
+  try {
+    const from = `Galenus AI <${process.env.GMAIL_USER}>`;
+    await transport.sendMail({
+      from,
+      to,
+      subject: `Nueva solicitud de teleconsulta — ${patientName}`,
+      html,
+    });
+    console.log(`[mail] Correo teleconsulta enviado a ${to}`);
+  } catch (error) {
+    console.error('[mail] Error enviando correo teleconsulta:', error);
+  }
+}
