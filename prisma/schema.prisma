@@ -377,6 +377,8 @@ model VideoSession {
   subaccount     Subaccount?         @relation(fields: [subaccountId], references: [id], onDelete: SetNull)
   patientId      String?
   patient        Patient?            @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  patientName    String?
+  patientPhone   String?
   doctorId       String?
   doctor         Doctor?             @relation(fields: [doctorId], references: [id], onDelete: SetNull)
   consultationId String?             @unique

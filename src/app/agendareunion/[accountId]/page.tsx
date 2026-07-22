@@ -2,13 +2,14 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { Video, ArrowLeft, ChevronRight, User, Phone, Calendar, MessageCircle, CheckCircle2, Stethoscope, Loader2, Copy, CheckCheck } from 'lucide-react';
+import {
+  Video, ArrowLeft, ChevronRight, User, Phone, Calendar,
+  CheckCircle2, Stethoscope, Loader2, Clock
+} from 'lucide-react';
 
 interface Doctor {
   id: string; name: string; specialty: string | null;
   bio: string | null; photoUrl: string | null;
-  phone: string | null;
-  socialLinks: Record<string, string> | null;
   subaccount: { id: string; name: string; account: { id: string } };
 }
 
@@ -17,13 +18,12 @@ type Step = 'select-doctor' | 'fill-form' | 'confirm';
 export default function AgendaReunionPage({ params }: { params: Promise<{ accountId: string }> }) {
   const { accountId } = use(params);
 
-  const [doctors, setDoctors]         = useState<Doctor[]>([]);
-  const [loading, setLoading]         = useState(true);
+  const [doctors, setDoctors]     = useState<Doctor[]>([]);
+  const [loading, setLoading]     = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [step, setStep]               = useState<Step>('select-doctor');
-  const [submitting, setSubmitting]   = useState(false);
-  const [roomUrl, setRoomUrl]         = useState('');
-  const [copied, setCopied]           = useState(false);
+  const [step, setStep]           = useState<Step>('select-doctor');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError]         = useState('');
 
   const [form, setForm] = useState({
     name: '', phone: '', reason: '', preferredDate: '', preferredTime: '',
@@ -36,47 +36,30 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
       .finally(() => setLoading(false));
   }, [accountId]);
 
-  const prefillDate = () => {
-    if (!form.preferredDate) {
-      const today = new Date();
-      today.setDate(today.getDate() + 1);
-      setForm(f => ({ ...f, preferredDate: today.toISOString().split('T')[0] }));
-    }
-  };
-
   const handleSubmit = async () => {
     if (!form.name || !form.phone || !selectedDoctor) return;
     setSubmitting(true);
-
-    const room = `galenus-${accountId.slice(0, 8)}-${Date.now().toString(36)}`;
-    const url  = `https://meet.jit.si/${room}`;
-    setRoomUrl(url);
-
-    // Build WhatsApp message for the doctor
-    const doctorPhone = selectedDoctor.phone || (selectedDoctor.socialLinks as any)?.whatsapp;
-    if (doctorPhone) {
-      const msg = [
-        `📅 *Nueva solicitud de teleconsulta*`,
-        ``,
-        `👤 Paciente: ${form.name}`,
-        `📞 Teléfono: ${form.phone}`,
-        form.reason ? `💬 Motivo: ${form.reason}` : '',
-        form.preferredDate ? `🗓 Fecha preferida: ${form.preferredDate}${form.preferredTime ? ` a las ${form.preferredTime}` : ''}` : '',
-        ``,
-        `🔗 Sala de reunión: ${url}`,
-      ].filter(Boolean).join('\n');
-
-      window.open(`https://wa.me/${doctorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+    setError('');
+    try {
+      const res = await fetch(`/api/agendareunion/${accountId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          doctorId:      selectedDoctor.id,
+          patientName:   form.name,
+          patientPhone:  form.phone,
+          reason:        form.reason,
+          preferredDate: form.preferredDate,
+          preferredTime: form.preferredTime,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Error al enviar');
+      setStep('confirm');
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubmitting(false);
-    setStep('confirm');
-  };
-
-  const copy = async () => {
-    await navigator.clipboard.writeText(roomUrl).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -95,6 +78,8 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
         .orb1{animation:float-orb 18s ease-in-out infinite}
         .orb2{animation:float-orb 22s ease-in-out infinite reverse; animation-delay:-7s}
         .orb3{animation:float-orb 16s ease-in-out infinite; animation-delay:-3s}
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.3); }
       `}</style>
 
       <div className="min-h-screen relative overflow-hidden" style={{ background: '#060612' }}>
@@ -118,7 +103,7 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
               style={{ background: 'linear-gradient(135deg,#3b82f6,#6366f1)' }}>
               <Video className="w-4 h-4 text-white" />
             </div>
-            <span className="text-white font-black text-sm">Agendar Teleconsulta</span>
+            <span className="text-white font-black text-sm">Solicitar Teleconsulta</span>
           </div>
         </header>
 
@@ -129,9 +114,12 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
             {(['select-doctor','fill-form','confirm'] as Step[]).map((s, i) => (
               <div key={s} className="flex items-center gap-2">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${
-                  s === step ? 'bg-blue-500 text-white shadow-[0_0_12px_rgba(59,130,246,.6)]'
-                  : (i < ['select-doctor','fill-form','confirm'].indexOf(step)) ? 'bg-white/20 text-white' : 'bg-white/8 text-white/30'
-                }`}>{i+1}</div>
+                  s === step
+                    ? 'bg-blue-500 text-white shadow-[0_0_12px_rgba(59,130,246,.6)]'
+                    : i < ['select-doctor','fill-form','confirm'].indexOf(step)
+                      ? 'bg-white/20 text-white'
+                      : 'bg-white/8 text-white/30'
+                }`}>{i + 1}</div>
                 {i < 2 && <div className="w-8 h-px" style={{ background: 'rgba(255,255,255,.15)' }} />}
               </div>
             ))}
@@ -141,7 +129,9 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
           {step === 'select-doctor' && (
             <div className="slide-up">
               <h1 className="text-2xl font-black text-white mb-1 text-center">Elige tu médico</h1>
-              <p className="text-white/40 text-sm text-center mb-8 font-medium">Selecciona el especialista con quien deseas agendar tu teleconsulta</p>
+              <p className="text-white/40 text-sm text-center mb-8 font-medium">
+                Selecciona el especialista con quien deseas tu teleconsulta
+              </p>
 
               {loading ? (
                 <div className="flex justify-center py-16">
@@ -155,7 +145,9 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
               ) : (
                 <div className="space-y-3">
                   {doctors.map(d => (
-                    <button key={d.id} onClick={() => { setSelectedDoctor(d); setStep('fill-form'); prefillDate(); }}
+                    <button
+                      key={d.id}
+                      onClick={() => { setSelectedDoctor(d); setStep('fill-form'); }}
                       className="w-full text-left rounded-2xl p-4 flex items-center gap-4 transition-all group"
                       style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}
                       onMouseEnter={e => {
@@ -190,9 +182,11 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
           {step === 'fill-form' && selectedDoctor && (
             <div className="slide-up">
               {/* Selected doctor chip */}
-              <button onClick={() => setStep('select-doctor')}
+              <button
+                onClick={() => setStep('select-doctor')}
                 className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl text-xs font-bold text-white/60 hover:text-white transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
+                style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}
+              >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <div className="w-5 h-5 rounded-md overflow-hidden flex-shrink-0 flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg,#3b82f6,#6366f1)' }}>
@@ -204,7 +198,9 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
               </button>
 
               <h1 className="text-2xl font-black text-white mb-1">Tus datos</h1>
-              <p className="text-white/40 text-sm mb-8 font-medium">El médico recibirá tu solicitud por WhatsApp</p>
+              <p className="text-white/40 text-sm mb-8 font-medium">
+                Tu solicitud llegará directamente al panel del médico
+              </p>
 
               <div className="space-y-4">
                 <div>
@@ -237,15 +233,19 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
                       <Calendar className="w-3.5 h-3.5 inline mr-1.5" />Fecha preferida
                     </label>
                     <input
-                      type="date" value={form.preferredDate} onChange={e => setForm(f => ({ ...f, preferredDate: e.target.value }))}
+                      type="date" value={form.preferredDate}
+                      onChange={e => setForm(f => ({ ...f, preferredDate: e.target.value }))}
                       className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:ring-2 focus:ring-blue-500"
                       style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', colorScheme: 'dark' }}
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-black text-white/40 uppercase tracking-wider block mb-1.5">Hora preferida</label>
+                    <label className="text-xs font-black text-white/40 uppercase tracking-wider block mb-1.5">
+                      <Clock className="w-3.5 h-3.5 inline mr-1.5" />Hora preferida
+                    </label>
                     <input
-                      type="time" value={form.preferredTime} onChange={e => setForm(f => ({ ...f, preferredTime: e.target.value }))}
+                      type="time" value={form.preferredTime}
+                      onChange={e => setForm(f => ({ ...f, preferredTime: e.target.value }))}
                       className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:ring-2 focus:ring-blue-500"
                       style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', colorScheme: 'dark' }}
                     />
@@ -253,14 +253,24 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-white/40 uppercase tracking-wider block mb-1.5">Motivo de consulta</label>
+                  <label className="text-xs font-black text-white/40 uppercase tracking-wider block mb-1.5">
+                    Motivo de consulta
+                  </label>
                   <textarea
-                    rows={3} value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
+                    rows={3} value={form.reason}
+                    onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
                     placeholder="¿Por qué deseas la consulta? (opcional)"
                     className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}
                   />
                 </div>
+
+                {error && (
+                  <div className="text-sm font-bold text-red-400 px-4 py-3 rounded-xl"
+                    style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)' }}>
+                    {error}
+                  </div>
+                )}
 
                 <button
                   onClick={handleSubmit}
@@ -269,12 +279,12 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
                   style={{ background: 'linear-gradient(135deg,#3b82f6,#6366f1)', boxShadow: '0 8px 32px rgba(59,130,246,.35)' }}
                 >
                   {submitting
-                    ? <><Loader2 className="w-5 h-5 animate-spin" /> Procesando...</>
-                    : <><MessageCircle className="w-5 h-5" /> Enviar solicitud por WhatsApp</>}
+                    ? <><Loader2 className="w-5 h-5 animate-spin" /> Enviando solicitud...</>
+                    : <><Video className="w-5 h-5" /> Solicitar teleconsulta</>}
                 </button>
 
                 <p className="text-center text-xs text-white/25 font-medium">
-                  Al enviar, se abrirá WhatsApp con tu solicitud para el médico
+                  Tu solicitud será visible para el médico en su panel. Te contactarán para confirmar el horario.
                 </p>
               </div>
             </div>
@@ -288,34 +298,29 @@ export default function AgendaReunionPage({ params }: { params: Promise<{ accoun
                 <CheckCircle2 className="w-10 h-10 text-white" />
               </div>
               <h1 className="text-2xl font-black text-white mb-2">¡Solicitud enviada!</h1>
-              <p className="text-white/50 font-medium text-sm mb-8">
-                El médico recibirá tu mensaje y confirmará el horario de tu teleconsulta.
+              <p className="text-white/50 font-medium text-sm mb-2">
+                Tu solicitud fue recibida por el consultorio.
+              </p>
+              <p className="text-white/35 font-medium text-sm mb-8">
+                El médico revisará tu solicitud y se pondrá en contacto contigo para confirmar el horario de tu teleconsulta.
               </p>
 
-              {roomUrl && (
-                <div className="rounded-2xl p-5 mb-6 text-left"
-                  style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
-                  <p className="text-xs font-black text-white/40 uppercase tracking-wider mb-2">Tu sala de teleconsulta</p>
-                  <p className="text-xs font-bold text-white/60 break-all mb-3 font-mono">{roomUrl}</p>
-                  <div className="flex gap-2">
-                    <a href={roomUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black text-white"
-                      style={{ background: 'linear-gradient(135deg,#3b82f6,#6366f1)' }}>
-                      <Video className="w-4 h-4" /> Abrir sala
-                    </a>
-                    <button onClick={copy}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white/70 transition-colors"
-                      style={{ background: 'rgba(255,255,255,.08)' }}>
-                      {copied ? <CheckCheck className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                      {copied ? '¡Copiado!' : 'Copiar'}
-                    </button>
-                  </div>
+              <div className="rounded-2xl p-5 text-left mb-6"
+                style={{ background: 'rgba(59,130,246,.08)', border: '1px solid rgba(59,130,246,.2)' }}>
+                <p className="text-xs font-black text-blue-300/60 uppercase tracking-wider mb-2">Tu solicitud incluye</p>
+                <div className="space-y-1.5 text-sm font-bold text-white/70">
+                  <p><span className="text-white/30">Médico:</span> {selectedDoctor?.name}</p>
+                  <p><span className="text-white/30">Nombre:</span> {form.name}</p>
+                  <p><span className="text-white/30">Teléfono:</span> {form.phone}</p>
+                  {form.preferredDate && <p><span className="text-white/30">Fecha preferida:</span> {form.preferredDate}{form.preferredTime ? ` a las ${form.preferredTime}` : ''}</p>}
+                  {form.reason && <p><span className="text-white/30">Motivo:</span> {form.reason}</p>}
                 </div>
-              )}
+              </div>
 
-              <p className="text-xs text-white/25 font-medium">
-                Guarda el enlace de la sala — lo necesitarás para conectarte el día de la consulta.
-              </p>
+              <Link href="/directorio"
+                className="inline-flex items-center gap-2 text-sm font-bold text-white/30 hover:text-white/60 transition-colors">
+                <ArrowLeft className="w-4 h-4" /> Volver al directorio
+              </Link>
             </div>
           )}
         </main>

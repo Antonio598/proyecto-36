@@ -16,12 +16,15 @@ export async function GET(request: Request) {
     const date = searchParams.get('date'); // YYYY-MM-DD in Panama TZ
 
     const patientId   = searchParams.get('patientId');
+    const status      = searchParams.get('status');
 
     const where: any = { accountId };
     if (subaccountId) where.subaccountId = subaccountId;
     if (patientId)    where.patientId    = patientId;
+    if (status)       where.status       = status;
 
-    if (date) {
+    // Only apply date filter when not filtering by explicit status (e.g. PENDING requests have no "date")
+    if (date && !status) {
       // Filter sessions that started on this Panama date
       const startUTC = new Date(`${date}T05:00:00.000Z`); // midnight Panama = 5 AM UTC
       const endUTC   = new Date(`${date}T28:59:59.999Z`); // next day midnight Panama

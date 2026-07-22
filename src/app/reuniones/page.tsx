@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Video, Copy, Phone, Clock, User, CheckCheck, ExternalLink,
   ChevronDown, ChevronUp, Calendar, Wifi, Plus, DollarSign,
-  CheckCircle2, XCircle, FileText, Loader2, X, RefreshCw
+  CheckCircle2, XCircle, FileText, Loader2, X, RefreshCw, Bell, Check
 } from 'lucide-react';
 import { useSede } from '@/context/SedeContext';
 import { apiFetch, getAccountId } from '@/lib/apiFetch';
@@ -34,6 +34,7 @@ interface VideoSession {
   startedAt: string; endedAt: string | null;
   notes: string | null; amount: number | null; paymentStatus: string;
   appointmentId: string | null; patientId: string | null; doctorId: string | null;
+  patientName: string | null; patientPhone: string | null;
   patient: Patient | null;
   doctor: Doctor | null;
   consultation: { id: string } | null;
@@ -152,6 +153,89 @@ function AdHocCard({ onJoin }: { onJoin: (roomName: string) => void }) {
           {copied ? <CheckCheck className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
           {copied ? '¡Copiado!' : 'Copiar enlace'}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Pending Request Card ─────────────────────────────────────────────────────
+function PendingRequestCard({
+  session, onAccept, onReject,
+}: {
+  session: VideoSession;
+  onAccept: (id: string, roomUrl: string) => Promise<void>;
+  onReject: (id: string) => Promise<void>;
+}) {
+  const [accepting, setAccepting] = useState(false);
+
+  const accept = async () => {
+    setAccepting(true);
+    await onAccept(session.id, session.roomUrl);
+    setAccepting(false);
+  };
+
+  const notesLines = session.notes?.split('\n') ?? [];
+  const reason     = notesLines.find(l => l.startsWith('Motivo:'))?.replace('Motivo: ', '') || null;
+  const preferred  = notesLines.find(l => l.startsWith('Fecha preferida:'))?.replace('Fecha preferida: ', '') || null;
+
+  const waLink = session.patientPhone
+    ? `https://wa.me/${session.patientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${session.patientName ?? ''}, hemos recibido tu solicitud de teleconsulta. Tu sala: ${session.roomUrl}`)}`
+    : null;
+
+  return (
+    <div className="bg-white border-2 border-amber-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border-b border-amber-100">
+        <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+        <span className="text-xs font-black text-amber-700">SOLICITUD PENDIENTE</span>
+        <span className="text-xs text-amber-500 font-medium ml-auto">
+          {formatInTimeZone(parseISO(session.startedAt), PANAMA_TZ, "d MMM · HH:mm", { locale: es })}
+        </span>
+      </div>
+      <div className="p-4 space-y-3">
+        {/* Patient info */}
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <User className="w-5 h-5 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <p className="font-black text-gray-900 text-sm">{session.patientName || 'Paciente'}</p>
+            {session.patientPhone && (
+              <p className="text-xs font-bold text-gray-400 mt-0.5">{session.patientPhone}</p>
+            )}
+            {session.doctor && (
+              <p className="text-xs font-bold mt-0.5" style={{ color: '#6366f1' }}>Para: {session.doctor.name}</p>
+            )}
+          </div>
+        </div>
+        {/* Details */}
+        {(reason || preferred) && (
+          <div className="rounded-xl px-3 py-2.5 space-y-1" style={{ background: '#fafafa', border: '1px solid #f0f0f0' }}>
+            {reason    && <p className="text-xs font-bold text-gray-600"><span className="text-gray-400">Motivo:</span> {reason}</p>}
+            {preferred && <p className="text-xs font-bold text-gray-600"><span className="text-gray-400">Fecha preferida:</span> {preferred}</p>}
+          </div>
+        )}
+        {/* Actions */}
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button
+            onClick={accept} disabled={accepting}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black text-white disabled:opacity-60"
+            style={{ background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}>
+            {accepting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Aceptar y abrir sala
+          </button>
+          {waLink && (
+            <a href={waLink} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors"
+              style={{ color: '#16a34a', background: '#f0fdf4' }}>
+              <Phone className="w-4 h-4" /> Contactar
+            </a>
+          )}
+          <button
+            onClick={() => onReject(session.id)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 transition-colors ml-auto">
+            <X className="w-4 h-4" /> Rechazar
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -354,14 +438,15 @@ function SessionCard({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ReunionesPage() {
   const { selectedSede } = useSede();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [sessions, setSessions]         = useState<VideoSession[]>([]);
-  const [patients, setPatients]         = useState<Patient[]>([]);
-  const [doctors, setDoctors]           = useState<Doctor[]>([]);
+  const [appointments, setAppointments]     = useState<Appointment[]>([]);
+  const [sessions, setSessions]             = useState<VideoSession[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<VideoSession[]>([]);
+  const [patients, setPatients]             = useState<Patient[]>([]);
+  const [doctors, setDoctors]               = useState<Doctor[]>([]);
   const [isLoadingAppts, setIsLoadingAppts] = useState(true);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(getPanamaToday());
-  const [dbMissing, setDbMissing] = useState(false);
+  const [selectedDate, setSelectedDate]     = useState(getPanamaToday());
+  const [dbMissing, setDbMissing]           = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     if (!selectedSede) return;
@@ -379,13 +464,17 @@ export default function ReunionesPage() {
     if (!selectedSede) return;
     setIsLoadingSessions(true);
     try {
-      const res = await apiFetch(`/api/video-sessions?subaccountId=${selectedSede}&date=${selectedDate}`);
-      if (res.ok) {
-        setSessions(await res.json());
+      const [sessRes, pendRes] = await Promise.all([
+        apiFetch(`/api/video-sessions?subaccountId=${selectedSede}&date=${selectedDate}`),
+        apiFetch(`/api/video-sessions?subaccountId=${selectedSede}&status=PENDING`),
+      ]);
+      if (sessRes.ok) {
+        setSessions(await sessRes.json());
         setDbMissing(false);
-      } else if (res.status === 500) {
+      } else if (sessRes.status === 500) {
         setDbMissing(true);
       }
+      if (pendRes.ok) setPendingRequests(await pendRes.json());
     } finally { setIsLoadingSessions(false); }
   }, [selectedSede, selectedDate]);
 
@@ -441,6 +530,21 @@ export default function ReunionesPage() {
     setSessions(s => s.filter(x => x.id !== id));
   };
 
+  const acceptRequest = async (id: string, roomUrl: string) => {
+    window.open(roomUrl, '_blank');
+    await apiFetch(`/api/video-sessions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: 'OPEN' }),
+    });
+    fetchSessions();
+  };
+
+  const rejectRequest = async (id: string) => {
+    if (!confirm('¿Rechazar y eliminar esta solicitud?')) return;
+    await apiFetch(`/api/video-sessions/${id}`, { method: 'DELETE' });
+    setPendingRequests(r => r.filter(x => x.id !== id));
+  };
+
   if (!selectedSede) {
     return <div className="p-8 text-center text-gray-500 font-bold">Selecciona una sede en el menú lateral.</div>;
   }
@@ -479,6 +583,25 @@ export default function ReunionesPage() {
           <p className="text-xs font-medium text-amber-700 mb-3">Debes ejecutar el siguiente SQL en Supabase Studio (SQL Editor) para habilitar el registro de sesiones:</p>
           <pre className="text-xs bg-amber-100 rounded-xl p-3 overflow-x-auto font-mono text-amber-900 whitespace-pre-wrap">{SQL_MIGRATION}</pre>
         </div>
+      )}
+
+      {/* Solicitudes de teleconsulta */}
+      {!dbMissing && pendingRequests.length > 0 && (
+        <section>
+          <h3 className="text-sm font-black text-gray-700 mb-3 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-amber-500" />
+            Solicitudes de teleconsulta
+            <span className="text-xs font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              {pendingRequests.length} nueva{pendingRequests.length !== 1 ? 's' : ''}
+            </span>
+          </h3>
+          <div className="space-y-3">
+            {pendingRequests.map(r => (
+              <PendingRequestCard key={r.id} session={r}
+                onAccept={acceptRequest} onReject={rejectRequest} />
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Citas del día */}
