@@ -53,6 +53,7 @@ model Patient {
   prescriptions    Prescription[]
   medicalFiles     MedicalFile[]
   background       PatientBackground[]
+  videoSessions    VideoSession[]
   accountId        String?
   account          Account?             @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdAt        DateTime             @default(now())
@@ -159,6 +160,7 @@ model Subaccount {
   medicalFiles      MedicalFile[]
   background        PatientBackground[]
   transactions      Transaction[]
+  videoSessions     VideoSession[]
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   accountId         String?
@@ -166,22 +168,23 @@ model Subaccount {
 }
 
 model Account {
-  id             String        @id @default(uuid())
+  id             String         @id @default(uuid())
   name           String
-  apiKey         String        @unique @default(uuid())
+  apiKey         String         @unique @default(uuid())
   maxSubaccounts Int?
   maxDoctors     Int?
-  has_directory  Boolean       @default(false)
-  has_agent      Boolean       @default(false)
-  has_calendar   Boolean       @default(true)
-  has_ehr        Boolean       @default(false)
+  has_directory  Boolean        @default(false)
+  has_agent      Boolean        @default(false)
+  has_calendar   Boolean        @default(true)
+  has_ehr        Boolean        @default(false)
   subaccounts    Subaccount[]
   users          User[]
   patients       Patient[]
   contactLogs    ContactLog[]
   transactions   Transaction[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  videoSessions  VideoSession[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model Doctor {
@@ -288,11 +291,12 @@ model ConsultationRecord {
   diagnosis      String?
   observations   String?
   treatmentPlan  String?
-  isVirtual      Boolean      @default(false)
+  isVirtual      Boolean        @default(false)
   prescriptions  Prescription[]
   medicalFiles   MedicalFile[]
-  updatedAt      DateTime     @updatedAt
-  createdAt      DateTime     @default(now())
+  videoSession   VideoSession?
+  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime       @default(now())
 }
 
 // ─── EHR: Recetas médicas ──────────────────────────────────────────────────────
@@ -361,4 +365,28 @@ model VideoRoom {
   startedAt     DateTime?
   endedAt       DateTime?
   createdAt     DateTime    @default(now())
+}
+
+// ─── Teleconsulta: Registro de sesiones de video ──────────────────────────────
+model VideoSession {
+  id             String              @id @default(uuid())
+  accountId      String
+  account        Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  subaccountId   String?
+  subaccount     Subaccount?         @relation(fields: [subaccountId], references: [id], onDelete: SetNull)
+  patientId      String?
+  patient        Patient?            @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  consultationId String?             @unique
+  consultation   ConsultationRecord? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  appointmentId  String?
+  roomUrl        String
+  roomName       String
+  status         String              @default("OPEN")
+  startedAt      DateTime            @default(now())
+  endedAt        DateTime?
+  notes          String?
+  amount         Float?
+  paymentStatus  String              @default("PENDING")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 }
