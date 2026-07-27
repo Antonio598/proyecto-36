@@ -23,6 +23,34 @@ interface Appointment {
   service: { name: string; durationMinutes: number; price: number; colorCode: string };
 }
 
+function Field({ label, icon, value }: { label: string; icon: React.ReactNode; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-4">
+      <div className="bg-gray-50 p-2.5 rounded-xl flex-shrink-0">{icon}</div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
+        <p className="text-sm font-bold text-black break-words">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function Input({ label, value, onChange, type = 'text', placeholder = '' }: {
+  label: string; value: string; onChange: (v: string) => void;
+  type?: string; placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{label}</label>
+      <input
+        type={type} value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+  );
+}
+
 export default function PatientHistoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -138,31 +166,6 @@ export default function PatientHistoryPage({ params }: { params: Promise<{ id: s
       <button onClick={() => router.back()} className="px-6 py-2 bg-white border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors">
         Volver atrás
       </button>
-    </div>
-  );
-
-  /* ── helpers ── */
-  const Field = ({ label, icon, value }: { label: string; icon: React.ReactNode; value: React.ReactNode }) => (
-    <div className="flex items-center gap-4">
-      <div className="bg-gray-50 p-2.5 rounded-xl flex-shrink-0">{icon}</div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
-        <p className="text-sm font-bold text-black break-words">{value}</p>
-      </div>
-    </div>
-  );
-
-  const Input = ({ label, value, onChange, type = 'text', placeholder = '' }: {
-    label: string; value: string; onChange: (v: string) => void;
-    type?: string; placeholder?: string;
-  }) => (
-    <div>
-      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{label}</label>
-      <input
-        type={type} value={value} onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
     </div>
   );
 
