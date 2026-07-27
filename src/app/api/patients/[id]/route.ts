@@ -30,32 +30,30 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { fullName, phone, email, notes } = body;
+    const { fullName, phone, email, notes, cedula_pasaporte, edad } = body;
 
-    // Optional: Check phone uniqueness if phone is being changed
+    // Check phone uniqueness within the same account
     if (phone) {
-      const existingPatient = await prisma.patient.findUnique({
-        where: { phone },
-      });
-      
-      if (existingPatient && existingPatient.id !== id) {
-         return NextResponse.json(
-          { error: 'A different patient with this phone number already exists' },
-          { status: 409 }
-        );
+      const current = await prisma.patient.findUnique({ where: { id }, select: { accountId: true } });
+      if (current?.accountId) {
+        const conflict = await prisma.patient.findUnique({
+          where: { phone_accountId: { phone, accountId: current.accountId } },
+        });
+        if (conflict && conflict.id !== id) {
+          return NextResponse.json({ error: 'Ya existe otro paciente con ese teléfono' }, { status: 409 });
+        }
       }
     }
 
-    const patient = await prisma.patient.update({
-      where: { id },
-      data: {
-        ...(fullName && { fullName }),
-        ...(phone && { phone }),
-        ...(email !== undefined && { email }),
-        ...(notes !== undefined && { notes }),
-      },
-    });
+    const data: any = {};
+    if (fullName          !== undefined) data.fullName          = fullName;
+    if (phone             !== undefined) data.phone             = phone;
+    if (email             !== undefined) data.email             = email || null;
+    if (notes             !== undefined) data.notes             = notes || null;
+    if (cedula_pasaporte  !== undefined) data.cedula_pasaporte  = cedula_pasaporte || null;
+    if (edad              !== undefined) data.edad              = edad ? parseInt(String(edad)) : null;
 
+    const patient = await prisma.patient.update({ where: { id }, data });
     return NextResponse.json(patient);
   } catch (error) {
     console.error('Error updating patient:', error);
