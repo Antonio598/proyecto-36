@@ -65,16 +65,24 @@ export async function POST(request: Request) {
     }
 
     const patient = await prisma.patient.create({
-      data: { 
-        fullName, 
-        phone, 
-        email, 
-        notes, 
-        cedula_pasaporte, 
-        edad: edad ? parseInt(edad.toString()) : null, 
-        ...(accountId ? { accountId } : {}) 
+      data: {
+        fullName,
+        phone,
+        email,
+        notes,
+        cedula_pasaporte,
+        edad: edad ? parseInt(edad.toString()) : null,
+        ...(accountId ? { accountId } : {})
       },
     });
+
+    // Associate any pre-patient ContactLogs that were registered with this phone
+    if (accountId) {
+      await (prisma as any).contactLog.updateMany({
+        where: { phone, accountId, patientId: null },
+        data: { patientId: patient.id },
+      });
+    }
 
     return NextResponse.json(patient, { status: 201 });
   } catch (error) {

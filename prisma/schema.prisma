@@ -227,11 +227,13 @@ model Calendar {
 
 model ContactLog {
   id              String    @id @default(uuid())
-  patientId       String
-  patient         Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId       String?
+  patient         Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  phone           String
   accountId       String
   account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   contactedAt     DateTime
+  lastSeenAt      DateTime?
   isActive        Boolean   @default(true)
   followUp1SentAt DateTime?
   followUp2SentAt DateTime?

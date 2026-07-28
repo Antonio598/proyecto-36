@@ -8,36 +8,51 @@ const MS_24H = 24 * 60 * 60 * 1000;
 
 type ContactLogRow = {
   id: string;
-  patientId: string;
+  patientId: string | null;
+  phone: string;
   accountId: string;
   contactedAt: Date;
+  lastSeenAt: Date | null;
   isActive: boolean;
   followUp1SentAt: Date | null;
   followUp2SentAt: Date | null;
   followUp3SentAt: Date | null;
   createdAt: Date;
-  patient: { id: string; fullName: string; phone: string; email: string | null; cedula_pasaporte: string | null; edad: number | null; notes: string | null };
+  patient: {
+    id: string; fullName: string; phone: string;
+    email: string | null; cedula_pasaporte: string | null; edad: number | null; notes: string | null;
+  } | null;
 };
 
 export async function processFollowUps() {
   const now = new Date();
 
-  // Only active logs where the patient has no upcoming confirmed/pending appointment
+  // Logs vinculados a paciente sin cita futura + logs de no-pacientes (pre-patient)
   const contacts: ContactLogRow[] = await (prisma as any).contactLog.findMany({
     where: {
       isActive: true,
-      patient: {
-        appointments: {
-          none: {
-            isBlocker: false,
-            status: { notIn: ['CANCELLED'] },
-            startTime: { gte: now },
+      OR: [
+        // Pre-patient: siempre procesar
+        { patientId: null },
+        // Con paciente: solo si no tiene cita futura confirmada
+        {
+          patientId: { not: null },
+          patient: {
+            appointments: {
+              none: {
+                isBlocker: false,
+                status: { notIn: ['CANCELLED'] },
+                startTime: { gte: now },
+              },
+            },
           },
         },
-      },
+      ],
     },
     include: {
-      patient: { select: { id: true, fullName: true, phone: true, email: true, cedula_pasaporte: true, edad: true, notes: true } },
+      patient: {
+        select: { id: true, fullName: true, phone: true, email: true, cedula_pasaporte: true, edad: true, notes: true },
+      },
     },
   });
 
@@ -47,12 +62,9 @@ export async function processFollowUps() {
   for (const contact of contacts) {
     const elapsed = now.getTime() - contact.contactedAt.getTime();
 
-    // Follow-up 1: 1h after contact, never sent before
     if (!contact.followUp1SentAt && elapsed >= MS_1H) {
       const ok = await sendFollowUp(contact, 1, now);
       ok ? sent++ : errors++;
-
-    // Follow-up 2: 6h after contact, #1 already sent, contact NOT refreshed after #1
     } else if (
       contact.followUp1SentAt &&
       !contact.followUp2SentAt &&
@@ -61,8 +73,6 @@ export async function processFollowUps() {
     ) {
       const ok = await sendFollowUp(contact, 2, now);
       ok ? sent++ : errors++;
-
-    // Follow-up 3: 24h after contact, #2 already sent, contact NOT refreshed after #2
     } else if (
       contact.followUp2SentAt &&
       !contact.followUp3SentAt &&
@@ -81,15 +91,17 @@ export async function processFollowUps() {
 async function sendFollowUp(contact: ContactLogRow, followUpNumber: 1 | 2 | 3, now: Date): Promise<boolean> {
   const payload = {
     followUpNumber,
-    contactLogId:      contact.id,
-    contactedAt:       contact.contactedAt.toISOString(),
-    patientId:         contact.patient.id,
-    patientName:       contact.patient.fullName,
-    phone:             contact.patient.phone,
-    email:             contact.patient.email ?? null,
-    cedula_pasaporte:  contact.patient.cedula_pasaporte ?? null,
-    edad:              contact.patient.edad ?? null,
-    notes:             contact.patient.notes ?? null,
+    contactLogId:     contact.id,
+    contactedAt:      contact.contactedAt.toISOString(),
+    lastSeenAt:       contact.lastSeenAt?.toISOString() ?? null,
+    isPatient:        !!contact.patientId,
+    patientId:        contact.patientId ?? null,
+    patientName:      contact.patient?.fullName ?? null,
+    phone:            contact.phone,
+    email:            contact.patient?.email ?? null,
+    cedula_pasaporte: contact.patient?.cedula_pasaporte ?? null,
+    edad:             contact.patient?.edad ?? null,
+    notes:            contact.patient?.notes ?? null,
   };
 
   try {
@@ -110,10 +122,10 @@ async function sendFollowUp(contact: ContactLogRow, followUpNumber: 1 | 2 | 3, n
       data: { [field]: now },
     });
 
-    console.log(`[followups] Follow-up ${followUpNumber} enviado a ${contact.patient.phone}`);
+    console.log(`[followups] Follow-up ${followUpNumber} enviado a ${contact.phone}`);
     return true;
   } catch (err) {
-    console.error(`[followups] Error enviando follow-up ${followUpNumber} a ${contact.patient.phone}:`, err);
+    console.error(`[followups] Error enviando follow-up ${followUpNumber} a ${contact.phone}:`, err);
     return false;
   }
 }
