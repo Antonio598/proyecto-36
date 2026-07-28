@@ -16,6 +16,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       try { session = JSON.parse(raw); } catch { session = { role: 'RECEPTIONIST' }; }
     }
 
+    // Patient portal manages its own auth — staff guard must not interfere
+    if (pathname.startsWith('/paciente')) { setChecked(true); setAuthenticated(true); return; }
+
     const isSuperAdmin = session?.role === 'SUPERADMIN';
     const onSuperAdminPath = pathname.startsWith('/superadmin');
     const PUBLIC_ROUTES = ['/', '/login', '/privacidad', '/terminos'];
@@ -52,7 +55,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // On public pages, always render
-  if (pathname === '/login' || pathname === '/' || pathname === '/privacidad' || pathname === '/terminos' || pathname.startsWith('/directorio') || pathname.startsWith('/agendareunion')) {
+  if (pathname === '/login' || pathname === '/' || pathname === '/privacidad' || pathname === '/terminos' || pathname.startsWith('/directorio') || pathname.startsWith('/agendareunion') || pathname.startsWith('/paciente')) {
     return <>{children}</>;
   }
 

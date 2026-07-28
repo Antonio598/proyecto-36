@@ -54,6 +54,7 @@ model Patient {
   medicalFiles     MedicalFile[]
   background       PatientBackground[]
   videoSessions    VideoSession[]
+  patientUsers     PatientUser[]
   accountId        String?
   account          Account?             @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdAt        DateTime             @default(now())
@@ -396,4 +397,17 @@ model VideoSession {
   paymentStatus  String              @default("PENDING")
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
+}
+
+// ─── Portal del Paciente ───────────────────────────────────────────────────────
+model PatientUser {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  patientId    String?
+  patient      Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
