@@ -28,6 +28,7 @@ export async function GET(request: Request) {
         ...(consultationRecordId ? { consultationRecordId } : {}),
         ...(subaccountId ? { subaccountId } : {}),
       },
+      include: { doctor: { select: { id: true, name: true } } },
       orderBy: { uploadedAt: 'desc' },
     });
 

@@ -207,6 +207,7 @@ model Doctor {
   appointments  Appointment[]
   consultations ConsultationRecord[]
   prescriptions Prescription[]
+  medicalFiles  MedicalFile[]
   videoSessions VideoSession[]
   createdAt     DateTime               @default(now())
   updatedAt     DateTime               @updatedAt
@@ -329,6 +330,8 @@ model MedicalFile {
   patient              Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
   subaccountId         String
   subaccount           Subaccount          @relation(fields: [subaccountId], references: [id], onDelete: Cascade)
+  doctorId             String?
+  doctor               Doctor?             @relation(fields: [doctorId], references: [id], onDelete: SetNull)
   fileName             String
   fileUrl              String
   fileType             String              @default("document")

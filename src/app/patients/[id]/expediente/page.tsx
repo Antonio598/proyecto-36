@@ -38,6 +38,7 @@ interface Prescription {
 interface MedicalFile {
   id: string; fileName: string; fileUrl: string; fileType: string;
   description?: string; uploadedAt: string;
+  doctor?: { id: string; name: string };
 }
 interface Doctor { id: string; name: string; }
 interface VideoSession {
@@ -73,6 +74,9 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
   // Archivos
   const [files, setFiles] = useState<MedicalFile[]>([]);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploadForm, setUploadForm] = useState({ doctorId: '', description: '' });
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // Recetas
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
@@ -173,16 +177,26 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
     finally { setSaving(false); }
   }
 
-  async function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function onFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPendingFile(file);
+    setUploadForm({ doctorId: '', description: '' });
+    setShowUploadForm(true);
+    e.target.value = '';
+  }
+
+  async function confirmUpload() {
+    if (!pendingFile) return;
     setUploadLoading(true);
     try {
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', pendingFile);
       fd.append('patientId', patientId);
       fd.append('subaccountId', subaccountId);
-      fd.append('fileType', file.type.startsWith('image/') ? 'image' : 'document');
+      fd.append('fileType', pendingFile.type.startsWith('image/') ? 'image' : 'document');
+      if (uploadForm.doctorId)   fd.append('doctorId',    uploadForm.doctorId);
+      if (uploadForm.description) fd.append('description', uploadForm.description);
 
       const res = await fetch('/api/medical-files/upload', {
         method: 'POST',
@@ -192,9 +206,11 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
       if (!res.ok) throw new Error((await res.json()).error || 'Error al subir');
       const uploaded = await res.json();
       setFiles(prev => [uploaded, ...prev]);
+      setShowUploadForm(false);
+      setPendingFile(null);
       showToast('Archivo subido correctamente');
     } catch (e: any) { showToast('Error: ' + e.message); }
-    finally { setUploadLoading(false); e.target.value = ''; }
+    finally { setUploadLoading(false); }
   }
 
   async function deleteFile(fileId: string) {
@@ -528,9 +544,52 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
                 <label className={`flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 cursor-pointer ${uploadLoading ? 'opacity-60 cursor-not-allowed' : ''}`}>
                   {uploadLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   Subir archivo
-                  <input type="file" className="hidden" onChange={uploadFile} disabled={uploadLoading} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
+                  <input type="file" className="hidden" onChange={onFileSelected} disabled={uploadLoading} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
                 </label>
               </div>
+
+              {/* Formulario de carga con selector de médico */}
+              {showUploadForm && pendingFile && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 space-y-4">
+                  <h4 className="font-black text-blue-900">Subir archivo</h4>
+                  <div className="flex items-center gap-3 px-3 py-2 bg-white border border-gray-200 rounded-xl">
+                    <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <p className="text-sm font-bold text-gray-700 truncate">{pendingFile.name}</p>
+                    <span className="text-xs font-bold text-gray-400 ml-auto flex-shrink-0">
+                      {(pendingFile.size / 1024).toFixed(0)} KB
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-wide">Médico responsable</label>
+                      <select value={uploadForm.doctorId}
+                        onChange={e => setUploadForm(f => ({ ...f, doctorId: e.target.value }))}
+                        className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white">
+                        <option value="">Sin asignar</option>
+                        {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-black text-gray-500 uppercase tracking-wide">Descripción (opcional)</label>
+                      <input value={uploadForm.description}
+                        onChange={e => setUploadForm(f => ({ ...f, description: e.target.value }))}
+                        placeholder="Ej: Radiografía de tórax..."
+                        className="w-full mt-1 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl px-3 py-2 bg-white" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={confirmUpload} disabled={uploadLoading}
+                      className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 disabled:opacity-60">
+                      {uploadLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      Subir
+                    </button>
+                    <button onClick={() => { setShowUploadForm(false); setPendingFile(null); }}
+                      className="px-4 py-2 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {files.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
@@ -546,6 +605,7 @@ export default function ExpedientePage({ params }: { params: Promise<{ id: strin
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-black text-black truncate">{f.fileName}</p>
                           <p className="text-xs font-bold text-gray-400">{format(new Date(f.uploadedAt), "d MMM yyyy", { locale: es })}</p>
+                          {f.doctor && <p className="text-xs font-bold text-blue-600 mt-0.5">Dr. {f.doctor.name}</p>}
                         </div>
                         <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 shrink-0">{f.fileType}</span>
                       </div>

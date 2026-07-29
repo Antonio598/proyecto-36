@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     const patientId = formData.get('patientId') as string;
     const subaccountId = formData.get('subaccountId') as string;
     const consultationRecordId = formData.get('consultationRecordId') as string | null;
+    const doctorId = formData.get('doctorId') as string | null;
     const fileType = (formData.get('fileType') as string) || 'document';
     const description = formData.get('description') as string | null;
 
@@ -53,11 +54,13 @@ export async function POST(request: Request) {
         patientId,
         subaccountId,
         consultationRecordId: consultationRecordId || null,
+        doctorId: doctorId || null,
         fileName: file.name,
         fileUrl: publicData.publicUrl,
         fileType,
         description: description || null,
       },
+      include: { doctor: { select: { id: true, name: true } } },
     });
 
     return NextResponse.json(medicalFile, { status: 201 });
