@@ -127,7 +127,7 @@ export default function CalendarPage() {
         const PANAMA_TZ = 'America/Panama';
 
         const formattedEvents = data
-          .filter((appt: any) => !(appt.isBlocker && appt.status === 'CANCELLED')) // Filter soft-deleted blockers
+          .filter((appt: any) => appt.status !== 'CANCELLED') // Filter all cancelled appointments
           .map((appt: any) => {
           const naiveStartStr = formatInTimeZone(new Date(appt.startTime), PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
           const naiveEndStr = formatInTimeZone(new Date(appt.endTime), PANAMA_TZ, "yyyy-MM-dd'T'HH:mm:ss");
