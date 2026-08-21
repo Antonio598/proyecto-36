@@ -109,7 +109,8 @@ export async function GET(request: Request) {
               select: { startTime: true, endTime: true },
             })
           : Promise.resolve([]),
-        // 3. ALL subaccount-level blockers (with or without calendarId)
+        // 3. Subaccount-level blockers WITHOUT a calendarId (global blocks)
+        //    Calendar-specific blockers from OTHER calendars must NOT block this calendar's slots
         targetSubaccountId
           ? prisma.appointment.findMany({
               where: {
@@ -117,6 +118,7 @@ export async function GET(request: Request) {
                 status: { notIn: ['CANCELLED'] },
                 subaccountId: targetSubaccountId,
                 isBlocker: true,
+                calendarId: null,
               },
               select: { startTime: true, endTime: true },
             })

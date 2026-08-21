@@ -172,16 +172,22 @@ export default function CalendarPage() {
 
   useEffect(() => {
     // Generate grey blocks for +/- 30 days around the current view date.
-    // If there are no rules at all, every day is fully blocked (clinic closed).
+    // Only generate blocks when rules ARE configured — if no rules exist at all,
+    // leave the calendar fully open so the user can still book manually.
     const { addDays, startOfDay, endOfDay } = require('date-fns');
     const blocks: any[] = [];
     const generateStart = addDays(date, -30);
     const generateEnd = addDays(date, 30);
-    
+
+    if (availabilityRules.length === 0) {
+      setBackgroundBlocks([]);
+      return;
+    }
+
     for (let d = generateStart; d <= generateEnd; d = addDays(d, 1)) {
        const dayOfWeek = d.getDay();
        const rule = availabilityRules.find(r => r.dayOfWeek === dayOfWeek);
-       
+
        if (!rule) {
            blocks.push({
                id: `bg-full-${d.getTime()}`,

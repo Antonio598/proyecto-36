@@ -145,9 +145,9 @@ export async function POST(request: Request) {
           OR: [
             // Regular appointments or blockers in the same calendar
             { calendarId: activeCalendarId },
-            // Any blocker in the same subaccount (regardless of calendarId)
-            // This ensures manual time blocks from the dashboard are always respected
-            { subaccountId: finalSubaccountId, isBlocker: true },
+            // Only subaccount-level blockers (calendarId: null) — calendar-specific
+            // blockers from OTHER calendars must not block unrelated calendars
+            { subaccountId: finalSubaccountId, isBlocker: true, calendarId: null },
           ]
         }
       ];
