@@ -131,6 +131,33 @@ export async function POST(request: Request) {
       end = new Date(start.getTime() + finalDurationMinutes * 60000);
     }
 
+    // Availability rules — only enforced when rules ARE configured.
+    // If no rules exist the admin can book any time freely.
+    const requestedDayOfWeek = panamaDate.getDay();
+    let rules: any[] = [];
+    if (calendarId) {
+      rules = await prisma.availabilityRule.findMany({
+        where: { calendarId, dayOfWeek: requestedDayOfWeek }
+      });
+    }
+    if (rules.length === 0 && subaccountId) {
+      rules = await prisma.availabilityRule.findMany({
+        where: { subaccountId, calendarId: null, dayOfWeek: requestedDayOfWeek }
+      });
+    }
+    if (rules.length > 0 && !isBlocker) {
+      const rule = rules[0];
+      const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
+      const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
+      const workEnd   = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`,   'America/Panama');
+      if (start < workStart || end > workEnd) {
+        return NextResponse.json(
+          { error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Determine how many times to repeat
     const numRepeats = repeatCount ? Math.min(Math.max(parseInt(repeatCount.toString(), 10), 1), 7) : 1;
     let createdCount = 0;
