@@ -214,19 +214,11 @@ export async function POST(request: Request) {
           overlappingWhere.subaccountId = subaccountId;
         }
 
-        const overlappingAppt = await prisma.appointment.findFirst({
-          where: overlappingWhere,
-          include: { patient: { select: { fullName: true } }, service: { select: { name: true } } }
-        });
+        const overlappingAppt = await prisma.appointment.findFirst({ where: overlappingWhere });
 
         if (overlappingAppt && !isBlocker) {
-           const { formatInTimeZone: ftz } = require('date-fns-tz');
-           const conflictStart = ftz(overlappingAppt.startTime, 'America/Panama', 'HH:mm');
-           const conflictEnd   = ftz(overlappingAppt.endTime,   'America/Panama', 'HH:mm');
-           const who = (overlappingAppt as any).patient?.fullName || (overlappingAppt.isBlocker ? 'Bloqueo' : 'Cita sin paciente');
-           const svc = (overlappingAppt as any).service?.name || '';
            return NextResponse.json(
-             { error: `Conflicto con: "${who}${svc ? ' – ' + svc : ''}" (${conflictStart}–${conflictEnd}) status: ${overlappingAppt.status} calendarId: ${overlappingAppt.calendarId ?? 'null'}` },
+             { error: 'El espacio está ocupado en el calendario de este médico.' },
              { status: 409 }
            );
         }
