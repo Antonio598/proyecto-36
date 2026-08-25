@@ -122,35 +122,6 @@ export async function PUT(
       
       const panamaDate = toZonedTime(start, PANAMA_TZ);
 
-      // Availability check
-      let rules: any[] = [];
-      if (currentAppt.calendarId) {
-        rules = await prisma.availabilityRule.findMany({
-           where: { calendarId: currentAppt.calendarId, dayOfWeek: panamaDate.getDay() }
-        });
-      }
-      
-      if (rules.length === 0) {
-        rules = await prisma.availabilityRule.findMany({
-           where: { subaccountId: currentAppt.subaccountId, calendarId: null, dayOfWeek: panamaDate.getDay() }
-        });
-      }
-
-      if (rules.length === 0 && !currentAppt.isBlocker) {
-         return NextResponse.json({ error: 'La clínica está cerrada en este día, no hay horarios disponibles.' }, { status: 400 });
-      }
-
-      if (rules.length > 0 && !currentAppt.isBlocker) {
-         const rule = rules[0];
-         const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
-         const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
-         const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
-
-         if (start < workStart || end > workEnd) {
-            return NextResponse.json({ error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
-         }
-      }
-
       // Overlap check — scope to the same calendar (or subaccount if no calendar)
       // to avoid false conflicts between different doctors' schedules.
       const overlapWhere: any = {

@@ -131,56 +131,6 @@ export async function POST(request: Request) {
       end = new Date(start.getTime() + finalDurationMinutes * 60000);
     }
 
-    const requestedDayOfWeek = panamaDate.getDay();
-    let rules: any[] = [];
-    if (calendarId) {
-      rules = await prisma.availabilityRule.findMany({
-        where: {
-          calendarId,
-          dayOfWeek: requestedDayOfWeek
-        }
-      });
-    }
-
-    if (rules.length === 0) {
-      rules = await prisma.availabilityRule.findMany({
-         where: {
-            subaccountId: subaccountId || undefined,
-            calendarId: null,
-            dayOfWeek: requestedDayOfWeek
-         }
-      });
-    }
-
-    // Second fallback: any calendar in this subaccount
-    if (rules.length === 0 && subaccountId) {
-      const calendarsInSede = await prisma.calendar.findMany({
-        where: { subaccountId },
-        select: { id: true }
-      });
-      if (calendarsInSede.length > 0) {
-        rules = await prisma.availabilityRule.findMany({
-          where: {
-            calendarId: { in: calendarsInSede.map(c => c.id) },
-            dayOfWeek: requestedDayOfWeek
-          }
-        });
-      }
-    }
-
-    // Admin endpoint: if no rules are configured, allow the booking anyway.
-    // Rules are enforced strictly only for automated/external bookings (n8n routes).
-    if (rules.length > 0 && !isBlocker) {
-       const rule = rules[0];
-       const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
-       const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
-       const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
-
-       if (start < workStart || end > workEnd) {
-          return NextResponse.json({ error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
-       }
-    }
-
     // Determine how many times to repeat
     const numRepeats = repeatCount ? Math.min(Math.max(parseInt(repeatCount.toString(), 10), 1), 7) : 1;
     let createdCount = 0;
