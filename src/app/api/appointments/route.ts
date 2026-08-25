@@ -168,17 +168,14 @@ export async function POST(request: Request) {
       }
     }
 
-    if (rules.length === 0 && !isBlocker) {
-       return NextResponse.json({ error: 'La clínica está cerrada en este día, no hay horarios disponibles.' }, { status: 400 });
-    }
-
+    // Admin endpoint: if no rules are configured, allow the booking anyway.
+    // Rules are enforced strictly only for automated/external bookings (n8n routes).
     if (rules.length > 0 && !isBlocker) {
        const rule = rules[0];
        const panamaDateStr = format(panamaDate, 'yyyy-MM-dd');
        const workStart = fromZonedTime(`${panamaDateStr}T${rule.startTime}:00`, 'America/Panama');
        const workEnd = fromZonedTime(`${panamaDateStr}T${rule.endTime}:00`, 'America/Panama');
 
-       // Both start and end must be within workStart and workEnd
        if (start < workStart || end > workEnd) {
           return NextResponse.json({ error: `El horario debe estar dentro de la disponibilidad (${rule.startTime} - ${rule.endTime}).` }, { status: 400 });
        }

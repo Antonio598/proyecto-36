@@ -237,12 +237,8 @@ export default function CalendarPage() {
     const dayOfWeek = slotInfo.start.getDay();
     const rule = availabilityRules.find(r => r.dayOfWeek === dayOfWeek);
     
-    // Only block if rules are configured AND this day has no rule (truly closed).
-    // If no rules are configured yet, let the backend validate instead of blocking.
-    if (!rule && availabilityRules.length > 0) {
-      alert('La sede está cerrada este día. Revisa Configurar Horarios Semanales en Calendarios.');
-      return;
-    }
+    // Admin calendar: never hard-block slot selection based on schedule rules.
+    // The schedule is a guide; admins can override it.
 
     if (rule) {
       const [startH, startM] = rule.startTime.split(':').map(Number);
