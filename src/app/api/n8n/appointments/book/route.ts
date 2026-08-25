@@ -143,8 +143,8 @@ export async function POST(request: Request) {
       overlapWhere.AND = [
         {
           OR: [
-            // Regular appointments or blockers in the same calendar
-            { calendarId: activeCalendarId },
+            // Regular appointments in the same calendar AND same subaccount
+            { calendarId: activeCalendarId, subaccountId: finalSubaccountId },
             // Only subaccount-level blockers (calendarId: null) — calendar-specific
             // blockers from OTHER calendars must not block unrelated calendars
             { subaccountId: finalSubaccountId, isBlocker: true, calendarId: null },

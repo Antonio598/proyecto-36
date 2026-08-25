@@ -200,10 +200,12 @@ export async function POST(request: Request) {
            ]
         };
         if (calendarId) {
+          // Scope to the same calendar AND same subaccount to avoid false conflicts
+          // with appointments from other projects that share the same calendarId (DB merge).
           overlappingWhere.AND = [
             {
               OR: [
-                { calendarId: calendarId },
+                { calendarId: calendarId, subaccountId: subaccountId || undefined },
                 { subaccountId: subaccountId || undefined, calendarId: null, isBlocker: true },
               ]
             }

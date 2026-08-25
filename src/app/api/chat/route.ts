@@ -213,7 +213,7 @@ export async function POST(req: Request) {
             };
             if (calendarId) {
               apptWhere.OR = [
-                { calendarId },
+                { calendarId, subaccountId },
                 { subaccountId, isBlocker: true, calendarId: null },
               ];
             } else {
@@ -292,7 +292,7 @@ export async function POST(req: Request) {
                 status: { notIn: ['CANCELLED'] },
                 startTime: { lt: new Date(start.getTime() + service.durationMinutes * 60000) },
                 endTime:   { gt: start },
-                OR: [{ calendarId }, { subaccountId, isBlocker: true, calendarId: null }],
+                OR: [{ calendarId, subaccountId }, { subaccountId, isBlocker: true, calendarId: null }],
               }
             });
             if (conflict) return { error: 'Ese horario ya está ocupado. Elige otro con checkAvailability.' };
