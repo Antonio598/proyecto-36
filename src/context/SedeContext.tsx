@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiFetch } from '@/lib/apiFetch';
+import { apiFetch, getAccountId } from '@/lib/apiFetch';
 
 interface Subaccount {
   id: string;
@@ -30,16 +30,23 @@ export function SedeProvider({ children }: { children: ReactNode }) {
           const data = await res.json();
           setSedes(data);
 
-          // Check if stored sede belongs to current account's sedes
+          const currentAccountId = getAccountId();
           const stored = localStorage.getItem('med_selected_sede');
-          const storedIsValid = stored && data.find((s: Subaccount) => s.id === stored);
+          const storedAccountId = localStorage.getItem('med_sede_account');
+
+          // Only use the stored sede if it belongs to the CURRENT account
+          const storedIsValid =
+            stored &&
+            storedAccountId === currentAccountId &&
+            data.find((s: Subaccount) => s.id === stored);
 
           if (storedIsValid) {
             setSelectedSedeState(stored);
           } else if (data.length > 0) {
-            // Clear stale sede from another account and use the first (main) sede
+            // Reset to first (main) sede — clears stale selection from another account
             setSelectedSedeState(data[0].id);
             localStorage.setItem('med_selected_sede', data[0].id);
+            localStorage.setItem('med_sede_account', currentAccountId || '');
           }
         }
       } catch (error) {
@@ -55,6 +62,7 @@ export function SedeProvider({ children }: { children: ReactNode }) {
   const setSelectedSede = (id: string) => {
     setSelectedSedeState(id);
     localStorage.setItem('med_selected_sede', id);
+    localStorage.setItem('med_sede_account', getAccountId() || '');
   };
 
   return (
