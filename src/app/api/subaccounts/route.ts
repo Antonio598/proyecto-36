@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const accountId = getAccountIdFromRequest(request);
     const subaccounts = await prisma.subaccount.findMany({
       where: accountId ? { accountId } : {},
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
       include: {
         _count: { select: { doctors: true, services: true, appointments: true } }
       }

@@ -30,10 +30,14 @@ export function SedeProvider({ children }: { children: ReactNode }) {
           const data = await res.json();
           setSedes(data);
 
+          // Check if stored sede belongs to current account's sedes
           const stored = localStorage.getItem('med_selected_sede');
-          if (stored && data.find((s: Subaccount) => s.id === stored)) {
+          const storedIsValid = stored && data.find((s: Subaccount) => s.id === stored);
+
+          if (storedIsValid) {
             setSelectedSedeState(stored);
           } else if (data.length > 0) {
+            // Clear stale sede from another account and use the first (main) sede
             setSelectedSedeState(data[0].id);
             localStorage.setItem('med_selected_sede', data[0].id);
           }
