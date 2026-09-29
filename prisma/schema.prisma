@@ -24,6 +24,8 @@ enum AppointmentStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+  ATTENDED
+  ABSENT
 }
 
 model User {
