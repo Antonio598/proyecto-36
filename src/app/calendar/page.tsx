@@ -505,29 +505,16 @@ export default function CalendarPage() {
     }
   };
 
+  const backgroundEventStyleGetter = (_event: any) => ({
+    style: {
+      background: 'repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 10px, #f8fafc 10px, #f8fafc 20px)',
+      opacity: 0.7,
+    }
+  });
+
   const eventStyleGetter = (event: any) => {
     const baseColor = event.color || '#3b82f6';
     const isCancelled = event.status === 'CANCELLED';
-    
-    if (event.isBackgroundBlock) {
-        return {
-           style: {
-              background: 'repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 10px, #f8fafc 10px, #f8fafc 20px)',
-              color: '#94a3b8',
-              border: 'none',
-              pointerEvents: 'none' as any,
-              opacity: 0.8,
-              zIndex: 1,
-              borderRadius: '0',
-              fontWeight: 'bold',
-              fontSize: '0.8rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 'inset 0 0 5px rgba(0,0,0,0.02)'
-           }
-        };
-    }
 
     if (event.isBlocker) {
       return {
@@ -678,7 +665,8 @@ export default function CalendarPage() {
           <div className="h-full bg-white rounded-xl overflow-hidden">
             <Calendar
               localizer={localizer}
-              events={[...events, ...backgroundBlocks]}
+              events={events}
+              backgroundEvents={backgroundBlocks}
               startAccessor="start"
               endAccessor="end"
               style={{ height: '100%', fontFamily: 'inherit' }}
@@ -688,6 +676,7 @@ export default function CalendarPage() {
               onNavigate={(newDate) => setDate(newDate)}
               onView={(newView) => setView(newView as any)}
               eventPropGetter={eventStyleGetter}
+              backgroundEventPropGetter={backgroundEventStyleGetter}
               selectable={selectedCalendarId !== ''} 
               onSelectSlot={(slot) => {
                  if(!selectedCalendarId) {
