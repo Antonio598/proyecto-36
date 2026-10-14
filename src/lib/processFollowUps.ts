@@ -1,6 +1,13 @@
 import prisma from '@/lib/prisma';
 
-const FOLLOW_UP_WEBHOOK = 'https://n8n-n8n.nqi4z7.easypanel.host/webhook/6e50af32-e45b-4d07-955b-744a04ffb8db';
+// Webhook URL por accountId.
+// Para agregar una nueva cuenta: añadir su accountId y URL aquí.
+const FOLLOW_UP_WEBHOOKS: Record<string, string> = {
+  '4f5f0385-397e-45f4-896d-231010f62b34': 'https://n8n-n8n.nqi4z7.easypanel.host/webhook/6e50af32-e45b-4d07-955b-744a04ffb8db', // vascularclinicpa
+  'aba58842-bdba-44f4-99d2-b214fc9d2a7d': 'https://n8n-n8n.nqi4z7.easypanel.host/webhook/b69d52df-99f1-4cae-a90d-b43907580241', // CC DE JESÚS
+};
+
+const DEFAULT_FOLLOW_UP_WEBHOOK = 'https://n8n-n8n.nqi4z7.easypanel.host/webhook/6e50af32-e45b-4d07-955b-744a04ffb8db';
 
 const MS_1H  = 1  * 60 * 60 * 1000;
 const MS_6H  = 6  * 60 * 60 * 1000;
@@ -89,9 +96,12 @@ export async function processFollowUps() {
 }
 
 async function sendFollowUp(contact: ContactLogRow, followUpNumber: 1 | 2 | 3, now: Date): Promise<boolean> {
+  const webhookUrl = FOLLOW_UP_WEBHOOKS[contact.accountId] || DEFAULT_FOLLOW_UP_WEBHOOK;
+
   const payload = {
     followUpNumber,
     contactLogId:     contact.id,
+    accountId:        contact.accountId,
     contactedAt:      contact.contactedAt.toISOString(),
     lastSeenAt:       contact.lastSeenAt?.toISOString() ?? null,
     isPatient:        !!contact.patientId,
@@ -105,7 +115,7 @@ async function sendFollowUp(contact: ContactLogRow, followUpNumber: 1 | 2 | 3, n
   };
 
   try {
-    const res = await fetch(FOLLOW_UP_WEBHOOK, {
+    const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -122,7 +132,7 @@ async function sendFollowUp(contact: ContactLogRow, followUpNumber: 1 | 2 | 3, n
       data: { [field]: now },
     });
 
-    console.log(`[followups] Follow-up ${followUpNumber} enviado a ${contact.phone}`);
+    console.log(`[followups] Follow-up ${followUpNumber} enviado a ${contact.phone} → ${webhookUrl}`);
     return true;
   } catch (err) {
     console.error(`[followups] Error enviando follow-up ${followUpNumber} a ${contact.phone}:`, err);
