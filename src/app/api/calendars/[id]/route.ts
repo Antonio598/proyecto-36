@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAccountIdFromRequest } from '@/lib/serverAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,21 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const accountId = getAccountIdFromRequest(request);
+    if (!accountId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { id } = await params;
+
+    // Verify ownership
+    const existing = await prisma.calendar.findUnique({
+      where: { id },
+      include: { subaccount: { select: { accountId: true } } },
+    });
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (existing.subaccount?.accountId !== accountId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { name, subaccountId, doctorId } = body;
 
@@ -35,12 +50,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    
-    await prisma.calendar.delete({
-      where: { id },
-    });
+    const accountId = getAccountIdFromRequest(request);
+    if (!accountId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const { id } = await params;
+
+    // Verify ownership
+    const existing = await prisma.calendar.findUnique({
+      where: { id },
+      include: { subaccount: { select: { accountId: true } } },
+    });
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (existing.subaccount?.accountId !== accountId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    await prisma.calendar.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting calendar:', error);

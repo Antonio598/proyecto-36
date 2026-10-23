@@ -105,6 +105,7 @@ export async function GET(request: Request) {
                 doctorId: targetDoctorId,
                 calendarId: null,
                 isBlocker: false,
+                subaccount: { accountId: account.id },
               },
               select: { startTime: true, endTime: true },
             })

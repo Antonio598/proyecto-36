@@ -7,13 +7,23 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const accountId = getAccountIdFromRequest(request);
+
+    if (!accountId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const subaccountId = searchParams.get('subaccountId');
 
     let where: any = {};
     if (subaccountId) {
+      // Validate that the subaccount belongs to this account
+      const sub = await prisma.subaccount.findFirst({
+        where: { id: subaccountId, accountId },
+      });
+      if (!sub) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       where.subaccountId = subaccountId;
-    } else if (accountId) {
+    } else {
       const accountSubaccounts = await prisma.subaccount.findMany({
         where: { accountId },
         select: { id: true },
@@ -39,12 +49,19 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const accountId = getAccountIdFromRequest(request);
+    if (!accountId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body = await request.json();
     const { name, subaccountId, doctorId } = body;
 
     if (!name || !subaccountId || !doctorId) {
       return NextResponse.json({ error: 'Name, subaccountId, and doctorId are required' }, { status: 400 });
     }
+
+    // Verify subaccount ownership
+    const sub = await prisma.subaccount.findFirst({ where: { id: subaccountId, accountId } });
+    if (!sub) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const calendar = await prisma.calendar.create({
       data: { name, subaccountId, doctorId },
